@@ -39,6 +39,10 @@ class Agent:
 
         try:
             for iteration in range(self.max_iterations):
+                print(f"\n{'─' * 80}")
+                print(f"🔄 Agent Iteration {iteration + 1}/{self.max_iterations}")
+                print(f"{'─' * 80}")
+
                 response = self.client.messages.create(
                     model="claude-sonnet-4-20250514",
                     max_tokens=8192,  # Maximum for Sonnet 4 - allows thorough investigations
@@ -49,10 +53,17 @@ class Agent:
 
                 # Check if we're done
                 if response.stop_reason == "end_turn":
+                    print(f"✅ Agent finished (stop_reason: end_turn)")
                     return self._extract_text(response)
 
                 # Handle tool use
                 if response.stop_reason == "tool_use":
+                    # Log what tools the agent wants to use
+                    tool_uses = [block for block in response.content if block.type == "tool_use"]
+                    print(f"\n🔧 Agent wants to use {len(tool_uses)} tool(s):")
+                    for block in tool_uses:
+                        print(f"  • {block.name}({self._format_inputs(block.input)})")
+
                     # Add assistant message with tool uses
                     messages.append({"role": "assistant", "content": response.content})
 
@@ -60,7 +71,11 @@ class Agent:
                     tool_results = []
                     for block in response.content:
                         if block.type == "tool_use":
+                            print(f"\n  ▶ Executing {block.name}...")
                             result = execute_tool(block.name, block.input)
+                            # Show result preview
+                            result_preview = result[:200] + "..." if len(result) > 200 else result
+                            print(f"  ◀ Result: {result_preview}")
                             tool_results.append(
                                 {
                                     "type": "tool_result",
@@ -74,6 +89,7 @@ class Agent:
 
                 else:
                     # Unexpected stop reason
+                    print(f"⚠️  Unexpected stop_reason: {response.stop_reason}")
                     return self._extract_text(response)
 
             # Hit max iterations
@@ -94,6 +110,16 @@ class Agent:
             if hasattr(block, "text"):
                 text_parts.append(block.text)
         return "".join(text_parts) or "No response generated"
+
+    def _format_inputs(self, inputs: dict) -> str:
+        """Format tool inputs for logging."""
+        parts = []
+        for key, value in inputs.items():
+            if isinstance(value, str) and len(value) > 50:
+                parts.append(f"{key}='{value[:50]}...'")
+            else:
+                parts.append(f"{key}={repr(value)}")
+        return ", ".join(parts)
 
     def _no_api_key_response(self, user_message: str) -> str:
         """Return helpful message when API key not configured."""
