@@ -8,7 +8,17 @@ Tag `@onkaul` in Slack or Jira to investigate issues, analyze code, and get acti
 
 ✅ **Phase 1**: Webhook Handlers - Complete
 ✅ **Phase 2**: Agent Loop + Tools - Complete
-🚧 **Phase 3**: External Integrations - Not Started
+✅ **Phase 2.5**: Jira + Slack Posting - Complete
+🚧 **Phase 3**: Security & Production (rate limiting, auth verification) - Not Started
+
+**Current Features:**
+- Real investigations using Claude Sonnet 4
+- Posts responses to Jira tickets (optional)
+- Posts responses to Slack threads (optional)
+- Immediate :onkaul: emoji reactions in Slack
+- Formatted responses with mrkdwn for Slack
+- Fetches thread context and Jira comments
+- Detailed real-time logging of agent activity
 
 See [plan.md](./plan.md) for full implementation details.
 
@@ -50,35 +60,42 @@ Create a `.env` file (copy from `.env.example`):
 cp .env.example .env
 ```
 
-**Required for Phase 2 (Agent Investigation):**
+**Required:**
 ```bash
+# Agent (required)
 ANTHROPIC_API_KEY=sk-ant-...  # Get from https://console.anthropic.com/
+
+# Enable posting (optional, default: false)
+ENABLE_JIRA_POSTING=true      # Set to true to post comments to Jira
+ENABLE_SLACK_POSTING=true     # Set to true to post replies in Slack
 ```
 
-**Optional - for full tool functionality:**
+**Tool Integration (required for investigations):**
 ```bash
+# Sentry - for error investigation (from ~/.sentryclirc)
+SENTRY_TOKEN=sntrys_...
+SENTRY_ORG=taptapsend
+
 # GitHub - uses gh CLI (must be authenticated: gh auth login)
 GITHUB_ORG=taptapsend
 
-# Sentry - for error investigation
-SENTRY_TOKEN=sntrys_...        # Get from Sentry.io settings
-SENTRY_ORG=your-org
+# Jira - uses acli CLI (must be installed and configured)
+JIRA_BASE_URL=https://taptapsend.atlassian.net
 
-# Datadog - for log queries
+# Slack - for posting responses (get from Slack app settings)
+SLACK_BOT_TOKEN=xoxb-...
+
+# Datadog - optional for log queries
 DATADOG_API_KEY=...
 DATADOG_APP_KEY=...
-
-# Jira - uses acli CLI (must be installed separately)
-JIRA_BASE_URL=https://yourcompany.atlassian.net
 ```
 
-**Phase 3 only (not needed yet):**
-```bash
-SLACK_BOT_TOKEN=xoxb-...
-SLACK_SIGNING_SECRET=...
-```
+**Prerequisites:**
+- `gh` CLI: `brew install gh && gh auth login`
+- `acli` CLI: See [Atlassian CLI docs](https://developer.atlassian.com/cloud/acli/)
+- Sentry token in `~/.sentryclirc`
 
-**Note**: The bot works without API keys but will return helpful setup messages instead of real investigations.
+**Note**: The bot works without API keys but will return helpful setup messages.
 
 ## Running
 
@@ -166,40 +183,68 @@ uv run pytest --cov=. --cov-report=html
 ```
 onKaul/
 ├── api/
-│   └── webhooks.py         # Webhook endpoints
+│   └── webhooks.py              # Slack/Jira webhook endpoints
+├── agent/
+│   ├── core.py                  # Agent loop with tool use
+│   └── prompts.py               # System prompt (dynamic from config)
+├── clients/
+│   ├── sentry.py                # Sentry REST API
+│   ├── github.py                # gh CLI wrapper
+│   ├── jira.py                  # acli CLI wrapper
+│   ├── datadog.py               # Datadog API
+│   └── slack.py                 # Slack API
+├── tools/
+│   ├── schemas.py               # Tool definitions for Claude
+│   └── handlers.py              # Tool execution
 ├── utils/
-│   └── logger.py           # Response logger
+│   ├── logger.py                # Response logger (JSONL)
+│   └── slack_formatter.py       # Markdown → mrkdwn
 ├── worker/
-│   └── tasks.py            # Background task handlers
-├── logs/                   # Response logs (gitignored)
-├── main.py                 # FastAPI app
-├── config.py               # Configuration
-├── pyproject.toml          # Project config (uv)
-├── requirements.txt        # Dependencies (pip)
+│   └── tasks.py                 # Background investigation handlers
+├── repository_config/
+│   └── repositories.py          # TapTap Send repo metadata
+├── logs/                        # Response logs (gitignored)
+├── main.py                      # FastAPI app
+├── config.py                    # Environment config
+├── .env                         # API keys (gitignored)
+├── pyproject.toml               # uv config
 └── README.md
 ```
 
-## Implementation Phases
+## Features
+
+### Investigation Tools
+- 🔍 **Sentry** - Fetch error details, stacktraces, frequency, affected users
+- 📁 **GitHub** - Search code in appian-frontend/appian-server (via `gh` CLI)
+- 📄 **Read Files** - Get full file contents from repos
+- 📊 **Datadog** - Query production logs (if configured)
+- 🎫 **Jira** - Fetch issue details + comments (via `acli` CLI)
+
+### Response Capabilities
+- **Slack**: Posts formatted responses in threads with :onkaul: reaction
+- **Jira**: Posts formatted comments to tickets
+- **Logging**: All responses logged to console + `logs/responses.jsonl`
+- **Real-time**: Detailed logging shows each tool use as it happens
+
+### Response Format
+Investigations include:
+- 🔍 **Investigation Path** - What the agent checked
+- 📊 **Confidence Score** - 🟢 High / 🟡 Medium / 🔴 Low
+- ⚠️ **Impact Assessment** - Severity, users affected, related issues
+- 📝 **Findings** - Root cause with file:line references
+- 💻 **Claude Code Prompt** - (Only when user asks for fix)
+
+### Configuration
+- **Max Iterations**: 100 (allows very thorough investigations)
+- **Max Output**: 8,192 tokens (comprehensive responses)
+- **Thread Context**: Reads Slack thread history and Jira comments
+- **Smart Routing**: Uses correct repo based on error type
+
+## Implementation Status
 
 - [x] **Phase 1**: Webhook handlers + logging
-- [x] **Phase 2**: Agent loop + tool system (current)
-- [ ] **Phase 3**: External integrations (Slack/Jira posting, security)
-
-### Phase 2 Features
-
-The agent can now:
-- 🔍 **Investigate Sentry errors** - Fetch stacktraces, frequency, affected users
-- 📁 **Search GitHub code** - Find relevant files in appian-frontend/appian-server
-- 📄 **Read files** - Get full file contents from repos
-- 📊 **Query Datadog logs** - Search production logs for issues
-- 🎫 **Search Jira** - Find related tickets and context
-- 🌐 **Web search** - Look up documentation (placeholder)
-
-The agent uses tools autonomously to investigate issues and provides:
-- Investigation breadcrumbs (what it checked)
-- Confidence score (🟢 High, 🟡 Medium, 🔴 Low)
-- Impact assessment (severity, users affected)
-- Root cause analysis with file references
-- Claude Code prompts for fixes
+- [x] **Phase 2**: Agent loop + tool system
+- [x] **Phase 2.5**: Jira + Slack posting with formatting
+- [ ] **Phase 3**: Security (rate limiting, signature verification, allowlists)
 
 See [plan.md](./plan.md) for detailed implementation plan.
