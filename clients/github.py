@@ -1,24 +1,16 @@
-"""GitHub API client."""
+"""GitHub client using gh CLI."""
 
-import base64
-
-import httpx
+import json
+import subprocess
 
 from config import config
 
 
 class GitHubClient:
-    """Client for GitHub API."""
+    """Client for GitHub using gh CLI."""
 
     def __init__(self):
-        self.base_url = "https://api.github.com"
         self.org = config.GITHUB_ORG
-        self.token = config.GITHUB_TOKEN
-        self.headers = {
-            "Accept": "application/vnd.github+json",
-        }
-        if self.token:
-            self.headers["Authorization"] = f"Bearer {self.token}"
 
     def search_code(self, repo: str, query: str) -> dict:
         """
@@ -31,27 +23,51 @@ class GitHubClient:
         Returns:
             Dict with matches and total count
         """
-        if not self.token:
-            return {"error": "GITHUB_TOKEN not configured"}
-
         try:
-            response = httpx.get(
-                f"{self.base_url}/search/code",
-                headers=self.headers,
-                params={"q": f"{query} repo:{self.org}/{repo}"},
-                timeout=10.0,
+            # Use gh search code command
+            result = subprocess.run(
+                [
+                    "gh",
+                    "search",
+                    "code",
+                    query,
+                    "--repo",
+                    f"{self.org}/{repo}",
+                    "--json",
+                    "path,repository",
+                    "--limit",
+                    "10",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
-            response.raise_for_status()
-            data = response.json()
 
+            if result.returncode != 0:
+                return {"error": f"gh error: {result.stderr}"}
+
+            # Parse JSON output
+            data = json.loads(result.stdout)
             results = []
-            for item in data.get("items", [])[:10]:  # Top 10 results
-                results.append({"path": item["path"], "url": item.get("html_url")})
 
-            return {"matches": results, "total_count": data.get("total_count", 0)}
+            for item in data:
+                repo_name = item.get("repository", {}).get("name", repo)
+                path = item.get("path", "")
+                results.append(
+                    {
+                        "path": path,
+                        "url": f"https://github.com/{self.org}/{repo_name}/blob/main/{path}",
+                    }
+                )
 
-        except httpx.HTTPStatusError as e:
-            return {"error": f"GitHub API error: {e.response.status_code}"}
+            return {"matches": results, "total_count": len(results)}
+
+        except subprocess.TimeoutExpired:
+            return {"error": "gh command timed out"}
+        except json.JSONDecodeError:
+            return {"error": "Failed to parse gh JSON output"}
+        except FileNotFoundError:
+            return {"error": "gh CLI not installed or not in PATH"}
         except Exception as e:
             return {"error": f"Failed to search code: {str(e)}"}
 
@@ -67,31 +83,41 @@ class GitHubClient:
         Returns:
             Dict with file content
         """
-        if not self.token:
-            return {"error": "GITHUB_TOKEN not configured"}
-
         try:
-            response = httpx.get(
-                f"{self.base_url}/repos/{self.org}/{repo}/contents/{path}",
-                headers=self.headers,
-                params={"ref": branch},
-                timeout=10.0,
+            # Use gh api to read file contents
+            result = subprocess.run(
+                [
+                    "gh",
+                    "api",
+                    f"repos/{self.org}/{repo}/contents/{path}",
+                    "-q",
+                    ".content",
+                    "-f",
+                    f"ref={branch}",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
-            response.raise_for_status()
-            data = response.json()
+
+            if result.returncode != 0:
+                return {"error": f"gh error: {result.stderr}"}
 
             # Decode base64 content
-            content = base64.b64decode(data["content"]).decode("utf-8")
+            import base64
+
+            content = base64.b64decode(result.stdout.strip()).decode("utf-8")
 
             return {
                 "path": path,
                 "content": content,
-                "sha": data["sha"],
-                "size": data["size"],
+                "branch": branch,
             }
 
-        except httpx.HTTPStatusError as e:
-            return {"error": f"GitHub API error: {e.response.status_code}"}
+        except subprocess.TimeoutExpired:
+            return {"error": "gh command timed out"}
+        except FileNotFoundError:
+            return {"error": "gh CLI not installed or not in PATH"}
         except Exception as e:
             return {"error": f"Failed to read file: {str(e)}"}
 
@@ -106,32 +132,40 @@ class GitHubClient:
         Returns:
             Dict with items list
         """
-        if not self.token:
-            return {"error": "GITHUB_TOKEN not configured"}
-
         try:
-            response = httpx.get(
-                f"{self.base_url}/repos/{self.org}/{repo}/contents/{path}",
-                headers=self.headers,
-                timeout=10.0,
-            )
-            response.raise_for_status()
-            data = response.json()
+            # Use gh api to list directory
+            api_path = f"repos/{self.org}/{repo}/contents/{path}" if path else f"repos/{self.org}/{repo}/contents"
 
+            result = subprocess.run(
+                ["gh", "api", api_path, "--jq", ".[].name,.[].type,.[].path"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+
+            if result.returncode != 0:
+                return {"error": f"gh error: {result.stderr}"}
+
+            # Parse output (3 lines per item: name, type, path)
+            lines = result.stdout.strip().split("\n")
             items = []
-            for item in data:
-                items.append(
-                    {
-                        "name": item["name"],
-                        "type": item["type"],  # "file" or "dir"
-                        "path": item["path"],
-                    }
-                )
+
+            for i in range(0, len(lines), 3):
+                if i + 2 < len(lines):
+                    items.append(
+                        {
+                            "name": lines[i],
+                            "type": lines[i + 1],
+                            "path": lines[i + 2],
+                        }
+                    )
 
             return {"items": items}
 
-        except httpx.HTTPStatusError as e:
-            return {"error": f"GitHub API error: {e.response.status_code}"}
+        except subprocess.TimeoutExpired:
+            return {"error": "gh command timed out"}
+        except FileNotFoundError:
+            return {"error": "gh CLI not installed or not in PATH"}
         except Exception as e:
             return {"error": f"Failed to list directory: {str(e)}"}
 

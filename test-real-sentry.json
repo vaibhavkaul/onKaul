@@ -1,0 +1,10 @@
+{
+  "event": {
+    "type": "app_mention",
+    "channel": "C123456",
+    "ts": "1234567890.123456",
+    "thread_ts": "1234567890.123456",
+    "text": "@onkaul investigate Sentry issue https://taptapsend.sentry.io/issues/7215380846/events/4a98a6eceb5f4066ad04327cd0e00c48?project=251802&referrer=alert-rule-issue-list",
+    "user": "U789"
+  }
+}

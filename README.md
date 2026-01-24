@@ -57,8 +57,7 @@ ANTHROPIC_API_KEY=sk-ant-...  # Get from https://console.anthropic.com/
 
 **Optional - for full tool functionality:**
 ```bash
-# GitHub - for code search and file reading
-GITHUB_TOKEN=ghp_...           # Get from https://github.com/settings/tokens
+# GitHub - uses gh CLI (must be authenticated: gh auth login)
 GITHUB_ORG=taptapsend
 
 # Sentry - for error investigation
