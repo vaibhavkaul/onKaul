@@ -41,7 +41,7 @@ class Agent:
             for iteration in range(self.max_iterations):
                 response = self.client.messages.create(
                     model="claude-sonnet-4-20250514",
-                    max_tokens=4096,
+                    max_tokens=8192,  # Maximum for Sonnet 4 - allows thorough investigations
                     system=SYSTEM_PROMPT,
                     tools=TOOL_SCHEMAS,
                     messages=messages,
