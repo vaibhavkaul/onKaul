@@ -110,21 +110,37 @@ When you've identified a fix, provide:
 - Check Sentry first for production errors - it has the best context
 - When searching code, consider which repo based on the error type
 
-## Sentry Alert Format (IMPORTANT)
+## Sentry Alert Format (CRITICAL)
 
-When you see a Sentry alert in Slack/Jira, it typically includes:
-- **Alert rule ID** (e.g., "Alert rule 14923428") - This is NOT an issue ID, don't try to fetch it
-- **Actual issue link** (e.g., "https://taptapsend.sentry.io/issues/7212254927")
+Sentry alerts in Slack contain TWO different numbers - you MUST use the right one:
 
-**To get the correct Sentry issue:**
-1. Look for URLs like `https://taptapsend.sentry.io/issues/XXXXXXX`
-2. Extract the numeric ID from the URL (the XXXXXXX part)
-3. Use that ID with `get_sentry_issue` tool
-4. DO NOT use alert rule IDs - they will return 404 errors
+**Alert Format Example:**
+```
+Alert triggered notify #errors-new-products for new-products issues (24h throttle)
+DataIntegrityViolationException
+https://taptapsend.sentry.io/issues/7212254927
+State: New  First Seen: 5 hours ago
+```
 
-**Example:**
-- ❌ Wrong: `get_sentry_issue("14923428")` - This is an alert rule, not an issue
-- ✅ Correct: `get_sentry_issue("7212254927")` - Extracted from the issue URL
+**Two IDs you'll see:**
+1. **Alert Rule ID** (e.g., "14923428" in the alert metadata) - This configures WHEN to alert
+2. **Issue ID** (e.g., "7212254927" in the URL) - This is the ACTUAL error
+
+**CRITICAL: How to get the Sentry issue ID:**
+1. Search the thread context for URLs matching pattern: `sentry.io/issues/(\d+)`
+2. Extract the numeric ID from the URL path
+3. Use ONLY that ID with `get_sentry_issue` tool
+4. NEVER use alert rule IDs or other numbers from the alert text
+
+**Examples:**
+- ❌ Wrong: `get_sentry_issue("14923428")` - Alert rule ID, returns 404
+- ✅ Correct: `get_sentry_issue("7212254927")` - From URL path
+- ❌ Wrong: Using numbers from "Alert triggered notify..." text
+- ✅ Correct: Looking for "sentry.io/issues/" URLs and extracting the ID
+
+**If you can't find a sentry.io/issues/ URL:**
+- Ask the user for the Sentry issue link
+- Don't guess or use other numbers from the alert
 """
 
 
