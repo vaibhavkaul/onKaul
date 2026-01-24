@@ -50,6 +50,49 @@ class SlackClient:
         except Exception as e:
             return {"error": f"Failed to fetch thread: {str(e)}", "messages": []}
 
+    def add_reaction(self, channel: str, timestamp: str, emoji: str) -> dict:
+        """
+        Add emoji reaction to a message.
+
+        Args:
+            channel: Channel ID
+            timestamp: Message timestamp
+            emoji: Emoji name without colons (e.g., 'onkaul', 'eyes', 'rocket')
+
+        Returns:
+            Dict with success/error status
+        """
+        if not self.token:
+            return {"error": "SLACK_BOT_TOKEN not configured", "success": False}
+
+        try:
+            response = httpx.post(
+                f"{self.base_url}/reactions.add",
+                headers=self.headers,
+                json={
+                    "channel": channel,
+                    "timestamp": timestamp,
+                    "name": emoji,
+                },
+                timeout=5.0,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            if not data.get("ok"):
+                error = data.get("error", "unknown")
+                # Ignore "already_reacted" error - it's fine
+                if error == "already_reacted":
+                    return {"success": True, "message": "Already reacted"}
+                return {"error": f"Slack API error: {error}", "success": False}
+
+            return {"success": True, "message": f"Added :{emoji}: reaction"}
+
+        except httpx.HTTPStatusError as e:
+            return {"error": f"HTTP error: {e.response.status_code}", "success": False}
+        except Exception as e:
+            return {"error": f"Failed to add reaction: {str(e)}", "success": False}
+
     def post_message(self, channel: str, text: str, thread_ts: str | None = None) -> dict:
         """
         Post a message to a Slack channel.

@@ -102,6 +102,7 @@ async def slack_webhook(
 
     # Extract context
     channel = event.channel
+    message_ts = event.ts  # Timestamp of the @mention message
     thread_ts = event.thread_ts or event.ts  # Use thread or message ts
     user_message = event.text
     user_id = event.user
@@ -111,6 +112,14 @@ async def slack_webhook(
     print(f"🧵 Thread: {thread_ts}")
     print(f"💬 Message: {user_message[:100]}...")
     print(f"🔍 Contains @onkaul: {'@onkaul' in user_message.lower()}")
+
+    # Add immediate reaction to acknowledge
+    print(f"👍 Adding :onkaul: reaction to message...")
+    reaction_result = slack.add_reaction(channel, message_ts, "onkaul")
+    if reaction_result.get("success"):
+        print(f"✅ Reaction added")
+    else:
+        print(f"⚠️  Failed to add reaction: {reaction_result.get('error')}")
 
     # Fetch thread context if this is a reply
     thread_context = None
