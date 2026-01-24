@@ -169,14 +169,14 @@ class JiraClient:
                     "workitem",
                     "comment",
                     "create",
-                    "--issue",
+                    "--key",
                     issue_key,
-                    "--comment",
+                    "--body",
                     comment,
                 ],
                 capture_output=True,
                 text=True,
-                timeout=10,
+                timeout=30,  # Increased timeout for longer comments
             )
 
             if result.returncode != 0:
