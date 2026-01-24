@@ -4,6 +4,7 @@ import time
 
 from agent.core import agent
 from clients.jira import jira
+from clients.slack import slack
 from config import config
 from utils.logger import logger
 
@@ -27,7 +28,7 @@ def handle_slack_mention(
     print(f"🧵 Thread: {thread_ts}")
     print(f"👤 User: {user_id}")
     print(f"💬 Request: {user_message[:100]}...")
-    print(f"📤 Will post to Slack: False (Phase 3)")
+    print(f"📤 Will post to Slack: {config.ENABLE_SLACK_POSTING}")
     print("-" * 80)
 
     start_time = time.time()
@@ -42,7 +43,7 @@ def handle_slack_mention(
         # Calculate duration
         duration_ms = (time.time() - start_time) * 1000
 
-        # Log the response (Phase 3 will post to Slack too)
+        # Always log (for monitoring/debugging)
         print("📝 Logging response...")
         logger.log_response(
             source="slack",
@@ -52,12 +53,23 @@ def handle_slack_mention(
                 "thread_ts": thread_ts,
                 "user_message": user_message,
                 "user_id": user_id,
-                "posted_to_slack": False,  # Phase 3
+                "posted_to_slack": config.ENABLE_SLACK_POSTING,
             },
             investigation_duration_ms=duration_ms,
         )
 
-        print("⏭️  Skipping Slack post (Phase 3 feature)")
+        # Post to Slack if enabled
+        if config.ENABLE_SLACK_POSTING:
+            print(f"📤 Posting message to channel {channel} (thread {thread_ts})...")
+            result = slack.post_message(channel, response, thread_ts)
+            if result.get("success"):
+                print(f"✅ Successfully posted to Slack")
+                print(f"🔗 Message timestamp: {result.get('ts')}")
+            else:
+                print(f"❌ Failed to post to Slack: {result.get('error')}")
+        else:
+            print("⏭️  Skipping Slack post (ENABLE_SLACK_POSTING=false)")
+
         print("=" * 80)
         print(f"✨ INVESTIGATION COMPLETE - {duration_ms:.0f}ms")
         print("=" * 80 + "\n")
@@ -80,6 +92,15 @@ def handle_slack_mention(
                 "error": str(e),
             },
         )
+
+        # Post error to Slack if enabled
+        if config.ENABLE_SLACK_POSTING:
+            print(f"📤 Posting error to channel {channel}...")
+            result = slack.post_message(channel, error_response, thread_ts)
+            if result.get("success"):
+                print(f"✅ Error posted to Slack")
+            else:
+                print(f"❌ Failed to post error: {result.get('error')}")
 
         print("=" * 80 + "\n")
 

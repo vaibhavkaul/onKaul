@@ -17,8 +17,9 @@ class Config:
     DEBUG = os.getenv("DEBUG", "false").lower() == "true"
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
-    # Phase 2.5 - Enable real posting to Jira (Phase 3 will add Slack)
+    # Phase 2.5 - Enable real posting
     ENABLE_JIRA_POSTING = os.getenv("ENABLE_JIRA_POSTING", "false").lower() == "true"
+    ENABLE_SLACK_POSTING = os.getenv("ENABLE_SLACK_POSTING", "false").lower() == "true"
 
     # Paths
     BASE_DIR = Path(__file__).parent
