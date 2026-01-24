@@ -22,13 +22,23 @@ def format_for_slack(markdown_text: str) -> str:
     """
     text = markdown_text
 
-    # Convert markdown headers (## Header) to bold text
+    # First, convert markdown headers (## Header) to bold text
     # ## Text -> *Text*
     # ### Text -> *Text*
     text = re.sub(r'^#{1,6}\s+(.+)$', r'*\1*', text, flags=re.MULTILINE)
 
     # Convert markdown bold (**text**) to Slack bold (*text*)
-    text = re.sub(r'\*\*([^*]+)\*\*', r'*\1*', text)
+    # Do this multiple times to handle nested/adjacent cases
+    while '**' in text:
+        text = re.sub(r'\*\*([^*]+?)\*\*', r'*\1*', text)
+
+    # Clean up any triple or more asterisks that might have been created
+    # *** -> *
+    text = re.sub(r'\*{3,}', '*', text)
+
+    # Fix edge case: *emoji *Text** -> *emoji Text*
+    # Remove space before closing bold after emoji
+    text = re.sub(r'\*([^\*]+?)\s+\*([^\*]+?)\*', r'*\1 \2*', text)
 
     # Convert markdown links [text](url) to Slack links <url|text>
     text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<\2|\1>', text)
