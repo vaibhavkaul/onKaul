@@ -69,19 +69,32 @@ def handle_jira_mention(
     Phase 2.5: Post to Jira if ENABLE_JIRA_POSTING=true.
     Phase 3: Add Slack posting too.
     """
+    print("\n" + "=" * 80)
+    print("🤖 STARTING INVESTIGATION")
+    print("=" * 80)
+    print(f"📋 Jira Issue: {issue_key}")
+    print(f"👤 Requested by: {author}")
+    print(f"💬 Request: {comment_body[:100]}...")
+    print(f"📤 Will post to Jira: {config.ENABLE_JIRA_POSTING}")
+    print("-" * 80)
+
     start_time = time.time()
 
     try:
         # Build context from Jira issue
         context = f"Jira Issue: {issue_key}\nComment from {author}"
 
+        print("🧠 Calling agent...")
         # Real agent investigation
         response = agent.investigate(comment_body, context=context)
+        print(f"✅ Investigation complete ({len(response)} chars)")
+        print("-" * 80)
 
         # Calculate duration
         duration_ms = (time.time() - start_time) * 1000
 
         # Always log (for monitoring/debugging)
+        print("📝 Logging response...")
         logger.log_response(
             source="jira",
             response=response,
@@ -96,13 +109,26 @@ def handle_jira_mention(
 
         # Phase 2.5: Post to Jira if enabled
         if config.ENABLE_JIRA_POSTING:
+            print(f"📤 Posting comment to {issue_key}...")
             result = jira.add_comment(issue_key, response)
-            if not result.get("success"):
-                print(f"Failed to post to Jira: {result.get('error')}")
+            if result.get("success"):
+                print(f"✅ Successfully posted to {issue_key}")
+                print(f"🔗 View at: https://taptapsend.atlassian.net/browse/{issue_key}")
+            else:
+                print(f"❌ Failed to post to Jira: {result.get('error')}")
+        else:
+            print("⏭️  Skipping Jira post (ENABLE_JIRA_POSTING=false)")
+
+        print("=" * 80)
+        print(f"✨ INVESTIGATION COMPLETE - {duration_ms:.0f}ms")
+        print("=" * 80 + "\n")
 
     except Exception as e:
         # Log error response
         error_response = f"Sorry, I encountered an error: {str(e)}"
+
+        print(f"❌ ERROR during investigation: {str(e)}")
+        print("-" * 80)
 
         logger.log_response(
             source="jira",
@@ -117,4 +143,11 @@ def handle_jira_mention(
 
         # Post error to Jira if enabled
         if config.ENABLE_JIRA_POSTING:
-            jira.add_comment(issue_key, error_response)
+            print(f"📤 Posting error to {issue_key}...")
+            result = jira.add_comment(issue_key, error_response)
+            if result.get("success"):
+                print(f"✅ Error posted to {issue_key}")
+            else:
+                print(f"❌ Failed to post error: {result.get('error')}")
+
+        print("=" * 80 + "\n")

@@ -115,6 +115,11 @@ async def jira_webhook(
     """
     payload_dict = await request.json()
 
+    print("\n" + "=" * 80)
+    print("🎫 JIRA WEBHOOK RECEIVED")
+    print("=" * 80)
+    print(f"Raw payload keys: {list(payload_dict.keys())}")
+
     # Parse payload
     payload = JiraWebhookPayload(**payload_dict)
 
@@ -122,9 +127,19 @@ async def jira_webhook(
     comment_body = payload.comment.body
     author = payload.comment.author.displayName
 
+    print(f"📋 Issue: {issue_key}")
+    print(f"👤 Author: {author}")
+    print(f"💬 Comment: {comment_body[:100]}...")
+    print(f"🔍 Contains @onkaul: {'@onkaul' in comment_body}")
+
     # Only process if @onkaul is mentioned
     if "@onkaul" not in comment_body:
+        print("⏭️  Skipping - no @onkaul mention")
+        print("=" * 80 + "\n")
         return {"ok": True, "message": "No mention, ignored"}
+
+    print("✅ Valid mention - queuing investigation")
+    print("=" * 80 + "\n")
 
     # Queue background investigation
     background_tasks.add_task(
