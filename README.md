@@ -6,7 +6,9 @@ Tag `@onkaul` in Slack or Jira to investigate issues, analyze code, and get acti
 
 ## Status
 
-🚧 **In Development** - Phase 1: Webhook Handlers
+✅ **Phase 1**: Webhook Handlers - Complete
+✅ **Phase 2**: Agent Loop + Tools - Complete
+🚧 **Phase 3**: External Integrations - Not Started
 
 See [plan.md](./plan.md) for full implementation details.
 
@@ -42,21 +44,42 @@ pip install -r requirements.txt
 
 ### Configuration
 
-Create a `.env` file:
+Create a `.env` file (copy from `.env.example`):
 
 ```bash
-# Required for Phase 2+
-ANTHROPIC_API_KEY=your_api_key_here
-
-# Required for Phase 3+ (when integrating with real services)
-SLACK_BOT_TOKEN=xoxb-your-token
-SLACK_SIGNING_SECRET=your-secret
-JIRA_BASE_URL=https://yourcompany.atlassian.net
-SENTRY_TOKEN=your-token
-GITHUB_TOKEN=your-token
-DATADOG_API_KEY=your-key
-DATADOG_APP_KEY=your-key
+cp .env.example .env
 ```
+
+**Required for Phase 2 (Agent Investigation):**
+```bash
+ANTHROPIC_API_KEY=sk-ant-...  # Get from https://console.anthropic.com/
+```
+
+**Optional - for full tool functionality:**
+```bash
+# GitHub - for code search and file reading
+GITHUB_TOKEN=ghp_...           # Get from https://github.com/settings/tokens
+GITHUB_ORG=taptapsend
+
+# Sentry - for error investigation
+SENTRY_TOKEN=sntrys_...        # Get from Sentry.io settings
+SENTRY_ORG=your-org
+
+# Datadog - for log queries
+DATADOG_API_KEY=...
+DATADOG_APP_KEY=...
+
+# Jira - uses acli CLI (must be installed separately)
+JIRA_BASE_URL=https://yourcompany.atlassian.net
+```
+
+**Phase 3 only (not needed yet):**
+```bash
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_SIGNING_SECRET=...
+```
+
+**Note**: The bot works without API keys but will return helpful setup messages instead of real investigations.
 
 ## Running
 
@@ -159,8 +182,25 @@ onKaul/
 
 ## Implementation Phases
 
-- [x] **Phase 1**: Webhook handlers + logging (current)
-- [ ] **Phase 2**: Agent loop + tool system
+- [x] **Phase 1**: Webhook handlers + logging
+- [x] **Phase 2**: Agent loop + tool system (current)
 - [ ] **Phase 3**: External integrations (Slack/Jira posting, security)
+
+### Phase 2 Features
+
+The agent can now:
+- 🔍 **Investigate Sentry errors** - Fetch stacktraces, frequency, affected users
+- 📁 **Search GitHub code** - Find relevant files in appian-frontend/appian-server
+- 📄 **Read files** - Get full file contents from repos
+- 📊 **Query Datadog logs** - Search production logs for issues
+- 🎫 **Search Jira** - Find related tickets and context
+- 🌐 **Web search** - Look up documentation (placeholder)
+
+The agent uses tools autonomously to investigate issues and provides:
+- Investigation breadcrumbs (what it checked)
+- Confidence score (🟢 High, 🟡 Medium, 🔴 Low)
+- Impact assessment (severity, users affected)
+- Root cause analysis with file references
+- Claude Code prompts for fixes
 
 See [plan.md](./plan.md) for detailed implementation plan.

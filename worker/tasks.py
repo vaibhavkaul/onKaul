@@ -2,6 +2,7 @@
 
 import time
 
+from agent.core import agent
 from utils.logger import logger
 
 
@@ -14,20 +15,19 @@ def handle_slack_mention(
     """
     Handle a Slack mention.
 
-    Phase 1: Stub response, just log.
-    Phase 2: Call agent for real investigation.
+    Phase 2: Use agent for real investigation.
     Phase 3: Post back to Slack instead of logging.
     """
     start_time = time.time()
 
     try:
-        # Phase 1: Stub response
-        response = _generate_stub_response("slack", user_message)
+        # Phase 2: Real agent investigation
+        response = agent.investigate(user_message)
 
         # Calculate duration
         duration_ms = (time.time() - start_time) * 1000
 
-        # Log instead of posting
+        # Log instead of posting (still logging in Phase 2!)
         logger.log_response(
             source="slack",
             response=response,
@@ -64,20 +64,22 @@ def handle_jira_mention(
     """
     Handle a Jira mention.
 
-    Phase 1: Stub response, just log.
-    Phase 2: Call agent for real investigation.
+    Phase 2: Use agent for real investigation.
     Phase 3: Post back to Jira instead of logging.
     """
     start_time = time.time()
 
     try:
-        # Phase 1: Stub response
-        response = _generate_stub_response("jira", comment_body)
+        # Build context from Jira issue
+        context = f"Jira Issue: {issue_key}\nComment from {author}"
+
+        # Phase 2: Real agent investigation
+        response = agent.investigate(comment_body, context=context)
 
         # Calculate duration
         duration_ms = (time.time() - start_time) * 1000
 
-        # Log instead of posting
+        # Log instead of posting (still logging in Phase 2!)
         logger.log_response(
             source="jira",
             response=response,
@@ -102,33 +104,3 @@ def handle_jira_mention(
                 "error": str(e),
             },
         )
-
-
-def _generate_stub_response(source: str, user_message: str) -> str:
-    """
-    Generate a stub response for Phase 1 testing.
-
-    Phase 2: Replace with actual agent investigation.
-    """
-    return f"""👀 Looking into this...
-
-**[STUB RESPONSE - Phase 1]**
-
-I received your request from {source}:
-> {user_message}
-
-In Phase 2, I'll investigate using:
-- Sentry error details
-- GitHub code search
-- Datadog logs
-- Jira issue context
-
-And provide:
-🔍 Investigation breadcrumbs
-📊 Confidence score
-⚠️ Impact assessment
-📝 Findings with file references
-💻 Claude Code prompt for fixes
-
-For now, I'm just logging this response instead of posting back to {source}.
-"""
