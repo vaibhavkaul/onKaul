@@ -7,6 +7,7 @@ from clients.jira import jira
 from clients.slack import slack
 from config import config
 from utils.logger import logger
+from utils.slack_formatter import format_for_slack
 
 
 def handle_slack_mention(
@@ -79,7 +80,9 @@ def handle_slack_mention(
         # Post to Slack if enabled
         if config.ENABLE_SLACK_POSTING:
             print(f"📤 Posting message to channel {channel} (thread {thread_ts})...")
-            result = slack.post_message(channel, response, thread_ts)
+            # Format response for Slack (convert markdown to mrkdwn)
+            slack_formatted = format_for_slack(response)
+            result = slack.post_message(channel, slack_formatted, thread_ts)
             if result.get("success"):
                 print(f"✅ Successfully posted to Slack")
                 print(f"🔗 Message timestamp: {result.get('ts')}")
@@ -114,7 +117,8 @@ def handle_slack_mention(
         # Post error to Slack if enabled
         if config.ENABLE_SLACK_POSTING:
             print(f"📤 Posting error to channel {channel}...")
-            result = slack.post_message(channel, error_response, thread_ts)
+            slack_formatted = format_for_slack(error_response)
+            result = slack.post_message(channel, slack_formatted, thread_ts)
             if result.get("success"):
                 print(f"✅ Error posted to Slack")
             else:

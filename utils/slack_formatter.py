@@ -1,0 +1,42 @@
+"""Format markdown text for Slack's mrkdwn format."""
+
+import re
+
+
+def format_for_slack(markdown_text: str) -> str:
+    """
+    Convert markdown to Slack's mrkdwn format.
+
+    Slack differences from markdown:
+    - Bold: *text* (single asterisk, not double **)
+    - Headers: No ## support, use *bold text* instead
+    - Code blocks: ``` works
+    - Lists: - works
+    - Links: <url|text> instead of [text](url)
+
+    Args:
+        markdown_text: Text in standard markdown format
+
+    Returns:
+        Text formatted for Slack mrkdwn
+    """
+    text = markdown_text
+
+    # Convert markdown headers (## Header) to bold text
+    # ## Text -> *Text*
+    # ### Text -> *Text*
+    text = re.sub(r'^#{1,6}\s+(.+)$', r'*\1*', text, flags=re.MULTILINE)
+
+    # Convert markdown bold (**text**) to Slack bold (*text*)
+    text = re.sub(r'\*\*([^*]+)\*\*', r'*\1*', text)
+
+    # Convert markdown links [text](url) to Slack links <url|text>
+    text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<\2|\1>', text)
+
+    # Convert inline code with file:line pattern to preserve backticks
+    # `file.kt:123` stays as `file.kt:123`
+    # This already works in Slack
+
+    # Code blocks ``` already work in Slack, no change needed
+
+    return text
