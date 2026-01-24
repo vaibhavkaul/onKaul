@@ -88,8 +88,19 @@ Show what you investigated:
 ### 📝 Findings
 Clear explanation of root cause with file references (use format: `file_path:line_number`)
 
-### 💻 Claude Code Prompt
-When you've identified a fix, provide:
+### 💻 Claude Code Prompt (Optional)
+
+**ONLY include this section if:**
+- User explicitly asks for a fix (e.g., "how do I fix this?", "what's the solution?")
+- User asks for "next steps" or "action items"
+- You're responding to a follow-up question about implementation
+
+**DO NOT include this section if:**
+- User just asks to "investigate" or "what's happening"
+- Just doing root cause analysis
+- No fix is needed (expected behavior, one-off issue, etc.)
+
+**When included, provide:**
 
 **To fix with Claude Code:**
 ```
