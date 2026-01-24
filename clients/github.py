@@ -78,22 +78,21 @@ class GitHubClient:
         Args:
             repo: Repository name
             path: File path from repo root
-            branch: Branch name (default: main)
+            branch: Branch name (default: main) - currently ignored, uses default branch
 
         Returns:
             Dict with file content
         """
         try:
             # Use gh api to read file contents
+            # Note: Not specifying branch - uses repo's default branch
             result = subprocess.run(
                 [
                     "gh",
                     "api",
                     f"repos/{self.org}/{repo}/contents/{path}",
-                    "-q",
+                    "--jq",
                     ".content",
-                    "-f",
-                    f"ref={branch}",
                 ],
                 capture_output=True,
                 text=True,
@@ -111,7 +110,7 @@ class GitHubClient:
             return {
                 "path": path,
                 "content": content,
-                "branch": branch,
+                "branch": branch,  # Requested branch (not actually used)
             }
 
         except subprocess.TimeoutExpired:
