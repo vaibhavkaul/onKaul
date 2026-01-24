@@ -1,6 +1,6 @@
 """System prompts for the agent."""
 
-from config.repositories import (
+from repository_config.repositories import (
     INVESTIGATION_STRATEGY,
     get_all_repositories,
 )
