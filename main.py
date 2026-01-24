@@ -1,0 +1,50 @@
+"""FastAPI application entrypoint."""
+
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+
+from api.webhooks import router as webhook_router
+from config import config
+
+# Create FastAPI app
+app = FastAPI(
+    title=config.APP_NAME,
+    description="Internal developer assistant agent for TapTap Send",
+    version="0.1.0",
+    debug=config.DEBUG,
+)
+
+# Include routers
+app.include_router(webhook_router)
+
+
+@app.get("/")
+async def root():
+    """Health check endpoint."""
+    return {
+        "app": config.APP_NAME,
+        "status": "running",
+        "phase": "1 - Webhook Handlers",
+        "endpoints": {
+            "slack": "/webhook/slack",
+            "jira": "/webhook/jira",
+        },
+    }
+
+
+@app.get("/health")
+async def health():
+    """Health check for monitoring."""
+    return JSONResponse(content={"status": "healthy"}, status_code=200)
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=config.DEBUG,
+        log_level=config.LOG_LEVEL.lower(),
+    )
