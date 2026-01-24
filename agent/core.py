@@ -14,7 +14,7 @@ class Agent:
     def __init__(self):
         self.api_key = config.ANTHROPIC_API_KEY
         self.client = anthropic.Anthropic(api_key=self.api_key) if self.api_key else None
-        self.max_iterations = 15
+        self.max_iterations = 30  # Increased for thorough investigations
 
     def investigate(self, user_message: str, context: str = "") -> str:
         """
@@ -79,7 +79,7 @@ class Agent:
             # Hit max iterations
             return (
                 self._extract_text(response)
-                + "\n\n_[Note: Investigation reached iteration limit]_"
+                + f"\n\n_[Note: Investigation reached iteration limit after {iteration + 1} tool uses. Consider breaking this into smaller questions.]_"
             )
 
         except anthropic.APIError as e:
