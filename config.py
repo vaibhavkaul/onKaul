@@ -48,10 +48,6 @@ class Config:
     DATADOG_API_KEY = os.getenv("DATADOG_API_KEY")
     DATADOG_APP_KEY = os.getenv("DATADOG_APP_KEY")
 
-    # Google Custom Search (for web_search tool)
-    GOOGLE_SEARCH_API_KEY = os.getenv("GOOGLE_SEARCH_API_KEY")
-    GOOGLE_SEARCH_ENGINE_ID = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
-
     @classmethod
     def ensure_dirs(cls):
         """Ensure required directories exist."""
