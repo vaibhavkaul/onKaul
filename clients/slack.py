@@ -15,6 +15,41 @@ class SlackClient:
         if self.token:
             self.headers = {"Authorization": f"Bearer {self.token}"}
 
+    def get_thread(self, channel: str, thread_ts: str) -> dict:
+        """
+        Fetch thread messages for context.
+
+        Args:
+            channel: Channel ID
+            thread_ts: Thread timestamp
+
+        Returns:
+            Dict with messages list or error
+        """
+        if not self.token:
+            return {"error": "SLACK_BOT_TOKEN not configured", "messages": []}
+
+        try:
+            response = httpx.get(
+                f"{self.base_url}/conversations.replies",
+                headers=self.headers,
+                params={"channel": channel, "ts": thread_ts},
+                timeout=10.0,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            if not data.get("ok"):
+                return {"error": f"Slack API error: {data.get('error')}", "messages": []}
+
+            messages = data.get("messages", [])
+            return {"messages": messages, "success": True}
+
+        except httpx.HTTPStatusError as e:
+            return {"error": f"HTTP error: {e.response.status_code}", "messages": []}
+        except Exception as e:
+            return {"error": f"Failed to fetch thread: {str(e)}", "messages": []}
+
     def post_message(self, channel: str, text: str, thread_ts: str | None = None) -> dict:
         """
         Post a message to a Slack channel.

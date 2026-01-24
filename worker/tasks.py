@@ -14,12 +14,13 @@ def handle_slack_mention(
     thread_ts: str,
     user_message: str,
     user_id: str,
+    thread_context: list | None = None,
 ):
     """
     Handle a Slack mention.
 
-    Phase 2.5: Real investigation with logging.
-    Phase 3: Add Slack posting.
+    Phase 2.5: Real investigation with logging + thread context.
+    Phase 3: Add signature verification.
     """
     print("\n" + "=" * 80)
     print("🤖 STARTING INVESTIGATION (SLACK)")
@@ -28,15 +29,28 @@ def handle_slack_mention(
     print(f"🧵 Thread: {thread_ts}")
     print(f"👤 User: {user_id}")
     print(f"💬 Request: {user_message[:100]}...")
+    print(f"📜 Thread context: {len(thread_context) if thread_context else 0} messages")
     print(f"📤 Will post to Slack: {config.ENABLE_SLACK_POSTING}")
     print("-" * 80)
 
     start_time = time.time()
 
     try:
+        # Build context from thread if available
+        context = ""
+        if thread_context:
+            print("📜 Building context from thread history...")
+            context_parts = ["## Slack Thread Context\n"]
+            for msg in thread_context[:-1]:  # Exclude the current @mention
+                user = msg.get("user", "Unknown")
+                text = msg.get("text", "")
+                context_parts.append(f"**{user}**: {text}\n")
+            context = "\n".join(context_parts)
+            print(f"✅ Added {len(thread_context) - 1} previous messages as context")
+
         print("🧠 Calling agent...")
-        # Real agent investigation
-        response = agent.investigate(user_message)
+        # Real agent investigation with thread context
+        response = agent.investigate(user_message, context=context)
         print(f"✅ Investigation complete ({len(response)} chars)")
         print("-" * 80)
 

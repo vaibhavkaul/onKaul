@@ -3,6 +3,7 @@
 from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import BaseModel, Field
 
+from clients.slack import slack
 from worker.tasks import handle_jira_mention, handle_slack_mention
 
 router = APIRouter()
@@ -110,6 +111,19 @@ async def slack_webhook(
     print(f"🧵 Thread: {thread_ts}")
     print(f"💬 Message: {user_message[:100]}...")
     print(f"🔍 Contains @onkaul: {'@onkaul' in user_message.lower()}")
+
+    # Fetch thread context if this is a reply
+    thread_context = None
+    if thread_ts and thread_ts != event.ts:
+        print(f"📜 Fetching thread history for context...")
+        result = slack.get_thread(channel, thread_ts)
+        if result.get("success"):
+            messages = result.get("messages", [])
+            print(f"✅ Found {len(messages)} messages in thread")
+            thread_context = messages
+        else:
+            print(f"⚠️  Failed to fetch thread: {result.get('error')}")
+
     print("✅ Valid mention - queuing investigation")
     print("=" * 80 + "\n")
 
@@ -120,6 +134,7 @@ async def slack_webhook(
         thread_ts=thread_ts,
         user_message=user_message,
         user_id=user_id,
+        thread_context=thread_context,
     )
 
     return {"ok": True, "message": "Investigation queued"}
