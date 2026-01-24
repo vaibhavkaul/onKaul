@@ -150,6 +150,47 @@ class JiraClient:
         walk(adf_content)
         return " ".join(text_parts)
 
+    def add_comment(self, issue_key: str, comment: str) -> dict:
+        """
+        Add a comment to a Jira issue.
+
+        Args:
+            issue_key: Jira issue key (e.g., 'B2B-333')
+            comment: Comment text to add
+
+        Returns:
+            Dict with success/error status
+        """
+        try:
+            result = subprocess.run(
+                [
+                    "acli",
+                    "jira",
+                    "workitem",
+                    "comment",
+                    "create",
+                    "--issue",
+                    issue_key,
+                    "--comment",
+                    comment,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+
+            if result.returncode != 0:
+                return {"error": f"acli error: {result.stderr}", "success": False}
+
+            return {"success": True, "message": f"Comment added to {issue_key}"}
+
+        except subprocess.TimeoutExpired:
+            return {"error": "acli command timed out", "success": False}
+        except FileNotFoundError:
+            return {"error": "acli not installed or not in PATH", "success": False}
+        except Exception as e:
+            return {"error": f"Failed to add comment: {str(e)}", "success": False}
+
 
 # Singleton instance
 jira = JiraClient()
