@@ -130,10 +130,10 @@ async def jira_webhook(
     print(f"📋 Issue: {issue_key}")
     print(f"👤 Author: {author}")
     print(f"💬 Comment: {comment_body[:100]}...")
-    print(f"🔍 Contains @onkaul: {'@onkaul' in comment_body}")
+    print(f"🔍 Contains @onkaul: {'@onkaul' in comment_body.lower()}")
 
-    # Only process if @onkaul is mentioned
-    if "@onkaul" not in comment_body:
+    # Only process if @onkaul is mentioned (case-insensitive)
+    if "@onkaul" not in comment_body.lower():
         print("⏭️  Skipping - no @onkaul mention")
         print("=" * 80 + "\n")
         return {"ok": True, "message": "No mention, ignored"}
