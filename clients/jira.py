@@ -60,13 +60,13 @@ class JiraClient:
 
     def get_issue(self, issue_key: str) -> dict:
         """
-        Get full details of a Jira issue.
+        Get full details of a Jira issue including comments.
 
         Args:
             issue_key: Jira issue key (e.g., 'B2B-456')
 
         Returns:
-            Dict with issue details
+            Dict with issue details and comments
         """
         try:
             result = subprocess.run(
@@ -105,6 +105,9 @@ class JiraClient:
             # Extract components
             components = [c.get("name") for c in fields.get("components", []) if c.get("name")]
 
+            # Fetch comments separately
+            comments = self._get_comments(issue_key)
+
             return {
                 "key": data.get("key"),
                 "summary": fields.get("summary"),
@@ -117,6 +120,7 @@ class JiraClient:
                 "updated": fields.get("updated"),
                 "components": components,
                 "labels": fields.get("labels", []),
+                "comments": comments,
             }
 
         except subprocess.TimeoutExpired:
@@ -149,6 +153,48 @@ class JiraClient:
 
         walk(adf_content)
         return " ".join(text_parts)
+
+    def _get_comments(self, issue_key: str) -> list:
+        """
+        Fetch comments for a Jira issue.
+
+        Args:
+            issue_key: Jira issue key
+
+        Returns:
+            List of comments with author and body
+        """
+        try:
+            result = subprocess.run(
+                ["acli", "jira", "workitem", "comment", "list", "--key", issue_key, "--json"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+
+            if result.returncode != 0:
+                # If comments fail, return empty list rather than failing whole request
+                return []
+
+            # Parse JSON output
+            data = json.loads(result.stdout)
+            comments_data = data.get("comments", [])
+
+            comments = []
+            for comment in comments_data:
+                comments.append(
+                    {
+                        "author": comment.get("author", "Unknown"),
+                        "body": comment.get("body", ""),
+                        "id": comment.get("id"),
+                    }
+                )
+
+            return comments
+
+        except Exception:
+            # If comments fail, return empty list
+            return []
 
     def add_comment(self, issue_key: str, comment: str) -> dict:
         """
