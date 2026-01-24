@@ -40,11 +40,15 @@ def handle_slack_mention(
         context = ""
         if thread_context:
             print("📜 Building context from thread history...")
+            print(f"📝 Thread contains {len(thread_context)} total messages")
             context_parts = ["## Slack Thread Context\n"]
-            for msg in thread_context[:-1]:  # Exclude the current @mention
+            for i, msg in enumerate(thread_context[:-1]):  # Exclude the current @mention
                 user = msg.get("user", "Unknown")
                 text = msg.get("text", "")
                 context_parts.append(f"**{user}**: {text}\n")
+                # Log first message for debugging
+                if i == 0:
+                    print(f"📨 First message preview: {text[:200]}...")
             context = "\n".join(context_parts)
             print(f"✅ Added {len(thread_context) - 1} previous messages as context")
 
