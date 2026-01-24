@@ -95,6 +95,22 @@ When you've identified a fix, provide:
 - For code searches, try multiple search terms if first attempt fails
 - Check Sentry first for production errors - it has the best context
 - When searching code, consider which repo based on the error type
+
+## Sentry Alert Format (IMPORTANT)
+
+When you see a Sentry alert in Slack/Jira, it typically includes:
+- **Alert rule ID** (e.g., "Alert rule 14923428") - This is NOT an issue ID, don't try to fetch it
+- **Actual issue link** (e.g., "https://taptapsend.sentry.io/issues/7212254927")
+
+**To get the correct Sentry issue:**
+1. Look for URLs like `https://taptapsend.sentry.io/issues/XXXXXXX`
+2. Extract the numeric ID from the URL (the XXXXXXX part)
+3. Use that ID with `get_sentry_issue` tool
+4. DO NOT use alert rule IDs - they will return 404 errors
+
+**Example:**
+- ❌ Wrong: `get_sentry_issue("14923428")` - This is an alert rule, not an issue
+- ✅ Correct: `get_sentry_issue("7212254927")` - Extracted from the issue URL
 """
 
 
