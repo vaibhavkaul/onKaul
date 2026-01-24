@@ -17,19 +17,33 @@ def handle_slack_mention(
     """
     Handle a Slack mention.
 
-    Phase 2: Use agent for real investigation.
-    Phase 3: Post back to Slack instead of logging.
+    Phase 2.5: Real investigation with logging.
+    Phase 3: Add Slack posting.
     """
+    print("\n" + "=" * 80)
+    print("🤖 STARTING INVESTIGATION (SLACK)")
+    print("=" * 80)
+    print(f"📺 Channel: {channel}")
+    print(f"🧵 Thread: {thread_ts}")
+    print(f"👤 User: {user_id}")
+    print(f"💬 Request: {user_message[:100]}...")
+    print(f"📤 Will post to Slack: False (Phase 3)")
+    print("-" * 80)
+
     start_time = time.time()
 
     try:
-        # Phase 2: Real agent investigation
+        print("🧠 Calling agent...")
+        # Real agent investigation
         response = agent.investigate(user_message)
+        print(f"✅ Investigation complete ({len(response)} chars)")
+        print("-" * 80)
 
         # Calculate duration
         duration_ms = (time.time() - start_time) * 1000
 
-        # Log instead of posting (still logging in Phase 2!)
+        # Log the response (Phase 3 will post to Slack too)
+        print("📝 Logging response...")
         logger.log_response(
             source="slack",
             response=response,
@@ -38,13 +52,23 @@ def handle_slack_mention(
                 "thread_ts": thread_ts,
                 "user_message": user_message,
                 "user_id": user_id,
+                "posted_to_slack": False,  # Phase 3
             },
             investigation_duration_ms=duration_ms,
         )
 
+        print("⏭️  Skipping Slack post (Phase 3 feature)")
+        print("=" * 80)
+        print(f"✨ INVESTIGATION COMPLETE - {duration_ms:.0f}ms")
+        print("=" * 80 + "\n")
+
     except Exception as e:
         # Log error response
         error_response = f"Sorry, I encountered an error: {str(e)}"
+
+        print(f"❌ ERROR during investigation: {str(e)}")
+        print("-" * 80)
+
         logger.log_response(
             source="slack",
             response=error_response,
@@ -56,6 +80,8 @@ def handle_slack_mention(
                 "error": str(e),
             },
         )
+
+        print("=" * 80 + "\n")
 
 
 def handle_jira_mention(

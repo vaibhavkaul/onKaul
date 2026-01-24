@@ -70,18 +70,33 @@ async def slack_webhook(
 
     # Handle Slack URL verification challenge
     if payload_dict.get("type") == "url_verification":
+        print("\n" + "=" * 80)
+        print("🔐 SLACK URL VERIFICATION CHALLENGE")
+        print("=" * 80)
+        print(f"✅ Responding with challenge token")
+        print("=" * 80 + "\n")
         return {"challenge": payload_dict["challenge"]}
+
+    print("\n" + "=" * 80)
+    print("💬 SLACK WEBHOOK RECEIVED")
+    print("=" * 80)
+    print(f"Raw payload keys: {list(payload_dict.keys())}")
+    print(f"Event type: {payload_dict.get('type')}")
 
     # Parse payload
     payload = SlackWebhookPayload(**payload_dict)
 
     if not payload.event:
+        print("❌ No event in payload")
+        print("=" * 80 + "\n")
         return {"ok": False, "error": "No event in payload"}
 
     event = payload.event
 
     # Ignore bot messages to avoid loops
     if event.bot_id:
+        print("🤖 Ignoring bot message (avoiding loops)")
+        print("=" * 80 + "\n")
         return {"ok": True, "message": "Ignored bot message"}
 
     # Extract context
@@ -89,6 +104,14 @@ async def slack_webhook(
     thread_ts = event.thread_ts or event.ts  # Use thread or message ts
     user_message = event.text
     user_id = event.user
+
+    print(f"📺 Channel: {channel}")
+    print(f"👤 User: {user_id}")
+    print(f"🧵 Thread: {thread_ts}")
+    print(f"💬 Message: {user_message[:100]}...")
+    print(f"🔍 Contains @onkaul: {'@onkaul' in user_message.lower()}")
+    print("✅ Valid mention - queuing investigation")
+    print("=" * 80 + "\n")
 
     # Queue background investigation
     background_tasks.add_task(
