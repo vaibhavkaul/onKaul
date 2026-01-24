@@ -39,6 +39,29 @@ Webhook Handler (FastAPI)
 
 # V1 Implementation
 
+## Development Approach
+
+**Build order**: Core functionality first, authentication/integrations later
+
+### Phase 1: Webhook Handlers + Request/Response Flow
+1. Build FastAPI webhook endpoints for Slack and Jira
+2. Accept fake webhook payloads (no auth required initially)
+3. Parse payloads and extract context
+4. **Log all responses** to console/file instead of posting back
+5. Manual testing with curl/Postman
+
+### Phase 2: Agent Loop + Tool System
+1. Build agent core with Claude API integration
+2. Implement tool schemas and handlers
+3. Connect webhook handlers to agent loop
+4. Test with real investigation scenarios
+
+### Phase 3: External Integrations (Later)
+1. Add real Slack/Jira authentication
+2. Implement actual posting to Slack/Jira
+3. Add security controls (rate limiting, allowlist)
+4. Deploy to production
+
 ## Scope
 - Slack and Jira webhook integration
 - Read-only tools: Sentry, GitHub (search + read), Datadog
@@ -48,29 +71,11 @@ Webhook Handler (FastAPI)
 
 ---
 
-## 1. Trigger Layer
+## 1. Webhook Payloads (Reference)
 
-### Slack Setup
-- Create Slack App with bot user at api.slack.com/apps
-- Bot token scopes needed:
-  - `app_mentions:read` (receive @mentions)
-  - `channels:history` (read public channel messages)
-  - `groups:history` (read private channel messages)
-  - `chat:write` (post responses)
-- Enable Event Subscriptions, subscribe to `app_mention` event
-- Set Request URL to your webhook endpoint
+These are the payloads we'll receive from Slack and Jira. For initial development, we'll send these manually via curl/Postman.
 
-### Jira Setup
-- Use existing `acli` (Atlassian CLI) integration
-- Jira Automation:
-  - Trigger: "When a comment is added"
-  - Condition: Comment contains `@onkaul`
-  - Action: Send webhook to your endpoint
-  - Payload should include: `{{issue.key}}`, `{{comment.body}}`, `{{comment.author}}`
-
-### Webhook Payloads
-
-Slack `app_mention` event:
+### Slack `app_mention` event:
 ```json
 {
   "event": {
@@ -97,7 +102,9 @@ Jira webhook:
 
 ---
 
-## 2. Webhook Handlers
+## 2. Phase 1 Implementation: Webhook Handlers
+
+**Start here**: Build the skeleton - accept webhooks, log responses, no auth, no real integrations yet.
 
 ### Project Structure
 
@@ -108,22 +115,25 @@ onKaul/
 │   └── webhooks.py         # Slack/Jira webhook endpoints
 ├── agent/
 │   ├── __init__.py
-│   ├── core.py             # Agent loop
-│   └── prompts.py          # System prompts
+│   ├── core.py             # Agent loop (Phase 2)
+│   └── prompts.py          # System prompts (Phase 2)
 ├── clients/
 │   ├── __init__.py
-│   ├── slack.py            # Slack API client
-│   ├── jira.py             # Jira client (uses acli)
-│   ├── sentry.py           # Sentry API client
-│   ├── github.py           # GitHub API client
-│   └── datadog.py          # Datadog API client
+│   ├── slack.py            # Slack client (Phase 3 - real posting)
+│   ├── jira.py             # Jira client (Phase 3 - real posting)
+│   ├── sentry.py           # Sentry API client (Phase 2)
+│   ├── github.py           # GitHub API client (Phase 2)
+│   └── datadog.py          # Datadog API client (Phase 2)
 ├── tools/
 │   ├── __init__.py
-│   ├── schemas.py          # Tool definitions for Claude
-│   └── handlers.py         # Tool execution dispatcher
+│   ├── schemas.py          # Tool definitions for Claude (Phase 2)
+│   └── handlers.py         # Tool execution dispatcher (Phase 2)
 ├── worker/
 │   ├── __init__.py
 │   └── tasks.py            # Background task handlers
+├── utils/
+│   ├── __init__.py
+│   └── logger.py           # Response logger (Phase 1 - log instead of post)
 ├── config.py               # Environment/settings
 ├── main.py                 # FastAPI app entrypoint
 ├── requirements.txt
@@ -131,9 +141,54 @@ onKaul/
 └── README.md
 ```
 
+### Phase 1 Goals
+
+**What we're building:**
+1. FastAPI webhook endpoints at `/webhook/slack` and `/webhook/jira`
+2. Payload parsing and validation
+3. Background task queue (using FastAPI BackgroundTasks)
+4. Response logger that writes to console and file (replaces Slack/Jira posting for now)
+5. Basic error handling
+
+**What we're NOT building yet:**
+- Authentication/verification of webhook requests
+- Real posting to Slack/Jira
+- Agent loop (just stub responses for now)
+- Tool implementations
+- Security controls
+
+### Webhook Endpoints
+
+**Requirements:**
+- Accept POST requests with JSON payloads
+- Parse Slack and Jira payload formats
+- Extract key information (channel/issue, user message, context)
+- Queue background task for investigation
+- Return immediate 200 OK response
+- Log all responses instead of posting back
+
+### Response Logger
+
+Instead of posting to Slack/Jira, we'll log responses to:
+1. **Console**: Structured output with timestamp, source (Slack/Jira), response text
+2. **File**: `logs/responses.jsonl` - JSON Lines format for easy parsing
+
+**Log Format:**
+```json
+{
+  "timestamp": "2026-01-24T12:30:00Z",
+  "source": "slack",
+  "channel": "C123456",
+  "thread_ts": "1234567890.123456",
+  "user_message": "@onkaul investigate this error",
+  "response": "Investigation results...",
+  "investigation_duration_ms": 1234
+}
+```
+
 ---
 
-## 3. Tool Definitions
+## 3. Phase 2 Implementation: Agent Loop + Tools
 
 ### System Prompt
 
@@ -212,9 +267,27 @@ When you've identified a fix, provide:
 
 ---
 
-## 4. Client Implementations
+## 4. Phase 3 Implementation: External Integrations
 
-### Strategy
+### Authentication & Real Posting
+
+Once Phase 1 and 2 are working with logged responses, we'll add:
+
+1. **Slack Integration**
+   - Verify webhook signatures using SLACK_SIGNING_SECRET
+   - Post responses back to Slack using Web API
+   - Handle threading properly (reply in thread)
+
+2. **Jira Integration**
+   - Use `acli` for posting comments back to Jira issues
+   - Format responses in Atlassian Document Format
+
+3. **Security Controls**
+   - Rate limiting per user/channel
+   - Allowlist for Slack channels and Jira projects
+   - Audit logging to database
+
+### Client Implementation Strategy
 - **Slack**: Use Slack Web API (REST)
 - **Jira**: Use `acli` CLI under the hood (already configured)
 - **Sentry**: Use Sentry REST API
@@ -224,53 +297,29 @@ When you've identified a fix, provide:
 
 All clients abstracted behind consistent Python interfaces. Implementation details (CLI vs REST) are hidden from the agent.
 
----
+## Testing Approach
 
-## 5. Security & Operations
+### Phase 1 Testing
+- **Manual testing**: Use curl/Postman to send webhook payloads
+- **Validation**: Check logs/responses.jsonl for correct output
+- **Test cases**:
+  - Slack mention with simple question
+  - Jira comment with investigation request
+  - Malformed payloads (error handling)
 
-### Security Controls
-- **Rate limiting**: Prevent abuse and runaway costs
-- **Allowlist**: Specific Slack channels/Jira projects can use the bot
-- **Audit logging**: Track all investigations (timestamp, user, query, response)
-- **Secrets handling**: Never expose API keys, tokens, database credentials in responses
-- **Error redaction**: Strip sensitive data from stacktraces before showing
+### Phase 2 Testing
+- **Mock tool responses**: Test agent loop without real API calls
+- **Real API testing**: Test individual tools with actual Sentry/GitHub/Datadog
+- **Investigation scenarios**:
+  - Find Sentry error and suggest fix
+  - Search code for specific function
+  - Query Datadog logs for errors
 
-### Error Handling Patterns
-- **Slack thread too long**: Summarize or ask user to provide specific context
-- **Sentry issue not found**: Return graceful error message
-- **GitHub rate limits**: Implement exponential backoff and retry
-- **Agent timeout**: Maximum 60 seconds, return "still investigating" message
-- **Tool failures**: Continue with partial results, note what failed
-
-### Caching Strategy
-- Cache Sentry issues for 15 minutes (reduce API calls for repeated questions)
-- Cache GitHub file reads for 5 minutes
-- Cache Jira issue details for 10 minutes
-- No caching for Datadog logs (always fresh)
-
----
-
-## 6. Testing Strategy
-
-### Unit Tests
-- Test each client independently with mocked APIs
-- Test tool handlers with fixture data
-- Test webhook payload parsing
-
-### Integration Tests
-- Mock external APIs (Slack, Jira, Sentry, GitHub, Datadog)
-- Test agent loop with predefined tool sequences
-- Test error handling paths
-
-### End-to-End Tests
-- Use test Slack workspace with dedicated test channel
-- Use test Jira project with sample tickets
-- Test full investigation flow from @mention to response
-
-### Load Testing
-- Test concurrent @mentions (10+ simultaneous)
-- Test long-running investigations (near timeout)
-- Test rate limiting behavior
+### Phase 3 Testing
+- **Slack workspace**: Test in dedicated test channel
+- **Jira project**: Test with sample test tickets
+- **End-to-end**: Full flow from @mention to posted response
+- **Load testing**: Concurrent requests, rate limiting
 
 ---
 
@@ -304,22 +353,47 @@ All clients abstracted behind consistent Python interfaces. Implementation detai
 
 # Implementation Checklist
 
-## V1 Launch Checklist
+## Phase 1: Webhook Handlers
+- [ ] FastAPI project setup with requirements.txt
+- [ ] `/webhook/slack` endpoint created
+- [ ] `/webhook/jira` endpoint created
+- [ ] Payload parsing for Slack app_mention events
+- [ ] Payload parsing for Jira comment webhooks
+- [ ] Background task queue setup (FastAPI BackgroundTasks)
+- [ ] Response logger implementation (console + file)
+- [ ] Basic error handling
+- [ ] Manual testing with curl/Postman
+- [ ] Sample webhook payloads documented
+
+## Phase 2: Agent Loop + Tools
+- [ ] Anthropic API client setup
+- [ ] Agent loop implementation with tool use
+- [ ] System prompt created with TapTap Send context
+- [ ] Tool schemas defined (Sentry, GitHub, Datadog, Jira)
+- [ ] Tool handlers implemented
+- [ ] Sentry client (API)
+- [ ] GitHub client (API)
+- [ ] Datadog client (API)
+- [ ] Jira client (acli)
+- [ ] Connect agent to webhook handlers
+- [ ] Test end-to-end with real investigation scenarios
+- [ ] Response formatting (breadcrumbs, confidence, impact, Claude Code prompt)
+
+## Phase 3: External Integrations
 - [ ] Slack app created and configured
+- [ ] Slack webhook signature verification
+- [ ] Slack posting implementation (replace logger)
 - [ ] Jira automation rule set up
-- [ ] All API tokens provisioned (Slack, Jira, GitHub, Sentry, Anthropic)
-- [ ] Webhook endpoints deployed and accessible
-- [ ] Tool schemas populated with actual repo names
-- [ ] System prompt customized with TapTap Send context
-- [ ] Security controls implemented (rate limiting, allowlist, audit logging)
-- [ ] Error handling and redaction in place
-- [ ] Caching layer implemented
-- [ ] Unit tests written
-- [ ] Integration tests written
-- [ ] End-to-end test completed in test Slack workspace
-- [ ] Load testing completed
-- [ ] Deployed to production environment
-- [ ] Monitoring/alerting configured
+- [ ] Jira posting implementation via acli (replace logger)
+- [ ] Security controls (rate limiting, allowlist, audit logging)
+- [ ] Error redaction (sensitive data)
+- [ ] Caching layer
+- [ ] Unit tests
+- [ ] Integration tests
+- [ ] End-to-end test in test Slack workspace
+- [ ] Load testing
+- [ ] Deploy to production
+- [ ] Monitoring/alerting
 
 ## V2 Planning Checklist (Future)
 - [ ] Decide on sandbox provider (E2B, Codespaces, etc.)
