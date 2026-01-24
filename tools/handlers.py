@@ -6,6 +6,7 @@ from clients.datadog import datadog
 from clients.github import github
 from clients.jira import jira
 from clients.sentry import sentry
+from clients.websearch import web_search
 
 
 def execute_tool(name: str, inputs: dict) -> str:
@@ -77,16 +78,5 @@ def _handle_get_jira_issue(issue_key: str) -> dict:
 
 
 def _handle_web_search(query: str) -> dict:
-    """
-    Handle web_search tool.
-
-    For now, return placeholder. Could integrate with:
-    - Brave Search API
-    - Google Custom Search
-    - DuckDuckGo API
-    """
-    return {
-        "message": "Web search not yet implemented",
-        "query": query,
-        "suggestion": "Try searching manually or use specific documentation URLs",
-    }
+    """Handle web_search tool using Google Custom Search."""
+    return web_search.search(query)
