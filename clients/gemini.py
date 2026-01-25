@@ -47,7 +47,7 @@ class GeminiClient:
             # Create deep research task (background=True for async)
             response = self.client.interactions.create(
                 agent="deep-research-pro-preview-12-2025",
-                prompt=question,
+                input=question,  # Use 'input' not 'prompt'
                 config=GenerateContentConfig(temperature=0.2),  # Lower temp for factual research
                 background=True,
             )
