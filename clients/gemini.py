@@ -47,8 +47,7 @@ class GeminiClient:
             # Create deep research task (background=True for async)
             response = self.client.interactions.create(
                 agent="deep-research-pro-preview-12-2025",
-                input=question,  # Use 'input' not 'prompt'
-                config=GenerateContentConfig(temperature=0.2),  # Lower temp for factual research
+                input=question,
                 background=True,
             )
 
@@ -62,22 +61,28 @@ class GeminiClient:
 
             while elapsed < max_wait:
                 # Get current status
-                status = self.client.interactions.get(response.id)
+                status_obj = self.client.interactions.get(response.id)
 
-                print(f"⏳ Status: {status.state} ({elapsed}s elapsed)")
+                print(f"⏳ Status: {status_obj.status} ({elapsed}s elapsed)")
 
-                if status.state == "completed":
+                if status_obj.status == "completed":
                     print(f"✅ Research complete!")
 
                     # Extract report
                     report = ""
-                    if status.response and status.response.text:
-                        report = status.response.text
+                    if status_obj.outputs:
+                        # Outputs is a list of interaction outputs
+                        for output in status_obj.outputs:
+                            if hasattr(output, 'text'):
+                                report += output.text
 
                     # Extract grounding metadata (citations)
                     citations = []
-                    if hasattr(status.response, "grounding_metadata"):
-                        metadata = status.response.grounding_metadata
+                    if status_obj.outputs:
+                        for output in status_obj.outputs:
+                            if hasattr(output, "grounding_metadata"):
+                                # TODO: Parse citations when available
+                                pass
                         if hasattr(metadata, "search_entry_point"):
                             # Citations from web search
                             pass  # Parse citations if available
@@ -89,8 +94,8 @@ class GeminiClient:
                         "question": question,
                     }
 
-                elif status.state == "failed":
-                    error_msg = status.error if hasattr(status, "error") else "Unknown error"
+                elif status_obj.status == "failed":
+                    error_msg = status_obj.outputs if hasattr(status_obj, "outputs") else "Unknown error"
                     return {"error": f"Research failed: {error_msg}"}
 
                 # Still running - wait and poll again
