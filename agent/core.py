@@ -2,6 +2,7 @@
 
 import anthropic
 
+from agent.model_selector import model_selector
 from agent.prompts import SYSTEM_PROMPT
 from config import config
 from tools.handlers import execute_tool
@@ -30,6 +31,12 @@ class Agent:
         if not self.client:
             return self._no_api_key_response(user_message)
 
+        # Select appropriate model based on task
+        model_config = model_selector.select_model(user_message, context)
+        print(f"\n🤖 Selected model: {model_config['name']}")
+        print(f"📋 Reason: {model_config['reason']}")
+        print(f"🎯 Max tokens: {model_config['max_tokens']}")
+
         # Build initial user message
         full_message = user_message
         if context:
@@ -43,13 +50,20 @@ class Agent:
                 print(f"🔄 Agent Iteration {iteration + 1}/{self.max_iterations}")
                 print(f"{'─' * 80}")
 
-                response = self.client.messages.create(
-                    model="claude-sonnet-4-20250514",
-                    max_tokens=8192,  # Maximum for Sonnet 4 - allows thorough investigations
-                    system=SYSTEM_PROMPT,
-                    tools=TOOL_SCHEMAS,
-                    messages=messages,
-                )
+                # Build API call parameters
+                api_params = {
+                    "model": model_config["id"],
+                    "max_tokens": model_config["max_tokens"],
+                    "system": SYSTEM_PROMPT,
+                    "tools": TOOL_SCHEMAS,
+                    "messages": messages,
+                }
+
+                # Add thinking parameter if using extended thinking
+                if "thinking" in model_config:
+                    api_params["thinking"] = model_config["thinking"]
+
+                response = self.client.messages.create(**api_params)
 
                 # Check if we're done
                 if response.stop_reason == "end_turn":
