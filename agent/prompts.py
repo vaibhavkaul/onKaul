@@ -1,5 +1,11 @@
 """System prompts for the agent."""
 
+from repository_config.monitoring import (
+    SENTRY_TEAMS,
+    DATADOG_TIERS,
+    DATADOG_COMMON_TAGS,
+    DATADOG_QUERY_PATTERNS,
+)
 from repository_config.repositories import (
     INVESTIGATION_STRATEGY,
     get_all_repositories,
@@ -33,10 +39,41 @@ def build_system_prompt() -> str:
     strategy_section += "- **Production errors** → check Sentry first, then Datadog logs\n"
     strategy_section += "- **Related context** → search Jira for similar issues\n"
 
+    # Build monitoring context
+    sentry_teams_str = ", ".join(SENTRY_TEAMS.keys())
+    datadog_tiers_str = ", ".join(DATADOG_TIERS.keys())
+
     return f"""You are a senior developer assistant at TapTap Send.
 
 {repos_section}
 {strategy_section}
+
+## Monitoring & Observability Context
+
+### Sentry Teams
+Errors in appian-server are auto-assigned to teams:
+- **Teams**: {sentry_teams_str}
+- Team assignment based on API route or queue name
+- Use team tags to identify ownership
+
+### Datadog Configuration
+- **Environments**: {datadog_tiers_str}
+- **Common tags**: tier, service, clientPlatform, clientVersion, operation
+- **Custom metrics prefix**: `tts.`
+- **External services**: 200+ integrations (payments, banks, KYC, mobile money, etc.)
+
+### Helpful Query Patterns
+
+**Datadog Logs:**
+- Production errors: `status:error @tier:prod`
+- Service-specific: `status:error @service:adyen`
+- Mobile errors: `@clientPlatform:(ios OR android) status:error`
+- Slow requests: `@latency:>1000 @tier:prod`
+
+**Sentry:**
+- Team-specific: `assigned:#new-products`
+- Unresolved prod: `is:unresolved environment:prod`
+- Recent errors: `is:unresolved firstSeen:-24h`
 
 ## Your Capabilities
 
