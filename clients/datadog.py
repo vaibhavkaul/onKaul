@@ -114,10 +114,14 @@ class DatadogClient:
             return {"error": "Datadog API keys not configured"}
 
         try:
-            monitors = self.monitors_api.list_monitors(
-                tags=",".join(tags) if tags else None,
-                monitor_tags=",".join(monitor_tags) if monitor_tags else None,
-            )
+            # Build kwargs only if values are present
+            kwargs = {}
+            if tags:
+                kwargs["tags"] = ",".join(tags)
+            if monitor_tags:
+                kwargs["monitor_tags"] = ",".join(monitor_tags)
+
+            monitors = self.monitors_api.list_monitors(**kwargs)
 
             results = []
             for monitor in monitors:
@@ -237,9 +241,8 @@ class DatadogClient:
             return {"error": "Datadog API keys not configured"}
 
         try:
-            from datadog_api_client.v2.model.incidents_response import IncidentsResponse
-
-            response = self.incidents_api.list_incidents(filter_query=query)
+            # Note: The parameter name is 'query' not 'filter_query' in the SDK
+            response = self.incidents_api.list_incidents(query=query)
 
             incidents = []
             if hasattr(response, "data") and response.data:
