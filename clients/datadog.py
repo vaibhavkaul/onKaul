@@ -131,11 +131,11 @@ class DatadogClient:
                     {
                         "id": monitor.id,
                         "name": monitor.name,
-                        "type": monitor.type,
+                        "type": str(monitor.type),  # Convert enum to string
                         "query": monitor.query,
                         "message": monitor.message if monitor.message else "",
                         "tags": monitor.tags if monitor.tags else [],
-                        "overall_state": monitor.overall_state if hasattr(monitor, "overall_state") else None,
+                        "overall_state": str(monitor.overall_state) if hasattr(monitor, "overall_state") else None,
                     }
                 )
 
@@ -163,12 +163,12 @@ class DatadogClient:
             return {
                 "id": monitor.id,
                 "name": monitor.name,
-                "type": monitor.type,
+                "type": str(monitor.type),  # Convert enum to string
                 "query": monitor.query,
                 "message": monitor.message if monitor.message else "",
                 "tags": monitor.tags if monitor.tags else [],
                 "options": str(monitor.options) if monitor.options else None,
-                "overall_state": monitor.overall_state if hasattr(monitor, "overall_state") else None,
+                "overall_state": str(monitor.overall_state) if hasattr(monitor, "overall_state") else None,
                 "created": monitor.created.isoformat() if monitor.created else None,
                 "modified": monitor.modified.isoformat() if monitor.modified else None,
             }

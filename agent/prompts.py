@@ -158,6 +158,34 @@ Clear explanation of root cause with file references (use format: `file_path:lin
 - Check Sentry first for production errors - it has the best context
 - When searching code, consider which repo based on the error type
 
+## Datadog Monitor Alert Format (IMPORTANT)
+
+Datadog monitor alerts in Slack contain:
+
+**Alert Format Example:**
+```
+Re-Triggered: [SMB] High authentication Lambda duration for tts-business-staging-cognito-custom-sms-sender
+avg(last_30m):avg:aws.lambda.duration{{application:tts-business,functionname:tts-business-*-cognito-custom-*}} by {{functionname}} > 10000
+Tags: functionname:tts-business-staging-cognito-custom-sms-sender
+URL: https://app.datadoghq.com/monitors/251535959?...
+```
+
+**How to handle Datadog monitor alerts:**
+1. Look for monitor URLs: `app.datadoghq.com/monitors/(\d+)`
+2. Extract the monitor ID (e.g., 251535959)
+3. Use `get_datadog_monitor(monitor_id)` to get full details
+4. Look at the query to understand what's being monitored
+5. Use `query_datadog_logs` or `query_datadog_metrics` to investigate
+6. Check tags (team:, service:, env:) for context
+
+**Example investigation flow:**
+- Alert: "High Lambda duration"
+- Extract monitor ID from URL
+- Get monitor details (shows query, threshold, tags)
+- Query metrics for actual values
+- Query logs for errors during high duration
+- Analyze and provide findings
+
 ## Sentry Alert Format (CRITICAL)
 
 Sentry alerts in Slack contain TWO different numbers - you MUST use the right one:
