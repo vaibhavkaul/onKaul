@@ -26,6 +26,8 @@ class DatadogClient:
             configuration.api_key["apiKeyAuth"] = self.api_key
             configuration.api_key["appKeyAuth"] = self.app_key
             configuration.server_variables["site"] = self.site
+            # Enable unstable operations
+            configuration.unstable_operations["list_incidents"] = True
 
             self.api_client = ApiClient(configuration)
             self.logs_api = LogsApi(self.api_client)
@@ -232,7 +234,8 @@ class DatadogClient:
         List Datadog incidents.
 
         Args:
-            query: Filter query (e.g., 'state:active', 'state:stable')
+            query: Filter query - currently only supports filtering by 'state:active' or 'state:stable'
+                   (Note: Filtering is done client-side after fetching)
 
         Returns:
             Dict with incidents
@@ -241,20 +244,29 @@ class DatadogClient:
             return {"error": "Datadog API keys not configured"}
 
         try:
-            # Note: The parameter name is 'query' not 'filter_query' in the SDK
-            response = self.incidents_api.list_incidents(query=query)
+            # Note: list_incidents doesn't support query params - we filter client-side
+            response = self.incidents_api.list_incidents(page_size=100)
 
             incidents = []
             if hasattr(response, "data") and response.data:
                 for incident in response.data:
                     attrs = incident.attributes if hasattr(incident, "attributes") else None
                     if attrs:
+                        # Client-side filtering by state if requested
+                        state = str(attrs.state).lower() if hasattr(attrs, "state") else ""
+
+                        # Parse query (simple state:value filter)
+                        if "state:" in query.lower():
+                            requested_state = query.lower().split("state:")[1].strip()
+                            if requested_state not in state:
+                                continue  # Skip if doesn't match filter
+
                         incidents.append(
                             {
                                 "id": incident.id,
                                 "title": attrs.title if hasattr(attrs, "title") else "Unknown",
                                 "severity": str(attrs.severity) if hasattr(attrs, "severity") else None,
-                                "state": str(attrs.state) if hasattr(attrs, "state") else None,
+                                "state": state,
                                 "created": attrs.created.isoformat() if hasattr(attrs, "created") and attrs.created else None,
                             }
                         )
