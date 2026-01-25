@@ -6,6 +6,32 @@ This config is derived from:
 """
 
 REPOSITORIES = {
+    "tts-business": {
+        "name": "tts-business",
+        "org": "taptapsend",
+        "description": "Full-stack B2B money transfer platform for businesses",
+        "tech_stack": [
+            "Python/FastAPI (backend)",
+            "React 19 + TypeScript (frontend)",
+            "PostgreSQL + SQLModel",
+            "Material-UI + TailwindCSS",
+            "React Router 7",
+            "Alembic (migrations)",
+        ],
+        "key_systems": [
+            "Batch/Bulk Payments",
+            "Business Wallet Management",
+            "KYB (Know Your Business) Verification",
+        ],
+        "handles": [
+            "Batch payment issues",
+            "Business wallet errors",
+            "KYB verification failures",
+            "Business team management bugs",
+            "B2B transfer issues",
+        ],
+        "context_files": [],
+    },
     "appian-frontend": {
         "name": "appian-frontend",
         "org": "taptapsend",
@@ -92,6 +118,10 @@ INVESTIGATION_STRATEGY = {
     "Business logic bugs": "appian-server",
     "Migration errors": "appian-server",
     "Performance issues": "appian-server",
+    "Batch payment issues": "tts-business",
+    "Business wallet errors": "tts-business",
+    "KYB verification failures": "tts-business",
+    "B2B transfer issues": "tts-business",
 }
 
 # Additional context sources
