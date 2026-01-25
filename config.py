@@ -33,8 +33,10 @@ class Config:
     SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
     SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")
 
-    # Jira (Phase 3+)
+    # Jira (Phase 2+)
     JIRA_BASE_URL = os.getenv("JIRA_BASE_URL")
+    JIRA_EMAIL = os.getenv("JIRA_EMAIL")
+    JIRA_API_TOKEN = os.getenv("JIRA_API_TOKEN")
 
     # Sentry (Phase 2+)
     SENTRY_TOKEN = os.getenv("SENTRY_TOKEN")

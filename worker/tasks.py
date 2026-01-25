@@ -6,6 +6,7 @@ from agent.core import agent
 from clients.jira import jira
 from clients.slack import slack
 from config import config
+from utils.jira_formatter import markdown_to_adf
 from utils.logger import logger
 from utils.slack_formatter import format_for_slack
 
@@ -193,10 +194,14 @@ def handle_jira_mention(
         # Phase 2.5: Post to Jira if enabled
         if config.ENABLE_JIRA_POSTING:
             print(f"📤 Posting comment to {issue_key}...")
-            result = jira.add_comment(issue_key, response)
+            print(f"🎨 Converting markdown to ADF format...")
+            adf_body = markdown_to_adf(response)
+            result = jira.add_comment(issue_key, None, adf_body=adf_body)
             if result.get("success"):
-                print(f"✅ Successfully posted to {issue_key}")
+                print(f"✅ Successfully posted to {issue_key} (ADF formatted)")
                 print(f"🔗 View at: https://taptapsend.atlassian.net/browse/{issue_key}")
+                if result.get("comment_id"):
+                    print(f"📝 Comment ID: {result['comment_id']}")
             else:
                 print(f"❌ Failed to post to Jira: {result.get('error')}")
         else:
@@ -227,7 +232,8 @@ def handle_jira_mention(
         # Post error to Jira if enabled
         if config.ENABLE_JIRA_POSTING:
             print(f"📤 Posting error to {issue_key}...")
-            result = jira.add_comment(issue_key, error_response)
+            adf_body = markdown_to_adf(error_response)
+            result = jira.add_comment(issue_key, None, adf_body=adf_body)
             if result.get("success"):
                 print(f"✅ Error posted to {issue_key}")
             else:

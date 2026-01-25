@@ -1,7 +1,11 @@
-"""Jira client using acli CLI."""
+"""Jira client using acli CLI for reading, REST API for posting."""
 
 import json
 import subprocess
+
+import httpx
+
+from config import config
 
 
 class JiraClient:
@@ -196,44 +200,64 @@ class JiraClient:
             # If comments fail, return empty list
             return []
 
-    def add_comment(self, issue_key: str, comment: str) -> dict:
+    def add_comment(self, issue_key: str, comment: str, adf_body: dict | None = None) -> dict:
         """
-        Add a comment to a Jira issue.
+        Add a comment to a Jira issue using REST API v3 with ADF formatting.
 
         Args:
             issue_key: Jira issue key (e.g., 'B2B-333')
-            comment: Comment text to add
+            comment: Comment text (plain text, deprecated - use adf_body)
+            adf_body: ADF formatted body (if provided, comment is ignored)
 
         Returns:
             Dict with success/error status
         """
+        if not config.JIRA_EMAIL or not config.JIRA_API_TOKEN:
+            return {
+                "error": "JIRA_EMAIL or JIRA_API_TOKEN not configured",
+                "success": False,
+            }
+
         try:
-            result = subprocess.run(
-                [
-                    "acli",
-                    "jira",
-                    "workitem",
-                    "comment",
-                    "create",
-                    "--key",
-                    issue_key,
-                    "--body",
-                    comment,
-                ],
-                capture_output=True,
-                text=True,
-                timeout=30,  # Increased timeout for longer comments
+            # Use ADF body if provided, otherwise plain text paragraph
+            if adf_body:
+                body = adf_body
+            else:
+                # Fallback to plain text wrapped in ADF
+                body = {
+                    "version": 1,
+                    "type": "doc",
+                    "content": [
+                        {
+                            "type": "paragraph",
+                            "content": [{"type": "text", "text": comment}],
+                        }
+                    ],
+                }
+
+            response = httpx.post(
+                f"{config.JIRA_BASE_URL}/rest/api/3/issue/{issue_key}/comment",
+                auth=(config.JIRA_EMAIL, config.JIRA_API_TOKEN),
+                headers={"Content-Type": "application/json"},
+                json={"body": body},
+                timeout=30.0,
             )
 
-            if result.returncode != 0:
-                return {"error": f"acli error: {result.stderr}", "success": False}
+            if response.status_code == 201:
+                data = response.json()
+                return {
+                    "success": True,
+                    "message": f"Comment added to {issue_key}",
+                    "comment_id": data.get("id"),
+                }
+            else:
+                return {
+                    "error": f"Jira API error: {response.status_code} {response.text}",
+                    "success": False,
+                }
 
-            return {"success": True, "message": f"Comment added to {issue_key}"}
-
-        except subprocess.TimeoutExpired:
-            return {"error": "acli command timed out", "success": False}
-        except FileNotFoundError:
-            return {"error": "acli not installed or not in PATH", "success": False}
+        except httpx.HTTPError as e:
+            return {"error": f"HTTP error: {str(e)}", "success": False}
         except Exception as e:
             return {"error": f"Failed to add comment: {str(e)}", "success": False}
 
