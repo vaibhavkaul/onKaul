@@ -69,8 +69,8 @@ def handle_slack_mention(
             print(f"✅ Processed {len(attachments)} attachment(s)")
 
         print("🧠 Calling agent...")
-        # Real agent investigation with thread context
-        response = agent.investigate(user_message, context=context)
+        # Real agent investigation with thread context and history
+        response = agent.investigate(user_message, context=context, thread_history=thread_context)
         print(f"✅ Investigation complete ({len(response)} chars)")
         print("-" * 80)
 

@@ -14,6 +14,9 @@ PyMuPDF>=1.25.0
 # Datadog integration
 datadog-api-client>=2.32.0
 
+# Gemini for deep research
+google-genai>=1.55.0
+
 # Development dependencies
 pytest>=8.3.0
 pytest-asyncio>=0.24.0
