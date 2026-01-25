@@ -4,6 +4,8 @@ from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import BaseModel, Field
 
 from clients.slack import slack
+from config import config
+from utils.attachment_processor import attachment_processor
 from worker.tasks import handle_jira_mention, handle_slack_mention
 
 router = APIRouter()
@@ -20,6 +22,7 @@ class SlackEvent(BaseModel):
     text: str
     user: str
     bot_id: str | None = None
+    files: list | None = None  # Attachments
 
 
 class SlackWebhookPayload(BaseModel):
@@ -121,6 +124,19 @@ async def slack_webhook(
     else:
         print(f"⚠️  Failed to add reaction: {reaction_result.get('error')}")
 
+    # Process attachments if present
+    attachments = []
+    if event.files:
+        print(f"📎 Found {len(event.files)} attachment(s)")
+        for file_data in event.files:
+            print(f"  - {file_data.get('name')} ({file_data.get('filetype')})")
+            result = attachment_processor.process_slack_file(file_data, config.SLACK_BOT_TOKEN)
+            if result.get("processed"):
+                print(f"    ✅ Extracted {len(result.get('extracted_text', ''))} chars")
+                attachments.append(result)
+            else:
+                print(f"    ⚠️  {result.get('message', result.get('error', 'Not processed'))}")
+
     # Fetch thread context if this is a reply
     thread_context = None
     if thread_ts and thread_ts != event.ts:
@@ -144,6 +160,7 @@ async def slack_webhook(
         user_message=user_message,
         user_id=user_id,
         thread_context=thread_context,
+        attachments=attachments,
     )
 
     return {"ok": True, "message": "Investigation queued"}

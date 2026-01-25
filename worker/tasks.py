@@ -16,6 +16,7 @@ def handle_slack_mention(
     user_message: str,
     user_id: str,
     thread_context: list | None = None,
+    attachments: list | None = None,
 ):
     """
     Handle a Slack mention.
@@ -31,6 +32,7 @@ def handle_slack_mention(
     print(f"👤 User: {user_id}")
     print(f"💬 Request: {user_message[:100]}...")
     print(f"📜 Thread context: {len(thread_context) if thread_context else 0} messages")
+    print(f"📎 Attachments: {len(attachments) if attachments else 0} files")
     print(f"📤 Will post to Slack: {config.ENABLE_SLACK_POSTING}")
     print("-" * 80)
 
@@ -52,6 +54,18 @@ def handle_slack_mention(
                     print(f"📨 First message preview: {text[:200]}...")
             context = "\n".join(context_parts)
             print(f"✅ Added {len(thread_context) - 1} previous messages as context")
+
+        # Add attachment text to context if available
+        if attachments:
+            print("📎 Adding attachment text to context...")
+            context += "\n\n## Attached Files\n"
+            for att in attachments:
+                filename = att.get("filename", "unknown")
+                extracted = att.get("extracted_text", "")
+                if extracted:
+                    context += f"\n**{filename}**:\n```\n{extracted[:2000]}\n```\n"
+                    print(f"  ✅ Added text from {filename} ({len(extracted)} chars)")
+            print(f"✅ Processed {len(attachments)} attachment(s)")
 
         print("🧠 Calling agent...")
         # Real agent investigation with thread context
