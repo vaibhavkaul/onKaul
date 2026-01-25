@@ -112,6 +112,103 @@ TOOL_SCHEMAS = [
                     "description": "Time range (e.g., '1h', '24h', '7d')",
                     "default": "1h",
                 },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max results (default: 50)",
+                    "default": 50,
+                },
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "list_datadog_monitors",
+        "description": """List Datadog monitors.
+
+        Use to check what's alerting or find monitors by tags.
+        Returns list of monitors with status.""",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "tags": {
+                    "type": "string",
+                    "description": "Comma-separated tags (e.g., 'env:prod,team:backend')",
+                },
+            },
+        },
+    },
+    {
+        "name": "get_datadog_monitor",
+        "description": """Get details about a specific monitor.
+
+        Returns monitor query, message, status.""",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "monitor_id": {
+                    "type": "integer",
+                    "description": "Monitor ID",
+                }
+            },
+            "required": ["monitor_id"],
+        },
+    },
+    {
+        "name": "query_datadog_metrics",
+        "description": """Query Datadog metrics.
+
+        Use for performance analysis, error rates.
+        Returns time series data.""",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Metric query (e.g., 'avg:api.latency{service:payments}')",
+                },
+                "timeframe": {
+                    "type": "string",
+                    "description": "Time range (default: '1h')",
+                    "default": "1h",
+                },
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "list_datadog_incidents",
+        "description": """List Datadog incidents.
+
+        Returns active/recent incidents.""",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Filter (e.g., 'state:active')",
+                    "default": "state:active",
+                }
+            },
+        },
+    },
+    {
+        "name": "search_datadog_events",
+        "description": """Search Datadog events.
+
+        Find deployments, config changes.
+        Returns events list.""",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Event query (e.g., 'tags:deployment')",
+                },
+                "timeframe": {
+                    "type": "string",
+                    "description": "Time range (default: '1h')",
+                    "default": "1h",
+                },
             },
             "required": ["query"],
         },

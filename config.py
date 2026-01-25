@@ -46,9 +46,10 @@ class Config:
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
     GITHUB_ORG = os.getenv("GITHUB_ORG", "taptapsend")
 
-    # Datadog (Phase 2+)
-    DATADOG_API_KEY = os.getenv("DATADOG_API_KEY")
-    DATADOG_APP_KEY = os.getenv("DATADOG_APP_KEY")
+    # Datadog (Phase 2+) - read from DD_ env vars (standard Datadog convention)
+    DATADOG_API_KEY = os.getenv("DATADOG_API_KEY") or os.getenv("DD_API_KEY")
+    DATADOG_APP_KEY = os.getenv("DATADOG_APP_KEY") or os.getenv("DD_APP_KEY")
+    DATADOG_SITE = os.getenv("DATADOG_SITE") or os.getenv("DD_SITE", "datadoghq.com")
 
     @classmethod
     def ensure_dirs(cls):

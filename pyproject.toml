@@ -13,6 +13,7 @@ dependencies = [
     "pytesseract>=0.3.13",
     "Pillow>=11.2.0",
     "PyMuPDF>=1.25.0",
+    "datadog-api-client>=2.32.0",
 ]
 
 [project.optional-dependencies]

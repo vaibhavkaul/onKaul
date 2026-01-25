@@ -26,6 +26,11 @@ def execute_tool(name: str, inputs: dict) -> str:
         "read_file": _handle_read_file,
         "list_directory": _handle_list_directory,
         "query_datadog_logs": _handle_query_datadog_logs,
+        "list_datadog_monitors": _handle_list_datadog_monitors,
+        "get_datadog_monitor": _handle_get_datadog_monitor,
+        "query_datadog_metrics": _handle_query_datadog_metrics,
+        "list_datadog_incidents": _handle_list_datadog_incidents,
+        "search_datadog_events": _handle_search_datadog_events,
         "query_jira": _handle_query_jira,
         "get_jira_issue": _handle_get_jira_issue,
         "web_search": _handle_web_search,
@@ -63,9 +68,35 @@ def _handle_list_directory(repo: str, path: str) -> dict:
     return github.list_directory(repo, path)
 
 
-def _handle_query_datadog_logs(query: str, timeframe: str = "1h") -> dict:
+def _handle_query_datadog_logs(query: str, timeframe: str = "1h", limit: int = 50) -> dict:
     """Handle query_datadog_logs tool."""
-    return datadog.query_logs(query, timeframe)
+    return datadog.query_logs(query, timeframe, limit)
+
+
+def _handle_list_datadog_monitors(tags: str | None = None) -> dict:
+    """Handle list_datadog_monitors tool."""
+    tag_list = tags.split(",") if tags else None
+    return datadog.list_monitors(tags=tag_list)
+
+
+def _handle_get_datadog_monitor(monitor_id: int) -> dict:
+    """Handle get_datadog_monitor tool."""
+    return datadog.get_monitor(monitor_id)
+
+
+def _handle_query_datadog_metrics(query: str, timeframe: str = "1h") -> dict:
+    """Handle query_datadog_metrics tool."""
+    return datadog.query_metrics(query, timeframe)
+
+
+def _handle_list_datadog_incidents(query: str = "state:active") -> dict:
+    """Handle list_datadog_incidents tool."""
+    return datadog.list_incidents(query)
+
+
+def _handle_search_datadog_events(query: str, timeframe: str = "1h") -> dict:
+    """Handle search_datadog_events tool."""
+    return datadog.search_events(query, timeframe)
 
 
 def _handle_query_jira(jql: str) -> dict:
