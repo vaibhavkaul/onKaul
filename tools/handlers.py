@@ -6,6 +6,7 @@ from clients.datadog import datadog
 from clients.github import github
 from clients.jira import jira
 from clients.sentry import sentry
+from tools.legal import get_compliance_rules
 
 
 def execute_tool(name: str, inputs: dict) -> str:
@@ -28,6 +29,7 @@ def execute_tool(name: str, inputs: dict) -> str:
         "query_jira": _handle_query_jira,
         "get_jira_issue": _handle_get_jira_issue,
         "web_search": _handle_web_search,
+        "get_legal_compliance_rules": _handle_get_legal_compliance_rules,
     }
 
     handler = handlers.get(name)
@@ -87,3 +89,8 @@ def _handle_web_search(query: str) -> dict:
         "query": query,
         "suggestion": "Try searching manually or use GitHub search for code",
     }
+
+
+def _handle_get_legal_compliance_rules(category: str = "all") -> dict:
+    """Handle get_legal_compliance_rules tool."""
+    return get_compliance_rules(category)

@@ -30,6 +30,7 @@ TOOL_SCHEMAS = [
         Choose repo based on what you're investigating:
         - appian-frontend: React Native mobile app (TypeScript/TSX)
         - appian-server: Kotlin/Spring Boot backend
+        - tts-business: B2B money transfer platform (Python/React)
 
         Returns up to 10 matching files with paths and URLs.""",
         "input_schema": {
@@ -37,7 +38,7 @@ TOOL_SCHEMAS = [
             "properties": {
                 "repo": {
                     "type": "string",
-                    "enum": ["appian-frontend", "appian-server"],
+                    "enum": ["appian-frontend", "appian-server", "tts-business"],
                     "description": "Repository to search",
                 },
                 "query": {
@@ -59,7 +60,7 @@ TOOL_SCHEMAS = [
             "properties": {
                 "repo": {
                     "type": "string",
-                    "enum": ["appian-frontend", "appian-server"],
+                    "enum": ["appian-frontend", "appian-server", "tts-business"],
                 },
                 "path": {
                     "type": "string",
@@ -83,7 +84,7 @@ TOOL_SCHEMAS = [
             "properties": {
                 "repo": {
                     "type": "string",
-                    "enum": ["appian-frontend", "appian-server"],
+                    "enum": ["appian-frontend", "appian-server", "tts-business"],
                 },
                 "path": {
                     "type": "string",
@@ -159,6 +160,38 @@ TOOL_SCHEMAS = [
             "type": "object",
             "properties": {"query": {"type": "string"}},
             "required": ["query"],
+        },
+    },
+    {
+        "name": "get_legal_compliance_rules",
+        "description": """Get TapTap Send marketing compliance rules and regulations.
+
+        Use when:
+        - Investigating marketing content issues
+        - Checking what disclaimers are required
+        - Understanding regulatory requirements
+        - Validating marketing materials
+
+        Returns detailed compliance requirements for:
+        - FX disclaimers
+        - Exchange rate language
+        - Transfer speed claims
+        - Geographic regulatory disclosures (UAE, Australia, USA, etc.)
+        - Content-type requirements (emails, influencer, competitions)""",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string",
+                    "enum": [
+                        "all",
+                        "fx_disclaimers",
+                        "geographic_disclosures",
+                        "content_type_requirements",
+                    ],
+                    "description": "Category of rules to retrieve (default: all)",
+                }
+            },
         },
     },
 ]
