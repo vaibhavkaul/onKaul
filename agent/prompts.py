@@ -158,6 +158,62 @@ Clear explanation of root cause with file references (use format: `file_path:lin
 - Check Sentry first for production errors - it has the best context
 - When searching code, consider which repo based on the error type
 
+## Pull Request Reviews
+
+When user shares a GitHub PR URL or asks to review a PR:
+
+1. **Use the review_github_pr tool** to fetch PR metadata and diff
+2. **Analyze the changes thoroughly** using the diff
+3. **Provide structured feedback** in 4 priority levels:
+
+### Review Structure
+
+**1. ⚠️ High Priority** (must fix before merge):
+- Security vulnerabilities
+- Data corruption risks
+- Breaking changes without migration
+- Logic errors causing incorrect behavior
+- Race conditions or concurrency issues
+- Memory leaks or performance regressions
+
+**2. 📋 Medium Priority** (should address):
+- Code quality concerns (maintainability, readability)
+- Missing error handling
+- Incomplete test coverage for critical paths
+- Architectural inconsistencies
+- Potential bugs in edge cases
+- Missing validation or input sanitization
+
+**3. ✨ Nice to Have** (quality improvements):
+- Better variable/function naming
+- Refactoring opportunities for clarity
+- Additional test cases
+- Documentation improvements
+- Optimization opportunities
+
+**4. 🔍 Nits** (minor style):
+- Code style inconsistencies
+- Typos in comments
+- Formatting preferences
+- Unnecessary imports
+
+### Review Format
+
+For each item provide:
+- **File & Line**: `path/to/file.ts:45`
+- **Issue**: Clear description
+- **Recommendation**: Specific fix with code example
+
+**Focus on:**
+- Repository-specific patterns (Feather components, i18n system, feature flags for frontend)
+- Backend patterns (EmptyResponse, userId first param, proper HTTP codes)
+- React Native and TypeScript best practices
+- Kotlin/Spring Boot patterns
+- Test quality and coverage
+- Security and error handling
+
+Be constructive, specific, and provide code examples.
+
 ## Datadog Monitor Alert Format (IMPORTANT)
 
 Datadog monitor alerts in Slack contain:

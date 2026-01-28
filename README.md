@@ -12,13 +12,16 @@ Tag `@onkaul` in Slack or Jira to investigate issues, analyze code, and get acti
 🚧 **Phase 3**: Security & Production (rate limiting, auth verification) - Not Started
 
 **Current Features:**
-- Real investigations using Claude Sonnet 4
-- Posts responses to Jira tickets (optional)
-- Posts responses to Slack threads (optional)
-- Immediate :onkaul: emoji reactions in Slack
-- Formatted responses with mrkdwn for Slack
-- Fetches thread context and Jira comments
-- Detailed real-time logging of agent activity
+- 🤖 **Smart Model Selection** - Opus 4.5 for deep analysis, Sonnet 4 for quick investigations
+- 📝 **PR Reviews** - Posts comprehensive 4-tier reviews to GitHub PRs with summary in Slack
+- 📚 **Confluence Integration** - Reads and follows playbooks automatically
+- 🔍 **Production Monitoring** - Sentry errors, Datadog logs/monitors/metrics
+- 📁 **Code Search** - 3 repos (appian-frontend, appian-server, tts-business) via gh CLI
+- ⚖️ **Legal Compliance** - TapTap Send marketing compliance rules
+- 💬 **Formatted Responses** - ADF for Jira, mrkdwn for Slack
+- 📎 **Attachment Support** - OCR from images, PDF extraction
+- :onkaul: **Emoji Reactions** - Immediate acknowledgment in Slack
+- 📜 **Thread Context** - Reads full conversation history
 
 See [plan.md](./plan.md) for full implementation details.
 
@@ -72,28 +75,37 @@ ENABLE_SLACK_POSTING=true     # Set to true to post replies in Slack
 
 **Tool Integration (required for investigations):**
 ```bash
-# Sentry - for error investigation (from ~/.sentryclirc)
+# Sentry - error investigation
 SENTRY_TOKEN=sntrys_...
 SENTRY_ORG=taptapsend
 
-# GitHub - uses gh CLI (must be authenticated: gh auth login)
+# GitHub - code search and PR reviews (uses gh CLI)
 GITHUB_ORG=taptapsend
 
-# Jira - uses acli CLI (must be installed and configured)
+# Jira - issue tracking and commenting
 JIRA_BASE_URL=https://taptapsend.atlassian.net
+JIRA_EMAIL=your.email@company.com
+JIRA_API_TOKEN=ATATT3xFfGF0...
 
-# Slack - for posting responses (get from Slack app settings)
+# Slack - posting responses
 SLACK_BOT_TOKEN=xoxb-...
 
-# Datadog - optional for log queries
-DATADOG_API_KEY=...
-DATADOG_APP_KEY=...
+# Datadog - logs, monitors, metrics
+DD_API_KEY=...  # or DATADOG_API_KEY
+DD_APP_KEY=...  # or DATADOG_APP_KEY
+DD_SITE=datadoghq.com
+
+# Confluence - read playbooks and wiki pages
+CONFLUENCE_EMAIL=your.email@company.com
+CONFLUENCE_API_TOKEN=ATATT3xFfGF0...  # Scoped token with read:confluence-content.all
+CONFLUENCE_CLOUD_ID=...  # Get from https://yoursite.atlassian.net/_edge/tenant_info
+CONFLUENCE_WIKI_BASE_URL=https://yourcompany.atlassian.net/wiki
 ```
 
 **Prerequisites:**
 - `gh` CLI: `brew install gh && gh auth login`
 - `acli` CLI: See [Atlassian CLI docs](https://developer.atlassian.com/cloud/acli/)
-- Sentry token in `~/.sentryclirc`
+- `tesseract`: `brew install tesseract` (for OCR)
 
 **Note**: The bot works without API keys but will return helpful setup messages.
 
@@ -214,17 +226,35 @@ onKaul/
 ## Features
 
 ### Investigation Tools
-- 🔍 **Sentry** - Fetch error details, stacktraces, frequency, affected users
-- 📁 **GitHub** - Search code in appian-frontend/appian-server (via `gh` CLI)
-- 📄 **Read Files** - Get full file contents from repos
-- 📊 **Datadog** - Query production logs (if configured)
-- 🎫 **Jira** - Fetch issue details + comments (via `acli` CLI)
+
+**Production Monitoring:**
+- 🔍 **Sentry** - Error details, stacktraces, frequency, affected users
+- 📊 **Datadog Logs** - Query production logs with filters
+- 📈 **Datadog Monitors** - Check alerting monitors, get details
+- 📉 **Datadog Metrics** - Query time series (latency, error rates)
+- 🚨 **Datadog Events** - Search deployments and config changes
+
+**Code & Documentation:**
+- 📁 **GitHub Code Search** - 3 repos (appian-frontend, appian-server, tts-business) via `gh` CLI
+- 📄 **Read Files** - Full file contents from any repo
+- 📝 **PR Reviews** - Comprehensive 4-tier code reviews posted to GitHub
+- 📚 **Confluence** - Read playbooks, runbooks, RFCs automatically
+
+**Context:**
+- 🎫 **Jira** - Issue details + full comment history (via `acli` CLI)
+- ⚖️ **Legal Compliance** - TapTap Send marketing rules
+
+**Attachments:**
+- 📎 **OCR** - Extract text from screenshots (Tesseract)
+- 📄 **PDF** - Extract text from PDF files
+- 📝 **Text Files** - Read .txt and .log files
 
 ### Response Capabilities
-- **Slack**: Posts formatted responses in threads with :onkaul: reaction
-- **Jira**: Posts formatted comments to tickets
+- **Slack**: Posts formatted responses (mrkdwn), adds :onkaul: reactions, reads thread context
+- **Jira**: Posts ADF-formatted comments (proper headings, bold, code blocks)
+- **GitHub**: Posts PR review comments with link back to Slack/Jira
 - **Logging**: All responses logged to console + `logs/responses.jsonl`
-- **Real-time**: Detailed logging shows each tool use as it happens
+- **Real-time**: Detailed logging shows each tool use as it happens (100 max iterations)
 
 ### Response Format
 Investigations include:

@@ -39,6 +39,13 @@ class Config:
     JIRA_EMAIL = os.getenv("JIRA_EMAIL")
     JIRA_API_TOKEN = os.getenv("JIRA_API_TOKEN")
 
+    # Confluence (Phase 2+) - Read playbooks and wiki pages
+    CONFLUENCE_EMAIL = os.getenv("CONFLUENCE_EMAIL") or os.getenv("ATLASSIAN_EMAIL")
+    CONFLUENCE_API_TOKEN = os.getenv("CONFLUENCE_API_TOKEN")
+    CONFLUENCE_CLOUD_ID = os.getenv("CONFLUENCE_CLOUD_ID")
+    CONFLUENCE_API_BASE_URL = os.getenv("CONFLUENCE_API_BASE_URL", "https://api.atlassian.com/ex/confluence")
+    CONFLUENCE_WIKI_BASE_URL = os.getenv("CONFLUENCE_WIKI_BASE_URL", "https://taptapsend.atlassian.net/wiki")
+
     # Sentry (Phase 2+)
     SENTRY_TOKEN = os.getenv("SENTRY_TOKEN")
     SENTRY_ORG = os.getenv("SENTRY_ORG")

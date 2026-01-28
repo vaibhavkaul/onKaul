@@ -2,11 +2,13 @@
 
 import json
 
+from clients.confluence import confluence
 from clients.datadog import datadog
 from clients.github import github
 from clients.jira import jira
 from clients.sentry import sentry
 from tools.legal import get_compliance_rules
+from tools.pr_review import review_github_pr
 
 
 def execute_tool(name: str, inputs: dict) -> str:
@@ -35,6 +37,8 @@ def execute_tool(name: str, inputs: dict) -> str:
         "get_jira_issue": _handle_get_jira_issue,
         "web_search": _handle_web_search,
         "get_legal_compliance_rules": _handle_get_legal_compliance_rules,
+        "review_github_pr": _handle_review_github_pr,
+        "read_confluence_page": _handle_read_confluence_page,
     }
 
     handler = handlers.get(name)
@@ -125,3 +129,19 @@ def _handle_web_search(query: str) -> dict:
 def _handle_get_legal_compliance_rules(category: str = "all") -> dict:
     """Handle get_legal_compliance_rules tool."""
     return get_compliance_rules(category)
+
+
+def _handle_review_github_pr(pr_url: str) -> dict:
+    """Handle review_github_pr tool."""
+    return review_github_pr(pr_url)
+
+
+def _handle_read_confluence_page(page_id: str) -> dict:
+    """Handle read_confluence_page tool."""
+    # Extract page ID from URL if full URL provided
+    import re
+    match = re.search(r"pages/(\d+)", page_id)
+    if match:
+        page_id = match.group(1)
+
+    return confluence.read_page(page_id)

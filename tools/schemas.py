@@ -291,4 +291,55 @@ TOOL_SCHEMAS = [
             },
         },
     },
+    {
+        "name": "review_github_pr",
+        "description": """Review a GitHub Pull Request with comprehensive code analysis.
+
+        Use when:
+        - User shares a GitHub PR URL
+        - User asks to review PR #number
+        - User asks for code review feedback
+
+        Returns: PR metadata (title, author, description) and full diff for review.
+
+        Always use Opus model for PR reviews (deep analysis required).""",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "pr_url": {
+                    "type": "string",
+                    "description": "GitHub PR URL (e.g., 'https://github.com/taptapsend/appian-frontend/pull/1234') or short form (e.g., 'appian-frontend#1234')",
+                }
+            },
+            "required": ["pr_url"],
+        },
+    },
+    {
+        "name": "read_confluence_page",
+        "description": """Read a Confluence wiki page (playbooks, documentation, RFCs).
+
+        Use when:
+        - Investigating an issue that references a playbook URL
+        - User asks about documented procedures
+        - Need to follow runbook/playbook steps
+        - Datadog/Sentry alerts mention playbook links
+
+        Returns: Page title and content (converted from HTML to readable text).
+
+        Common use cases:
+        - Dead letter queue playbooks
+        - Incident response procedures
+        - Team runbooks
+        - Architecture RFCs""",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "page_id": {
+                    "type": "string",
+                    "description": "Confluence page ID (extract from URL like 'pages/2030403650' → '2030403650') or full URL",
+                }
+            },
+            "required": ["page_id"],
+        },
+    },
 ]

@@ -14,13 +14,6 @@ class ModelSelector:
             "max_tokens": 16384,
             "best_for": "Deep research, complex reasoning, architectural analysis",
         },
-        "sonnet_thinking": {
-            "id": "claude-sonnet-4-5-20241022",
-            "name": "Sonnet 4.5 (Extended Thinking)",
-            "max_tokens": 8192,
-            "thinking_budget": 10000,
-            "best_for": "Complex debugging, multi-step reasoning",
-        },
         "sonnet": {
             "id": "claude-sonnet-4-20250514",
             "name": "Sonnet 4",
@@ -46,6 +39,9 @@ class ModelSelector:
         "explain the implementation",
         "how is this implemented",
         "walk me through",
+        "review",  # PR reviews need deep analysis
+        "pull request",
+        "github.com/",  # PR URLs
     ]
 
     # Keywords for complex debugging
@@ -73,23 +69,14 @@ class ModelSelector:
         """
         combined_text = (user_message + " " + context).lower()
 
-        # Check for deep research indicators
-        if self._is_deep_research(combined_text):
+        # Check for deep research or complex debugging - use Opus for both
+        if self._is_deep_research(combined_text) or self._is_complex_debug(combined_text):
+            reason = "Deep research/architectural task" if self._is_deep_research(combined_text) else "Complex debugging task"
             return {
                 "id": self.MODELS["opus"]["id"],
                 "name": self.MODELS["opus"]["name"],
                 "max_tokens": self.MODELS["opus"]["max_tokens"],
-                "reason": "Deep research/architectural task detected",
-            }
-
-        # Check for complex debugging
-        if self._is_complex_debug(combined_text):
-            return {
-                "id": self.MODELS["sonnet_thinking"]["id"],
-                "name": self.MODELS["sonnet_thinking"]["name"],
-                "max_tokens": self.MODELS["sonnet_thinking"]["max_tokens"],
-                "thinking": {"type": "enabled", "budget_tokens": 10000},
-                "reason": "Complex debugging task detected",
+                "reason": reason,
             }
 
         # Default: Standard Sonnet for quick investigations

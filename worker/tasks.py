@@ -6,6 +6,13 @@ from agent.core import agent
 from clients.jira import jira
 from clients.slack import slack
 from config import config
+from tools.pr_review import (
+    is_pr_review_request,
+    extract_pr_url,
+    review_github_pr,
+    post_pr_review_comment,
+    generate_review_summary,
+)
 from utils.jira_formatter import markdown_to_adf
 from utils.logger import logger
 from utils.slack_formatter import format_for_slack
@@ -68,11 +75,66 @@ def handle_slack_mention(
                     print(f"  ✅ Added text from {filename} ({len(extracted)} chars)")
             print(f"✅ Processed {len(attachments)} attachment(s)")
 
-        print("🧠 Calling agent...")
-        # Real agent investigation with thread context and history
-        response = agent.investigate(user_message, context=context, thread_history=thread_context)
-        print(f"✅ Investigation complete ({len(response)} chars)")
-        print("-" * 80)
+        # Check if this is a PR review request
+        if is_pr_review_request(user_message):
+            print("🔍 Detected PR review request")
+            pr_url = extract_pr_url(user_message)
+            if pr_url:
+                print(f"📋 PR URL: {pr_url}")
+                print("🧠 Calling agent for PR review...")
+
+                # Fetch PR data first
+                pr_data = review_github_pr(pr_url)
+                if "error" in pr_data:
+                    response = f"❌ Failed to fetch PR: {pr_data['error']}"
+                else:
+                    # Build review context
+                    review_context = f"""Please review this Pull Request:
+
+**PR #{pr_data['pr_number']}**: {pr_data['title']}
+**Author**: {pr_data['author']}
+**Repository**: {pr_data['repository']}
+
+**Description:**
+{pr_data.get('description', 'No description provided')[:1000]}
+
+**Changes:**
+```diff
+{pr_data['diff'][:10000]}
+```
+
+Provide a comprehensive code review with the 4-tier priority structure."""
+
+                    # Agent reviews (uses Opus automatically)
+                    response = agent.investigate(review_context, context="")
+                    print(f"✅ Review complete ({len(response)} chars)")
+
+                    # Post review to GitHub
+                    print("📤 Posting review to GitHub PR...")
+                    comment_result = post_pr_review_comment(pr_url, response)
+
+                    if comment_result.get("success"):
+                        comment_url = comment_result.get("comment_url")
+                        print(f"✅ Posted to GitHub: {comment_url}")
+
+                        # Generate summary for Slack
+                        response = generate_review_summary(response, pr_data, comment_url)
+                        print(f"📝 Generated summary for Slack ({len(response)} chars)")
+                    else:
+                        print(f"❌ Failed to post to GitHub: {comment_result.get('error')}")
+                        # Keep full review as response if GitHub posting fails
+
+                print("-" * 80)
+            else:
+                response = "I couldn't find a GitHub PR URL in your message. Please provide a link like: https://github.com/taptapsend/appian-frontend/pull/1234"
+                print("-" * 80)
+        else:
+            # Regular investigation (not a PR review)
+            print("🧠 Calling agent...")
+            # Real agent investigation with thread context and history
+            response = agent.investigate(user_message, context=context, thread_history=thread_context)
+            print(f"✅ Investigation complete ({len(response)} chars)")
+            print("-" * 80)
 
         # Calculate duration
         duration_ms = (time.time() - start_time) * 1000
@@ -168,11 +230,65 @@ def handle_jira_mention(
         # Build context from Jira issue
         context = f"Jira Issue: {issue_key}\nComment from {author}"
 
-        print("🧠 Calling agent...")
-        # Real agent investigation
-        response = agent.investigate(comment_body, context=context)
-        print(f"✅ Investigation complete ({len(response)} chars)")
-        print("-" * 80)
+        # Check if this is a PR review request
+        if is_pr_review_request(comment_body):
+            print("🔍 Detected PR review request")
+            pr_url = extract_pr_url(comment_body)
+            if pr_url:
+                print(f"📋 PR URL: {pr_url}")
+                print("🧠 Calling agent for PR review...")
+
+                # Fetch PR data
+                pr_data = review_github_pr(pr_url)
+                if "error" in pr_data:
+                    response = f"❌ Failed to fetch PR: {pr_data['error']}"
+                else:
+                    # Build review context
+                    review_context = f"""Please review this Pull Request:
+
+**PR #{pr_data['pr_number']}**: {pr_data['title']}
+**Author**: {pr_data['author']}
+**Repository**: {pr_data['repository']}
+
+**Description:**
+{pr_data.get('description', 'No description provided')[:1000]}
+
+**Changes:**
+```diff
+{pr_data['diff'][:10000]}
+```
+
+Provide a comprehensive code review with the 4-tier priority structure."""
+
+                    # Agent reviews
+                    response = agent.investigate(review_context, context=context)
+                    print(f"✅ Review complete ({len(response)} chars)")
+
+                    # Post review to GitHub
+                    print("📤 Posting review to GitHub PR...")
+                    comment_result = post_pr_review_comment(pr_url, response)
+
+                    if comment_result.get("success"):
+                        comment_url = comment_result.get("comment_url")
+                        print(f"✅ Posted to GitHub: {comment_url}")
+
+                        # Generate summary for Jira
+                        response = generate_review_summary(response, pr_data, comment_url)
+                        print(f"📝 Generated summary for Jira ({len(response)} chars)")
+                    else:
+                        print(f"❌ Failed to post to GitHub: {comment_result.get('error')}")
+
+                print("-" * 80)
+            else:
+                response = "I couldn't find a GitHub PR URL in your comment. Please provide a link like: https://github.com/taptapsend/appian-frontend/pull/1234"
+                print("-" * 80)
+        else:
+            # Regular investigation (not a PR review)
+            print("🧠 Calling agent...")
+            # Real agent investigation
+            response = agent.investigate(comment_body, context=context)
+            print(f"✅ Investigation complete ({len(response)} chars)")
+            print("-" * 80)
 
         # Calculate duration
         duration_ms = (time.time() - start_time) * 1000
