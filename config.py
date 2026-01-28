@@ -17,7 +17,7 @@ class Config:
     DEBUG = os.getenv("DEBUG", "false").lower() == "true"
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
-    # Phase 2.5 - Enable real posting
+    # Enable posting to Slack/Jira
     ENABLE_JIRA_POSTING = os.getenv("ENABLE_JIRA_POSTING", "false").lower() == "true"
     ENABLE_SLACK_POSTING = os.getenv("ENABLE_SLACK_POSTING", "false").lower() == "true"
 
@@ -26,38 +26,41 @@ class Config:
     LOGS_DIR = BASE_DIR / "logs"
     RESPONSE_LOG_FILE = LOGS_DIR / "responses.jsonl"
 
-    # API Keys (Phase 2+)
+    # AI Agent API Keys
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # For Gemini Deep Research
+    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # For Gemini Deep Research (optional)
 
-    # Slack (Phase 3+)
+    # Slack Integration
     SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
-    SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")
+    SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")  # For webhook signature verification (optional)
 
-    # Jira (Phase 2+)
+    # Jira Integration
     JIRA_BASE_URL = os.getenv("JIRA_BASE_URL")
     JIRA_EMAIL = os.getenv("JIRA_EMAIL")
     JIRA_API_TOKEN = os.getenv("JIRA_API_TOKEN")
 
-    # Confluence (Phase 2+) - Read playbooks and wiki pages
+    # Confluence Integration - Read playbooks and wiki pages
     CONFLUENCE_EMAIL = os.getenv("CONFLUENCE_EMAIL") or os.getenv("ATLASSIAN_EMAIL")
     CONFLUENCE_API_TOKEN = os.getenv("CONFLUENCE_API_TOKEN")
     CONFLUENCE_CLOUD_ID = os.getenv("CONFLUENCE_CLOUD_ID")
     CONFLUENCE_API_BASE_URL = os.getenv("CONFLUENCE_API_BASE_URL", "https://api.atlassian.com/ex/confluence")
     CONFLUENCE_WIKI_BASE_URL = os.getenv("CONFLUENCE_WIKI_BASE_URL", "https://taptapsend.atlassian.net/wiki")
 
-    # Sentry (Phase 2+)
+    # Sentry
     SENTRY_TOKEN = os.getenv("SENTRY_TOKEN")
     SENTRY_ORG = os.getenv("SENTRY_ORG")
 
-    # GitHub (Phase 2+)
+    # GitHub (uses gh CLI)
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
     GITHUB_ORG = os.getenv("GITHUB_ORG", "taptapsend")
 
-    # Datadog (Phase 2+) - read from DD_ env vars (standard Datadog convention)
+    # Datadog (reads from DD_ env vars - standard Datadog convention)
     DATADOG_API_KEY = os.getenv("DATADOG_API_KEY") or os.getenv("DD_API_KEY")
     DATADOG_APP_KEY = os.getenv("DATADOG_APP_KEY") or os.getenv("DD_APP_KEY")
     DATADOG_SITE = os.getenv("DATADOG_SITE") or os.getenv("DD_SITE", "datadoghq.com")
+
+    # Brave Search - for web research
+    BRAVE_SEARCH_API_KEY = os.getenv("BRAVE_SEARCH_API_KEY")
 
     @classmethod
     def ensure_dirs(cls):

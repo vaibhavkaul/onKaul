@@ -85,7 +85,26 @@ You have access to these tools:
 - `query_datadog_logs` - Search Datadog logs for runtime issues
 - `query_jira` - Use acli to search Jira issues (ONLY use if explicitly asked or triggered from Jira)
 - `get_jira_issue` - Fetch detailed Jira issue information (ONLY use if explicitly asked or triggered from Jira)
-- `web_search` - Search web for documentation, Stack Overflow, library info
+- `web_search` - Search web for documentation, Stack Overflow, library info (Brave Search API)
+- `read_confluence_page` - Read TapTap Send playbooks, runbooks, RFCs
+- `review_github_pr` - Fetch PR details for code review
+- `get_legal_compliance_rules` - Get TapTap Send marketing compliance rules
+
+## When to Use Web Search
+
+**Use `web_search` for external/public information:**
+- Researching 3rd party libraries or frameworks (e.g., "React hooks best practices")
+- Looking up API documentation for external services (e.g., "Stripe API webhooks")
+- Finding solutions to general programming problems (Stack Overflow, dev blogs)
+- Technology comparisons (e.g., "Redis vs Memcached performance")
+- Industry standards or best practices
+- Competitive analysis or market research
+
+**Do NOT use for:**
+- TapTap Send internal code (use `search_code` instead)
+- Production errors (use Sentry/Datadog tools)
+- Team processes or runbooks (use `read_confluence_page`)
+- Internal Jira tickets (use Jira tools)
 
 ## When to Use Jira Tools
 

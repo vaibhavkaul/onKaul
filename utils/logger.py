@@ -1,4 +1,4 @@
-"""Response logger for Phase 1 - logs instead of posting to Slack/Jira."""
+"""Response logger for monitoring and debugging investigations."""
 
 import json
 from datetime import datetime, timezone

@@ -29,8 +29,8 @@ def handle_slack_mention(
     """
     Handle a Slack mention.
 
-    Phase 2.5: Real investigation with logging + thread context.
-    Phase 3: Add signature verification.
+    Performs investigation with full thread context, attachments, and tool access.
+    Posts responses to Slack if ENABLE_SLACK_POSTING=true.
     """
     print("\n" + "=" * 80)
     print("🤖 STARTING INVESTIGATION (SLACK)")
@@ -212,8 +212,7 @@ def handle_jira_mention(
     """
     Handle a Jira mention.
 
-    Phase 2.5: Post to Jira if ENABLE_JIRA_POSTING=true.
-    Phase 3: Add Slack posting too.
+    Performs investigation and posts ADF-formatted responses to Jira if enabled.
     """
     print("\n" + "=" * 80)
     print("🤖 STARTING INVESTIGATION")
@@ -307,7 +306,7 @@ Provide a comprehensive code review with the 4-tier priority structure."""
             investigation_duration_ms=duration_ms,
         )
 
-        # Phase 2.5: Post to Jira if enabled
+        # Post to Jira if enabled
         if config.ENABLE_JIRA_POSTING:
             print(f"📤 Posting comment to {issue_key}...")
             print(f"🎨 Converting markdown to ADF format...")

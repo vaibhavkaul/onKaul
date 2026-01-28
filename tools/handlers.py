@@ -2,6 +2,7 @@
 
 import json
 
+from clients.brave_search import brave_search
 from clients.confluence import confluence
 from clients.datadog import datadog
 from clients.github import github
@@ -113,17 +114,9 @@ def _handle_get_jira_issue(issue_key: str) -> dict:
     return jira.get_issue(issue_key)
 
 
-def _handle_web_search(query: str) -> dict:
-    """
-    Handle web_search tool.
-
-    Placeholder - not implemented.
-    """
-    return {
-        "message": "Web search not implemented",
-        "query": query,
-        "suggestion": "Try searching manually or use GitHub search for code",
-    }
+def _handle_web_search(query: str, count: int = 5) -> dict:
+    """Handle web_search tool using Brave Search API."""
+    return brave_search.search(query, count)
 
 
 def _handle_get_legal_compliance_rules(category: str = "all") -> dict:

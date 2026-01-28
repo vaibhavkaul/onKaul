@@ -249,13 +249,34 @@ TOOL_SCHEMAS = [
     },
     {
         "name": "web_search",
-        "description": """Search the web for documentation, Stack Overflow answers, or library info.
+        "description": """Search the web using Brave Search API for external information.
 
-        Use for external libraries, APIs, or general programming questions.
-        Don't use for TapTap Send internal code - use search_code instead.""",
+        Use when:
+        - Researching external libraries, frameworks, or technologies (e.g., "React hooks best practices")
+        - Looking up API documentation for 3rd party services
+        - Finding Stack Overflow solutions for general programming problems
+        - Researching industry standards or competitive landscape
+        - Technology comparisons (e.g., "Redis vs Memcached")
+
+        Do NOT use for:
+        - TapTap Send internal code (use search_code instead)
+        - Production errors (use Sentry/Datadog)
+        - Team processes (use Confluence)
+
+        Returns: Top 5 web results with title, URL, and description.""",
         "input_schema": {
             "type": "object",
-            "properties": {"query": {"type": "string"}},
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search query (e.g., 'OAuth2 best practices', 'Kotlin coroutines tutorial')"
+                },
+                "count": {
+                    "type": "integer",
+                    "description": "Number of results (default: 5, max: 20)",
+                    "default": 5
+                }
+            },
             "required": ["query"],
         },
     },

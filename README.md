@@ -6,10 +6,7 @@ Tag `@onkaul` in Slack or Jira to investigate issues, analyze code, and get acti
 
 ## Status
 
-✅ **Phase 1**: Webhook Handlers - Complete
-✅ **Phase 2**: Agent Loop + Tools - Complete
-✅ **Phase 2.5**: Jira + Slack Posting - Complete
-🚧 **Phase 3**: Security & Production (rate limiting, auth verification) - Not Started
+✅ **Production Ready** - Fully functional internal developer assistant
 
 **Current Features:**
 - 🤖 **Smart Model Selection** - Opus 4.5 for deep analysis, Sonnet 4 for quick investigations
@@ -239,6 +236,7 @@ onKaul/
 - 📄 **Read Files** - Full file contents from any repo
 - 📝 **PR Reviews** - Comprehensive 4-tier code reviews posted to GitHub
 - 📚 **Confluence** - Read playbooks, runbooks, RFCs automatically
+- 🌐 **Web Search** - Brave Search API for external docs, Stack Overflow, tutorials
 
 **Context:**
 - 🎫 **Jira** - Issue details + full comment history (via `acli` CLI)
@@ -270,11 +268,12 @@ Investigations include:
 - **Thread Context**: Reads Slack thread history and Jira comments
 - **Smart Routing**: Uses correct repo based on error type
 
-## Implementation Status
+## Future Enhancements (Optional)
 
-- [x] **Phase 1**: Webhook handlers + logging
-- [x] **Phase 2**: Agent loop + tool system
-- [x] **Phase 2.5**: Jira + Slack posting with formatting
-- [ ] **Phase 3**: Security (rate limiting, signature verification, allowlists)
-
-See [plan.md](./plan.md) for detailed implementation plan.
+Potential additions for production hardening:
+- Webhook signature verification (Slack)
+- Rate limiting per user/channel
+- Allowlist for authorized channels/projects
+- Database audit logging
+- Caching layer for API responses
+- Automated PR creation (V2 - sandbox agents)

@@ -67,8 +67,7 @@ async def slack_webhook(
     """
     Handle Slack app_mention webhook.
 
-    Phase 1: No authentication, just parse and queue investigation.
-    Phase 3: Add signature verification.
+    Parses payload, adds emoji reaction, and queues background investigation.
     """
     payload_dict = await request.json()
 
@@ -174,8 +173,7 @@ async def jira_webhook(
     """
     Handle Jira comment webhook.
 
-    Phase 1: No authentication, just parse and queue investigation.
-    Phase 3: Add proper authentication.
+    Parses payload and queues background investigation.
     """
     payload_dict = await request.json()
 
