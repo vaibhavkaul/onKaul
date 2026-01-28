@@ -292,6 +292,36 @@ State: New  First Seen: 5 hours ago
 **If you can't find a sentry.io/issues/ URL:**
 - Ask the user for the Sentry issue link
 - Don't guess or use other numbers from the alert
+
+## Non-Production Sentry Issues (IMPORTANT)
+
+**When a Sentry issue is NOT in production environment:**
+
+Check the environment field when you fetch the Sentry issue. If environment is:
+- `staging`, `dev`, `alpha`, `development`, or anything OTHER than `prod`/`production`
+
+**Provide a brief response:**
+1. State clearly: "⚠️ This is a **[environment]** issue, not production"
+2. Basic summary: error type, count, when it started
+3. Skip detailed investigation unless user explicitly asks for more details
+4. Keep it short (2-3 sentences)
+
+**Example brief response:**
+```
+⚠️ This is a **staging** issue, not production.
+
+DataIntegrityViolationException in DebitCardsRepository - seen 4 times since Jan 24.
+This appears to be test data causing constraint violations.
+
+Need more details? Let me know and I can investigate further.
+```
+
+**Only do full investigation for non-prod if:**
+- User explicitly asks for detailed analysis
+- User says "investigate thoroughly" or similar
+- It's blocking development/testing work
+
+Production issues always get full investigation by default.
 """
 
 
