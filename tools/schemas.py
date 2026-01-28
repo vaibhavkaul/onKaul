@@ -38,7 +38,7 @@ TOOL_SCHEMAS = [
             "properties": {
                 "repo": {
                     "type": "string",
-                    "enum": ["appian-frontend", "appian-server", "tts-business"],
+                    "enum": ["appian-frontend", "appian-server", "tts-business", "analytics"],
                     "description": "Repository to search",
                 },
                 "query": {
@@ -60,7 +60,7 @@ TOOL_SCHEMAS = [
             "properties": {
                 "repo": {
                     "type": "string",
-                    "enum": ["appian-frontend", "appian-server", "tts-business"],
+                    "enum": ["appian-frontend", "appian-server", "tts-business", "analytics"],
                 },
                 "path": {
                     "type": "string",
@@ -84,7 +84,7 @@ TOOL_SCHEMAS = [
             "properties": {
                 "repo": {
                     "type": "string",
-                    "enum": ["appian-frontend", "appian-server", "tts-business"],
+                    "enum": ["appian-frontend", "appian-server", "tts-business", "analytics"],
                 },
                 "path": {
                     "type": "string",

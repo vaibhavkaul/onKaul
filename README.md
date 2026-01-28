@@ -235,7 +235,7 @@ onKaul/
 - 🚨 **Datadog Events** - Search deployments and config changes
 
 **Code & Documentation:**
-- 📁 **GitHub Code Search** - 3 repos (appian-frontend, appian-server, tts-business) via `gh` CLI
+- 📁 **GitHub Code Search** - 4 repos (appian-frontend, appian-server, tts-business, analytics) via `gh` CLI
 - 📄 **Read Files** - Full file contents from any repo
 - 📝 **PR Reviews** - Comprehensive 4-tier code reviews posted to GitHub
 - 📚 **Confluence** - Read playbooks, runbooks, RFCs automatically

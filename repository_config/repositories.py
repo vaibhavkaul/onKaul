@@ -102,6 +102,35 @@ REPOSITORIES = {
             "../ai-context/feature-flags.md",
         ],
     },
+    "analytics": {
+        "name": "analytics",
+        "org": "taptapsend",
+        "description": "dbt-based data transformation and business intelligence layer",
+        "tech_stack": [
+            "dbt (data build tool)",
+            "SQL (Redshift dialect)",
+            "Python scripts",
+            "Jinja2 templates",
+            "Amazon Redshift",
+        ],
+        "key_systems": [
+            "dbt Models (21 domains: remittances, finance, metrics, fraud, treasury)",
+            "Mode Analytics Dashboards",
+            "Data Dictionary",
+            "Incremental Data Transformations",
+        ],
+        "handles": [
+            "Data model issues",
+            "Dashboard data quality problems",
+            "Metric calculation errors",
+            "dbt test failures",
+            "Revenue/cost reporting bugs",
+            "Financial reconciliation issues",
+            "Analytics performance optimization",
+            "Data transformation logic",
+        ],
+        "context_files": [],
+    },
 }
 
 # Investigation strategy mapping
@@ -122,6 +151,12 @@ INVESTIGATION_STRATEGY = {
     "Business wallet errors": "tts-business",
     "KYB verification failures": "tts-business",
     "B2B transfer issues": "tts-business",
+    "Data model issues": "analytics",
+    "Dashboard problems": "analytics",
+    "Metric calculation errors": "analytics",
+    "dbt test failures": "analytics",
+    "Revenue reporting issues": "analytics",
+    "Analytics performance": "analytics",
 }
 
 # Additional context sources
