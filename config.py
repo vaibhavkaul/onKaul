@@ -28,7 +28,6 @@ class Config:
 
     # AI Agent API Keys
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # For Gemini Deep Research (optional)
 
     # Slack Integration
     SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")

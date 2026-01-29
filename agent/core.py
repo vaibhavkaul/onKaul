@@ -1,11 +1,9 @@
-"""Agent core with Claude API integration and deep research support."""
+"""Agent core with Claude API integration."""
 
 import anthropic
 
 from agent.model_selector import model_selector
 from agent.prompts import SYSTEM_PROMPT
-from agent.research_detector import research_detector
-from clients.gemini import gemini
 from config import config
 from tools.handlers import execute_tool
 from tools.schemas import TOOL_SCHEMAS
@@ -25,113 +23,23 @@ class Agent:
         """
         Run investigation based on user message.
 
-        Handles:
-        - Regular investigations (Claude)
-        - Deep research requests (Gemini)
-        - Confirmation flows for research
+        Uses Claude (Opus or Sonnet) with all available tools.
+        For research questions, Claude will use web_search tool (Brave Search).
 
         Args:
             user_message: User's question/request
             context: Additional context (thread history, Jira description, etc.)
-            thread_history: Full thread messages (for state inference)
+            thread_history: Full thread messages (unused, kept for compatibility)
 
         Returns:
-            Investigation results or research confirmation request
+            Investigation results
         """
         if not self.client:
             return self._no_api_key_response(user_message)
 
-        # Check if this is a deep research question
-        is_research = research_detector.is_research_question(user_message, context)
-
-        if is_research:
-            return self._handle_research_flow(user_message, context, thread_history)
-
-        # Regular investigation with Claude
+        # All investigations use Claude with tools
+        # Opus will be selected for research questions and use web_search tool
         return self._run_claude_investigation(user_message, context)
-
-    def _handle_research_flow(
-        self, user_message: str, context: str, thread_history: list | None
-    ) -> str:
-        """
-        Handle deep research flow with confirmation.
-
-        Args:
-            user_message: User's message
-            context: Additional context
-            thread_history: Thread messages for state inference
-
-        Returns:
-            Confirmation request, research results, or error
-        """
-        # Extract bot's own messages from thread
-        bot_messages = []
-        if thread_history:
-            for msg in thread_history:
-                # Check if message is from bot (has bot_id or is from our user)
-                if msg.get("bot_id") or msg.get("username") == "onKaul":
-                    text = msg.get("text", "")
-                    bot_messages.append(text)
-
-        # Check state from conversation history
-        already_asked = research_detector.already_requested_confirmation(bot_messages)
-        already_done = research_detector.already_completed_research(bot_messages)
-
-        # If already completed research, provide summary
-        if already_done:
-            return """I've already completed deep research on this topic earlier in this thread.
-
-Please review my previous research report above, or ask a specific follow-up question if you need additional details on a particular aspect."""
-
-        # If we already asked for confirmation
-        if already_asked:
-            # Check if user confirmed
-            confirmation = research_detector.parse_confirmation(user_message)
-
-            if confirmation == "yes":
-                # User confirmed - run deep research
-                print("✅ User confirmed deep research - proceeding...")
-                result = gemini.deep_research(user_message)
-
-                if "error" in result:
-                    return f"❌ Deep research failed: {result['error']}\n\n{result.get('message', '')}"
-
-                # Format research report
-                report = result.get("report", "No report generated")
-                duration = result.get("duration_seconds", 0)
-
-                return f"""✅ **Deep Research Complete** ({duration // 60} minutes)
-
-{report}
-
----
-_Research conducted using Gemini Deep Research_"""
-
-            elif confirmation == "no":
-                return "👍 Understood - deep research canceled. Let me know if you need anything else!"
-
-            else:
-                # User didn't clearly confirm - remind them
-                return """I'm waiting for your confirmation to start deep research.
-
-Please reply with:
-- '@onkaul yes' to proceed with deep research
-- '@onkaul no' to cancel"""
-
-        # First time - request confirmation
-        return f"""🔬 This question requires **deep web research** (5-10 minutes).
-
-I'll need to:
-- Search multiple sources across the web
-- Read documentation and articles
-- Compare options and synthesize findings
-- Compile a comprehensive report with citations
-
-**Your question:** {user_message}
-
-Should I proceed with deep research? Reply with:
-- **'@onkaul yes'** or **'@onkaul go for it'** to start
-- **'@onkaul no'** or **'skip'** to cancel"""
 
     def _run_claude_investigation(self, user_message: str, context: str) -> str:
         """Run standard Claude investigation (original investigate logic)."""
