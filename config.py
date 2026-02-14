@@ -16,6 +16,9 @@ class Config:
     APP_NAME = "onKaul"
     DEBUG = os.getenv("DEBUG", "false").lower() == "true"
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    API_HOST = os.getenv("API_HOST", "0.0.0.0")
+    API_PORT = int(os.getenv("API_PORT", "8000"))
+    PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL") or f"http://localhost:{API_PORT}"
 
     # Enable posting to Slack/Jira
     ENABLE_JIRA_POSTING = os.getenv("ENABLE_JIRA_POSTING", "false").lower() == "true"
@@ -25,6 +28,8 @@ class Config:
     BASE_DIR = Path(__file__).parent
     LOGS_DIR = BASE_DIR / "logs"
     RESPONSE_LOG_FILE = LOGS_DIR / "responses.jsonl"
+    WORKSPACE_DIR = Path(os.getenv("WORKSPACE_DIR") or (BASE_DIR / "workplace"))
+    FIX_WORKSPACE_DIR = Path(os.getenv("FIX_WORKSPACE_DIR") or (BASE_DIR / "fixes"))
 
     # AI Agent API Keys
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
@@ -61,10 +66,17 @@ class Config:
     # Brave Search - for web research
     BRAVE_SEARCH_API_KEY = os.getenv("BRAVE_SEARCH_API_KEY")
 
+    # Queue
+    REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    REDIS_QUEUE_NAME = os.getenv("REDIS_QUEUE_NAME", "onkaul")
+    JOB_TIMEOUT_SECONDS = int(os.getenv("JOB_TIMEOUT_SECONDS", "900"))
+
     @classmethod
     def ensure_dirs(cls):
         """Ensure required directories exist."""
         cls.LOGS_DIR.mkdir(exist_ok=True)
+        cls.WORKSPACE_DIR.mkdir(exist_ok=True)
+        cls.FIX_WORKSPACE_DIR.mkdir(exist_ok=True)
 
 
 # Create config instance

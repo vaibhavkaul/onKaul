@@ -43,6 +43,9 @@ def format_for_slack(markdown_text: str) -> str:
     # Convert markdown links [text](url) to Slack links <url|text>
     text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<\2|\1>', text)
 
+    # Remove bold wrapper around bare URLs: *https://...* -> https://...
+    text = re.sub(r'\*(https?://[^\s*]+)\*', r'\1', text)
+
     # Convert inline code with file:line pattern to preserve backticks
     # `file.kt:123` stays as `file.kt:123`
     # This already works in Slack

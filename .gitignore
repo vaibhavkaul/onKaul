@@ -45,6 +45,10 @@ uv.lock
 logs/
 *.log
 
+# Workspaces
+workplace/
+fixes/
+
 # Testing
 .pytest_cache/
 .coverage

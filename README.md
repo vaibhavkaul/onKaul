@@ -120,6 +120,18 @@ uvicorn main:app --reload --port 8000
 
 Server will be available at http://localhost:8000
 
+### Dockerized (API + Workers + Redis)
+
+```bash
+# Build and start API + Redis + 1 worker
+docker compose up --build
+
+# Scale workers
+docker compose up --scale bee-worker=5
+```
+
+API will be available at http://localhost:8000
+
 ### Testing Webhooks
 
 **Slack webhook:**

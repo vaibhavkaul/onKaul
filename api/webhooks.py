@@ -1,12 +1,13 @@
 """Webhook endpoints for Slack and Jira."""
 
-from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
+from bee.queue import get_queue
+from bee.tasks import handle_jira_mention_job, handle_slack_mention_job
 from clients.slack import slack
 from config import config
 from utils.attachment_processor import attachment_processor
-from worker.tasks import handle_jira_mention, handle_slack_mention
 
 router = APIRouter()
 
@@ -62,7 +63,6 @@ class JiraWebhookPayload(BaseModel):
 @router.post("/webhook/slack")
 async def slack_webhook(
     request: Request,
-    background_tasks: BackgroundTasks,
 ):
     """
     Handle Slack app_mention webhook.
@@ -152,14 +152,16 @@ async def slack_webhook(
     print("=" * 80 + "\n")
 
     # Queue background investigation
-    background_tasks.add_task(
-        handle_slack_mention,
+    queue = get_queue()
+    queue.enqueue(
+        handle_slack_mention_job,
         channel=channel,
         thread_ts=thread_ts,
         user_message=user_message,
         user_id=user_id,
         thread_context=thread_context,
         attachments=attachments,
+        job_timeout=config.JOB_TIMEOUT_SECONDS,
     )
 
     return {"ok": True, "message": "Investigation queued"}
@@ -168,7 +170,6 @@ async def slack_webhook(
 @router.post("/webhook/jira")
 async def jira_webhook(
     request: Request,
-    background_tasks: BackgroundTasks,
 ):
     """
     Handle Jira comment webhook.
@@ -204,11 +205,13 @@ async def jira_webhook(
     print("=" * 80 + "\n")
 
     # Queue background investigation
-    background_tasks.add_task(
-        handle_jira_mention,
+    queue = get_queue()
+    queue.enqueue(
+        handle_jira_mention_job,
         issue_key=issue_key,
         comment_body=comment_body,
         author=author,
+        job_timeout=config.JOB_TIMEOUT_SECONDS,
     )
 
     return {"ok": True, "message": "Investigation queued"}

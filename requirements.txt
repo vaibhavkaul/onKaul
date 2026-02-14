@@ -14,6 +14,10 @@ PyMuPDF>=1.25.0
 # Datadog integration
 datadog-api-client>=2.32.0
 
+# Queue + workers
+redis>=5.0.0
+rq>=1.16.1
+
 # Gemini for deep research
 
 # Development dependencies

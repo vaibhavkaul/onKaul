@@ -25,6 +25,7 @@ async def root():
         "app": config.APP_NAME,
         "status": "running",
         "phase": "1 - Webhook Handlers",
+        "public_base_url": config.PUBLIC_BASE_URL,
         "endpoints": {
             "slack": "/webhook/slack",
             "jira": "/webhook/jira",
@@ -43,8 +44,8 @@ if __name__ == "__main__":
 
     uvicorn.run(
         "main:app",
-        host="0.0.0.0",
-        port=8000,
+        host=config.API_HOST,
+        port=config.API_PORT,
         reload=config.DEBUG,
         log_level=config.LOG_LEVEL.lower(),
     )
