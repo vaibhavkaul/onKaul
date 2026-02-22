@@ -58,8 +58,6 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
-# Test file - not for git
-test_*.py
 
 # Local repo config
 repository_config/repo_config.json
