@@ -72,8 +72,14 @@ class Config:
     JOB_TIMEOUT_SECONDS = int(os.getenv("JOB_TIMEOUT_SECONDS", "900"))
 
     # Codex CLI (headless) for fix planning/apply
-    CODEX_PLAN_CMD = os.getenv("CODEX_PLAN_CMD", "codex --full-auto")
-    CODEX_APPLY_CMD = os.getenv("CODEX_APPLY_CMD", "codex --full-auto")
+    CODEX_PLAN_CMD = os.getenv(
+        "CODEX_PLAN_CMD",
+        "/Applications/Codex.app/Contents/Resources/codex exec --dangerously-bypass-approvals-and-sandbox --color never",
+    )
+    CODEX_APPLY_CMD = os.getenv(
+        "CODEX_APPLY_CMD",
+        "/Applications/Codex.app/Contents/Resources/codex exec --dangerously-bypass-approvals-and-sandbox --color never",
+    )
     CODEX_TIMEOUT_SECONDS = int(os.getenv("CODEX_TIMEOUT_SECONDS", "1200"))
 
     @classmethod
