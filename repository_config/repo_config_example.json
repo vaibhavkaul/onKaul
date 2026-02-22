@@ -25,8 +25,8 @@
     "Database issues": "app-backend"
   },
   "additional_context": {
-    "Sentry Integration": "../ai-context/sentry.md",
-    "Jira Workflows": "../ai-context/jira_commands.md",
-    "Confluence Wiki": "../ai-context/confluence-wiki.md"
+    "Sentry Integration": "/path/to/sentry-integration.md",
+    "Jira Workflows": "/path/to/jira-commands.md",
+    "Confluence Wiki": "/path/to/confluence-wiki.md"
   }
 }
