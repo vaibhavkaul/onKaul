@@ -14,7 +14,6 @@ Tag `@onkaul` in Slack or Jira to investigate issues, analyze code, and get acti
 - 📚 **Confluence Integration** - Reads and follows playbooks automatically
 - 🔍 **Production Monitoring** - Sentry errors, Datadog logs/monitors/metrics
 - 📁 **Code Search** - 3 repos (appian-frontend, appian-server, tts-business) via gh CLI
-- ⚖️ **Legal Compliance** - TapTap Send marketing compliance rules
 - 💬 **Formatted Responses** - ADF for Jira, mrkdwn for Slack
 - 📎 **Attachment Support** - OCR from images, PDF extraction
 - :onkaul: **Emoji Reactions** - Immediate acknowledgment in Slack
@@ -252,7 +251,6 @@ onKaul/
 
 **Context:**
 - 🎫 **Jira** - Issue details + full comment history (via `acli` CLI)
-- ⚖️ **Legal Compliance** - TapTap Send marketing rules
 
 **Attachments:**
 - 📎 **OCR** - Extract text from screenshots (Tesseract)

@@ -89,7 +89,6 @@ You have access to these tools:
 - `read_confluence_page` - Read TapTap Send playbooks, runbooks, RFCs
 - `review_github_pr` - Fetch PR details for code review
 - `create_pr_from_plan` - Create a PR using headless Codex to generate a plan and apply it
-- `get_legal_compliance_rules` - Get TapTap Send marketing compliance rules
 
 ## Implementing Fixes / Creating PRs
 

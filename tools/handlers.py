@@ -9,7 +9,6 @@ from clients.github import github
 from clients.jira import jira
 from clients.sentry import sentry
 from tools.local_code import list_directory_local, read_file_local, search_code_local
-from tools.legal import get_compliance_rules
 from tools.pr_review import review_github_pr
 from tools.fix_executor import create_pr_from_plan, update_pr_from_plan
 
@@ -39,7 +38,6 @@ def execute_tool(name: str, inputs: dict) -> str:
         "query_jira": _handle_query_jira,
         "get_jira_issue": _handle_get_jira_issue,
         "web_search": _handle_web_search,
-        "get_legal_compliance_rules": _handle_get_legal_compliance_rules,
         "review_github_pr": _handle_review_github_pr,
         "create_pr_from_plan": _handle_create_pr_from_plan,
         "update_pr_from_plan": _handle_update_pr_from_plan,
@@ -130,11 +128,6 @@ def _handle_get_jira_issue(issue_key: str) -> dict:
 def _handle_web_search(query: str, count: int = 5) -> dict:
     """Handle web_search tool using Brave Search API."""
     return brave_search.search(query, count)
-
-
-def _handle_get_legal_compliance_rules(category: str = "all") -> dict:
-    """Handle get_legal_compliance_rules tool."""
-    return get_compliance_rules(category)
 
 
 def _handle_review_github_pr(pr_url: str) -> dict:

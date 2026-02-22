@@ -281,38 +281,6 @@ TOOL_SCHEMAS = [
         },
     },
     {
-        "name": "get_legal_compliance_rules",
-        "description": """Get TapTap Send marketing compliance rules and regulations.
-
-        Use when:
-        - Investigating marketing content issues
-        - Checking what disclaimers are required
-        - Understanding regulatory requirements
-        - Validating marketing materials
-
-        Returns detailed compliance requirements for:
-        - FX disclaimers
-        - Exchange rate language
-        - Transfer speed claims
-        - Geographic regulatory disclosures (UAE, Australia, USA, etc.)
-        - Content-type requirements (emails, influencer, competitions)""",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "type": "string",
-                    "enum": [
-                        "all",
-                        "fx_disclaimers",
-                        "geographic_disclosures",
-                        "content_type_requirements",
-                    ],
-                    "description": "Category of rules to retrieve (default: all)",
-                }
-            },
-        },
-    },
-    {
         "name": "review_github_pr",
         "description": """Review a GitHub Pull Request with comprehensive code analysis.
 
