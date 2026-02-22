@@ -355,6 +355,23 @@ TOOL_SCHEMAS = [
         },
     },
     {
+        "name": "update_pr_from_plan",
+        "description": """Update an existing PR by applying a plan to its head branch.
+
+        Use when a user asks for changes to an existing PR (they provide a PR URL).
+        Provide a concise context summary; the executor will plan/apply and push to the PR branch.""",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "pr_url": {"type": "string", "description": "GitHub PR URL"},
+                "title": {"type": "string", "description": "Commit title for the update"},
+                "body": {"type": "string", "description": "PR context/body to guide planning"},
+                "context": {"type": "string", "description": "Issue context and requested changes"},
+            },
+            "required": ["pr_url", "title", "body", "context"],
+        },
+    },
+    {
         "name": "read_confluence_page",
         "description": """Read a Confluence wiki page (playbooks, documentation, RFCs).
 

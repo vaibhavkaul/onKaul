@@ -102,6 +102,9 @@ When the user explicitly asks to implement a fix or open a PR, you MUST:
 Do NOT respond with manual git commands or "here's how to do it" steps.
 If you cannot determine exact changes, ask a clarifying question.
 
+If the user asks to update an existing PR and provides (or references) a PR URL in the thread:
+- Use `update_pr_from_plan` with the PR URL, a concise context summary, and the requested changes.
+
 ## When to Use Web Search
 
 **Use `web_search` for external/public information and research questions:**

@@ -30,17 +30,39 @@ def _run(cmd: list[str], cwd: Path, timeout: int = 120) -> tuple[int, str, str]:
     return result.returncode, result.stdout.strip(), result.stderr.strip()
 
 
-def _run_codex(cmd_str: str, prompt: str, cwd: Path, timeout: int) -> tuple[int, str, str]:
+def _run_headless(cmd_str: str, prompt: str, cwd: Path, timeout: int) -> tuple[int, str, str]:
     cmd = shlex.split(cmd_str)
-    result = subprocess.run(
+    print(f"🤖 Headless exec: {' '.join(cmd)}")
+    process = subprocess.Popen(
         cmd,
         cwd=str(cwd),
-        input=prompt,
-        capture_output=True,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         text=True,
-        timeout=timeout,
+        bufsize=1,
     )
-    return result.returncode, result.stdout.strip(), result.stderr.strip()
+
+    output_lines: list[str] = []
+    assert process.stdin is not None
+    assert process.stdout is not None
+    process.stdin.write(prompt)
+    process.stdin.close()
+
+    try:
+        for line in process.stdout:
+            print(line.rstrip())
+            output_lines.append(line.rstrip())
+    except Exception:
+        pass
+
+    try:
+        return_code = process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        return 124, "\n".join(output_lines), "Process timed out"
+
+    return return_code, "\n".join(output_lines), ""
 
 
 def _extract_pr_url(output: str) -> str | None:
@@ -323,16 +345,23 @@ def create_pr_from_plan(
         effective_base = result  # type: ignore[assignment]
 
         plan_prompt = _build_plan_prompt(repo, context)
-        code, out, err = _run_codex(
-            config.CODEX_PLAN_CMD,
+        if config.FIX_EXECUTOR_ENGINE == "claude":
+            plan_cmd = config.CLAUDE_PLAN_CMD
+            plan_timeout = config.CLAUDE_TIMEOUT_SECONDS
+        else:
+            plan_cmd = config.CODEX_PLAN_CMD
+            plan_timeout = config.CODEX_TIMEOUT_SECONDS
+
+        code, out, err = _run_headless(
+            plan_cmd,
             plan_prompt,
             repo_dir,
-            timeout=config.CODEX_TIMEOUT_SECONDS,
+            timeout=plan_timeout,
         )
         if code != 0:
-            return {"error": f"Codex plan failed: {err or out}"}
+            return {"error": f"Plan step failed: {err or out}"}
         if not out:
-            return {"error": "Codex plan produced no output"}
+            return {"error": "Plan step produced no output"}
         plan_path.write_text(out + "\n", encoding="utf-8")
 
         prepared, result = _prepare_repo(repo, effective_base)
@@ -346,14 +375,21 @@ def create_pr_from_plan(
             return {"error": f"git checkout failed: {err or out}", "plan_path": str(plan_path)}
 
         apply_prompt = _build_apply_prompt(repo, effective_base, title, body, out)
-        code, apply_out, err = _run_codex(
-            config.CODEX_APPLY_CMD,
+        if config.FIX_EXECUTOR_ENGINE == "claude":
+            apply_cmd = config.CLAUDE_APPLY_CMD
+            apply_timeout = config.CLAUDE_TIMEOUT_SECONDS
+        else:
+            apply_cmd = config.CODEX_APPLY_CMD
+            apply_timeout = config.CODEX_TIMEOUT_SECONDS
+
+        code, apply_out, err = _run_headless(
+            apply_cmd,
             apply_prompt,
             repo_dir,
-            timeout=config.CODEX_TIMEOUT_SECONDS,
+            timeout=apply_timeout,
         )
         if code != 0:
-            return {"error": f"Codex apply failed: {err or apply_out}", "plan_path": str(plan_path)}
+            return {"error": f"Apply step failed: {err or apply_out}", "plan_path": str(plan_path)}
 
         code, status_out, err = _run(["git", "status", "--porcelain"], repo_dir)
         if code != 0:
@@ -379,11 +415,11 @@ def create_pr_from_plan(
 
         body_with_meta = body.strip()
         body_with_meta += "\n\n---\n"
-        body_with_meta += f"Codex plan path: {plan_path}\n"
+        body_with_meta += f"Plan path: {plan_path}\n"
         if diffstat:
             body_with_meta += "\nDiff stat:\n" + diffstat + "\n"
         if apply_out:
-            body_with_meta += "\nCodex apply output (truncated):\n```\n" + _truncate(apply_out) + "\n```\n"
+            body_with_meta += "\nApply output (truncated):\n```\n" + _truncate(apply_out) + "\n```\n"
 
         code, out, err = _run(
             [
@@ -420,6 +456,151 @@ def create_pr_from_plan(
         try:
             if repo_dir and repo_dir.exists():
                 _run(["git", "reset", "--hard", f"origin/{effective_base}"], repo_dir)
+                _run(["git", "clean", "-fd"], repo_dir)
+                print(f"🧹 Fix workspace cleaned: {repo_dir}")
+        except Exception as cleanup_error:
+            print(f"⚠️  Failed to clean fix workspace: {cleanup_error}")
+
+
+def _get_pr_info(pr_url: str) -> tuple[str, str, str] | tuple[None, str, None]:
+    """Return (repo_full, head_ref, base_ref) for a PR URL using gh."""
+    code, out, err = _run(
+        [
+            "gh",
+            "pr",
+            "view",
+            pr_url,
+            "--json",
+            "headRefName,baseRefName,headRepository,headRepositoryOwner",
+        ],
+        Path("."),
+    )
+    if code != 0:
+        return None, f"gh pr view failed: {err or out}", None
+
+    try:
+        import json
+
+        data = json.loads(out)
+        owner = data.get("headRepositoryOwner", {}).get("login")
+        repo = data.get("headRepository", {}).get("name")
+        head_ref = data.get("headRefName")
+        base_ref = data.get("baseRefName")
+        if not owner or not repo or not head_ref or not base_ref:
+            return None, "Incomplete PR data from gh", None
+        return f"{owner}/{repo}", head_ref, base_ref
+    except Exception as e:
+        return None, f"Failed to parse gh output: {e}", None
+
+
+def update_pr_from_plan(
+    pr_url: str,
+    title: str,
+    body: str,
+    context: str,
+) -> dict:
+    """
+    Update an existing PR by applying a plan to its head branch.
+    """
+    repo_full, head_ref, base_ref = _get_pr_info(pr_url)
+    if not repo_full:
+        return {"error": head_ref}  # head_ref carries error message here
+
+    # Split owner/repo
+    owner, repo = repo_full.split("/", 1)
+
+    work_root = config.FIX_WORKSPACE_DIR.resolve()
+    work_root.mkdir(parents=True, exist_ok=True)
+    repo_dir = (work_root / repo).resolve()
+    effective_base = base_ref
+
+    try:
+        if not repo_dir.exists():
+            print(f"🛠️  Fix workspace: cloning {repo} into {repo_dir}")
+            code, out, err = _run(
+                ["git", "clone", _repo_url(repo), str(repo_dir)],
+                work_root,
+                timeout=300,
+            )
+            if code != 0:
+                try:
+                    if repo_dir.exists():
+                        shutil.rmtree(repo_dir)
+                except Exception:
+                    pass
+                return {"error": f"git clone failed: {err or out}"}
+            print("✅ Clone complete")
+        else:
+            print(f"🛠️  Fix workspace: reusing {repo_dir}")
+            code, out, err = _run(["git", "fetch", "--prune", "origin"], repo_dir)
+            if code != 0:
+                return {"error": f"git fetch failed: {err or out}"}
+            print("✅ Fetch complete")
+
+        # Ensure we have the PR head branch
+        code, out, err = _run(["git", "fetch", "origin", head_ref], repo_dir)
+        if code != 0:
+            return {"error": f"git fetch head branch failed: {err or out}"}
+
+        code, out, err = _run(["git", "checkout", "-B", head_ref, f"origin/{head_ref}"], repo_dir)
+        if code != 0:
+            return {"error": f"git checkout failed: {err or out}"}
+        print(f"✅ Checked out PR branch {head_ref}")
+
+        plan_prompt = _build_plan_prompt(repo, context)
+        if config.FIX_EXECUTOR_ENGINE == "claude":
+            plan_cmd = config.CLAUDE_PLAN_CMD
+            plan_timeout = config.CLAUDE_TIMEOUT_SECONDS
+        else:
+            plan_cmd = config.CODEX_PLAN_CMD
+            plan_timeout = config.CODEX_TIMEOUT_SECONDS
+
+        code, out, err = _run_headless(plan_cmd, plan_prompt, repo_dir, timeout=plan_timeout)
+        if code != 0:
+            return {"error": f"Plan step failed: {err or out}"}
+        if not out:
+            return {"error": "Plan step produced no output"}
+
+        apply_prompt = _build_apply_prompt(repo, effective_base, title, body, out)
+        if config.FIX_EXECUTOR_ENGINE == "claude":
+            apply_cmd = config.CLAUDE_APPLY_CMD
+            apply_timeout = config.CLAUDE_TIMEOUT_SECONDS
+        else:
+            apply_cmd = config.CODEX_APPLY_CMD
+            apply_timeout = config.CODEX_TIMEOUT_SECONDS
+
+        code, apply_out, err = _run_headless(apply_cmd, apply_prompt, repo_dir, timeout=apply_timeout)
+        if code != 0:
+            return {"error": f"Apply step failed: {err or apply_out}"}
+
+        code, status_out, err = _run(["git", "status", "--porcelain"], repo_dir)
+        if code != 0:
+            return {"error": f"git status failed: {err or status_out}"}
+        if not status_out:
+            return {"error": "No changes detected after apply step"}
+
+        code, out, err = _run(["git", "add", "-A"], repo_dir)
+        if code != 0:
+            return {"error": f"git add failed: {err or out}"}
+
+        commit_message = title.strip() or "onKaul: update PR"
+        code, out, err = _run(["git", "commit", "-m", commit_message], repo_dir)
+        if code != 0:
+            return {"error": f"git commit failed: {err or out}"}
+
+        code, out, err = _run(["git", "push", "origin", head_ref], repo_dir)
+        if code != 0:
+            return {"error": f"git push failed: {err or out}"}
+
+        return {"success": True, "pr_url": pr_url, "branch": head_ref}
+
+    except Exception as e:
+        return {"error": f"Failed to update PR: {str(e)}"}
+
+    finally:
+        try:
+            if repo_dir.exists():
+                _run(["git", "reset", "--hard", f"origin/{head_ref}"], repo_dir)
                 _run(["git", "clean", "-fd"], repo_dir)
                 print(f"🧹 Fix workspace cleaned: {repo_dir}")
         except Exception as cleanup_error:

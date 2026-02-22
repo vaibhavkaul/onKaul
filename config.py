@@ -82,6 +82,20 @@ class Config:
     )
     CODEX_TIMEOUT_SECONDS = int(os.getenv("CODEX_TIMEOUT_SECONDS", "1200"))
 
+    # Fix executor engine: codex or claude
+    FIX_EXECUTOR_ENGINE = os.getenv("FIX_EXECUTOR_ENGINE", "codex").lower()
+
+    # Claude CLI (headless) for fix planning/apply
+    CLAUDE_PLAN_CMD = os.getenv(
+        "CLAUDE_PLAN_CMD",
+        "claude -p --allowedTools \"Bash,Read\" --permission-mode acceptEdits --output-format text",
+    )
+    CLAUDE_APPLY_CMD = os.getenv(
+        "CLAUDE_APPLY_CMD",
+        "claude -p --allowedTools \"Bash,Read,Edit\" --permission-mode acceptEdits --output-format text",
+    )
+    CLAUDE_TIMEOUT_SECONDS = int(os.getenv("CLAUDE_TIMEOUT_SECONDS", "1200"))
+
     @classmethod
     def ensure_dirs(cls):
         """Ensure required directories exist."""
