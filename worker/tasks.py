@@ -6,7 +6,6 @@ from agent.core import agent
 from clients.jira import jira
 from clients.slack import slack
 from config import config
-from tools.pr_review import extract_pr_url
 from tools.regulatory import (
     is_regulatory_request,
     extract_regulatory_url,
@@ -335,7 +334,8 @@ Calls to Action:
             result = jira.add_comment(issue_key, None, adf_body=adf_body)
             if result.get("success"):
                 print(f"✅ Successfully posted to {issue_key} (ADF formatted)")
-                print(f"🔗 View at: https://taptapsend.atlassian.net/browse/{issue_key}")
+                if config.JIRA_BASE_URL:
+                    print(f"🔗 View at: {config.JIRA_BASE_URL}/browse/{issue_key}")
                 if result.get("comment_id"):
                     print(f"📝 Comment ID: {result['comment_id']}")
             else:

@@ -48,7 +48,7 @@ class Config:
     CONFLUENCE_API_TOKEN = os.getenv("CONFLUENCE_API_TOKEN")
     CONFLUENCE_CLOUD_ID = os.getenv("CONFLUENCE_CLOUD_ID")
     CONFLUENCE_API_BASE_URL = os.getenv("CONFLUENCE_API_BASE_URL", "https://api.atlassian.com/ex/confluence")
-    CONFLUENCE_WIKI_BASE_URL = os.getenv("CONFLUENCE_WIKI_BASE_URL", "https://taptapsend.atlassian.net/wiki")
+    CONFLUENCE_WIKI_BASE_URL = os.getenv("CONFLUENCE_WIKI_BASE_URL")
 
     # Sentry
     SENTRY_TOKEN = os.getenv("SENTRY_TOKEN")
@@ -56,7 +56,7 @@ class Config:
 
     # GitHub (uses gh CLI)
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-    GITHUB_ORG = os.getenv("GITHUB_ORG", "taptapsend")
+    GITHUB_ORG = os.getenv("GITHUB_ORG")
 
     # Datadog (reads from DD_ env vars - standard Datadog convention)
     DATADOG_API_KEY = os.getenv("DATADOG_API_KEY") or os.getenv("DD_API_KEY")
