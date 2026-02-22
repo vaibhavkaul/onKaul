@@ -19,9 +19,14 @@ def load_repo_config() -> dict:
         path_str = "./repository_config/repo_config.json"
 
     path = Path(path_str)
+    if not path.is_absolute():
+        base_dir = Path(__file__).resolve().parents[1]
+        path = base_dir / path
+
     if not path.exists():
         raise FileNotFoundError(
-            f"REPO_CONFIG_PATH does not exist: {path}"
+            f"REPO_CONFIG_PATH does not exist: {path}. "
+            "Create repository_config/repo_config.json (copy from repo_config_example.json)."
         )
 
     with path.open("r", encoding="utf-8") as f:
