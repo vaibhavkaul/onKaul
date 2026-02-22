@@ -1,7 +1,5 @@
 """Process attachments from Slack and Jira."""
 
-import base64
-import subprocess
 import tempfile
 from pathlib import Path
 
@@ -138,9 +136,10 @@ class AttachmentProcessor:
             Extracted text
         """
         try:
+            from io import BytesIO
+
             import pytesseract
             from PIL import Image
-            from io import BytesIO
 
             # Load image
             image = Image.open(BytesIO(image_bytes))

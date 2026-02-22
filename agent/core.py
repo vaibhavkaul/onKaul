@@ -80,7 +80,7 @@ class Agent:
 
                 # Check if we're done
                 if response.stop_reason == "end_turn":
-                    print(f"✅ Agent finished (stop_reason: end_turn)")
+                    print("✅ Agent finished (stop_reason: end_turn)")
                     return self._extract_text(response)
 
                 # Handle tool use

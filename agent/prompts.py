@@ -1,10 +1,8 @@
 """System prompts for the agent."""
 
 from repository_config.monitoring import (
-    SENTRY_TEAMS,
     DATADOG_TIERS,
-    DATADOG_COMMON_TAGS,
-    DATADOG_QUERY_PATTERNS,
+    SENTRY_TEAMS,
 )
 from repository_config.repositories import (
     INVESTIGATION_STRATEGY,
