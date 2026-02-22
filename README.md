@@ -95,6 +95,9 @@ CONFLUENCE_EMAIL=your.email@company.com
 CONFLUENCE_API_TOKEN=ATATT3xFfGF0...  # Scoped token with read:confluence-content.all
 CONFLUENCE_CLOUD_ID=...  # Get from https://yoursite.atlassian.net/_edge/tenant_info
 CONFLUENCE_WIKI_BASE_URL=https://yourcompany.atlassian.net/wiki
+
+# Repo configuration
+REPO_CONFIG_PATH=./repository_config/repo_config_example.json
 ```
 
 **Prerequisites:**

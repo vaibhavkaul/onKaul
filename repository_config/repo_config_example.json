@@ -1,0 +1,32 @@
+{
+  "repositories": {
+    "app-frontend": {
+      "name": "app-frontend",
+      "org": "acme",
+      "description": "React web app",
+      "tech_stack": ["React", "TypeScript", "Vite"],
+      "key_systems": ["Auth", "Payments", "Checkout"],
+      "handles": ["UI bugs", "Frontend crashes", "Performance regressions"],
+      "context_files": []
+    },
+    "app-backend": {
+      "name": "app-backend",
+      "org": "acme",
+      "description": "Backend API service",
+      "tech_stack": ["Python", "FastAPI", "PostgreSQL"],
+      "key_systems": ["API", "Billing", "Webhooks"],
+      "handles": ["API errors", "DB issues", "Latency spikes"],
+      "context_files": []
+    }
+  },
+  "investigation_strategy": {
+    "Frontend/UI bugs": "app-frontend",
+    "API errors": "app-backend",
+    "Database issues": "app-backend"
+  },
+  "additional_context": {
+    "Sentry Integration": "/path/to/sentry-integration.md",
+    "Jira Workflows": "/path/to/jira-commands.md",
+    "Confluence Wiki": "/path/to/confluence-wiki.md"
+  }
+}
