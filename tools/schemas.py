@@ -269,13 +269,13 @@ TOOL_SCHEMAS = [
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Search query (e.g., 'OAuth2 best practices', 'Kotlin coroutines tutorial')"
+                    "description": "Search query (e.g., 'OAuth2 best practices', 'Kotlin coroutines tutorial')",
                 },
                 "count": {
                     "type": "integer",
                     "description": "Number of results (default: 5, max: 20)",
-                    "default": 5
-                }
+                    "default": 5,
+                },
             },
             "required": ["query"],
         },
@@ -290,11 +290,17 @@ TOOL_SCHEMAS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "repo": {"type": "string", "description": "Repository name (e.g., 'appian-server')"},
+                "repo": {
+                    "type": "string",
+                    "description": "Repository name (e.g., 'appian-server')",
+                },
                 "title": {"type": "string", "description": "PR title"},
                 "body": {"type": "string", "description": "PR description/body"},
                 "base_branch": {"type": "string", "description": "Base branch (default: main)"},
-                "context": {"type": "string", "description": "Issue context and expectations for the fix"},
+                "context": {
+                    "type": "string",
+                    "description": "Issue context and expectations for the fix",
+                },
             },
             "required": ["repo", "title", "body", "context"],
         },

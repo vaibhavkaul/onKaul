@@ -1,6 +1,5 @@
 """Create PRs by applying patches in ephemeral workspaces."""
 
-import os
 import re
 import shlex
 import shutil
@@ -208,8 +207,15 @@ def create_pr_from_patch(
     effective_base = base_branch
 
     try:
-        if "diff --git " not in patch or "\n--- " not in patch or "\n+++ " not in patch or "\n@@ " not in patch:
-            return {"error": "Invalid patch format. Provide a full unified diff with diff --git/---/+++ and @@ headers."}
+        if (
+            "diff --git " not in patch
+            or "\n--- " not in patch
+            or "\n+++ " not in patch
+            or "\n@@ " not in patch
+        ):
+            return {
+                "error": "Invalid patch format. Provide a full unified diff with diff --git/---/+++ and @@ headers."
+            }
         if "..." in patch or "…" in patch:
             return {"error": "Invalid patch format. Do not truncate or use ellipses in diffs."}
         if not repo_dir.exists():
@@ -248,7 +254,9 @@ def create_pr_from_patch(
         print(f"✅ Workspace reset to origin/{effective_base}")
 
         branch = f"onkaul/fix-{work_id}"
-        code, out, err = _run(["git", "checkout", "-B", branch, f"origin/{effective_base}"], repo_dir)
+        code, out, err = _run(
+            ["git", "checkout", "-B", branch, f"origin/{effective_base}"], repo_dir
+        )
         if code != 0:
             return {"error": f"git checkout failed: {err or out}"}
         print(f"✅ Checked out {branch} from {effective_base}")
@@ -383,7 +391,9 @@ def create_pr_from_plan(
         repo_dir = prepared
         effective_base = result  # type: ignore[assignment]
 
-        code, out, err = _run(["git", "checkout", "-B", branch, f"origin/{effective_base}"] , repo_dir)
+        code, out, err = _run(
+            ["git", "checkout", "-B", branch, f"origin/{effective_base}"], repo_dir
+        )
         if code != 0:
             return {"error": f"git checkout failed: {err or out}", "plan_path": str(plan_path)}
 
@@ -432,7 +442,9 @@ def create_pr_from_plan(
         if diffstat:
             body_with_meta += "\nDiff stat:\n" + diffstat + "\n"
         if apply_out:
-            body_with_meta += "\nApply output (truncated):\n```\n" + _truncate(apply_out) + "\n```\n"
+            body_with_meta += (
+                "\nApply output (truncated):\n```\n" + _truncate(apply_out) + "\n```\n"
+            )
 
         code, out, err = _run(
             [
@@ -578,7 +590,9 @@ def update_pr_from_plan(
             apply_cmd = config.CODEX_APPLY_CMD
             apply_timeout = config.CODEX_TIMEOUT_SECONDS
 
-        code, apply_out, err = _run_headless(apply_cmd, apply_prompt, repo_dir, timeout=apply_timeout)
+        code, apply_out, err = _run_headless(
+            apply_cmd, apply_prompt, repo_dir, timeout=apply_timeout
+        )
         if code != 0:
             return {"error": f"Apply step failed: {err or apply_out}"}
 

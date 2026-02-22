@@ -4,10 +4,10 @@ from datetime import datetime, timedelta
 
 from datadog_api_client import ApiClient, Configuration
 from datadog_api_client.v1.api.monitors_api import MonitorsApi
+from datadog_api_client.v2.api.events_api import EventsApi
+from datadog_api_client.v2.api.incidents_api import IncidentsApi
 from datadog_api_client.v2.api.logs_api import LogsApi
 from datadog_api_client.v2.api.metrics_api import MetricsApi
-from datadog_api_client.v2.api.incidents_api import IncidentsApi
-from datadog_api_client.v2.api.events_api import EventsApi
 
 from config import config
 
@@ -101,7 +101,9 @@ class DatadogClient:
     # MONITORS
     # ============================================================================
 
-    def list_monitors(self, tags: list[str] | None = None, monitor_tags: list[str] | None = None) -> dict:
+    def list_monitors(
+        self, tags: list[str] | None = None, monitor_tags: list[str] | None = None
+    ) -> dict:
         """
         List Datadog monitors.
 
@@ -135,7 +137,9 @@ class DatadogClient:
                         "query": monitor.query,
                         "message": monitor.message if monitor.message else "",
                         "tags": monitor.tags if monitor.tags else [],
-                        "overall_state": str(monitor.overall_state) if hasattr(monitor, "overall_state") else None,
+                        "overall_state": str(monitor.overall_state)
+                        if hasattr(monitor, "overall_state")
+                        else None,
                     }
                 )
 
@@ -168,7 +172,9 @@ class DatadogClient:
                 "message": monitor.message if monitor.message else "",
                 "tags": monitor.tags if monitor.tags else [],
                 "options": str(monitor.options) if monitor.options else None,
-                "overall_state": str(monitor.overall_state) if hasattr(monitor, "overall_state") else None,
+                "overall_state": str(monitor.overall_state)
+                if hasattr(monitor, "overall_state")
+                else None,
                 "created": monitor.created.isoformat() if monitor.created else None,
                 "modified": monitor.modified.isoformat() if monitor.modified else None,
             }
@@ -215,7 +221,9 @@ class DatadogClient:
                     series.append(
                         {
                             "metric": s.metric if hasattr(s, "metric") else query,
-                            "points": s.pointlist[:10] if hasattr(s, "pointlist") and s.pointlist else [],
+                            "points": s.pointlist[:10]
+                            if hasattr(s, "pointlist") and s.pointlist
+                            else [],
                             "scope": s.scope if hasattr(s, "scope") else None,
                         }
                     )
@@ -265,9 +273,13 @@ class DatadogClient:
                             {
                                 "id": incident.id,
                                 "title": attrs.title if hasattr(attrs, "title") else "Unknown",
-                                "severity": str(attrs.severity) if hasattr(attrs, "severity") else None,
+                                "severity": str(attrs.severity)
+                                if hasattr(attrs, "severity")
+                                else None,
                                 "state": state,
-                                "created": attrs.created.isoformat() if hasattr(attrs, "created") and attrs.created else None,
+                                "created": attrs.created.isoformat()
+                                if hasattr(attrs, "created") and attrs.created
+                                else None,
                             }
                         )
 
@@ -324,7 +336,9 @@ class DatadogClient:
                                 "id": event.id if hasattr(event, "id") else None,
                                 "title": attrs.title if hasattr(attrs, "title") else "Unknown",
                                 "text": attrs.text if hasattr(attrs, "text") else "",
-                                "timestamp": attrs.timestamp.isoformat() if hasattr(attrs, "timestamp") and attrs.timestamp else None,
+                                "timestamp": attrs.timestamp.isoformat()
+                                if hasattr(attrs, "timestamp") and attrs.timestamp
+                                else None,
                                 "tags": attrs.tags if hasattr(attrs, "tags") else [],
                             }
                         )

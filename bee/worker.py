@@ -14,7 +14,10 @@ def main():
     """Start an RQ worker for the configured queue."""
     enable_tee_logging()
     redis_conn = get_redis_connection()
-    use_simple = os.getenv("RQ_SIMPLE_WORKER", "").lower() in {"1", "true", "yes"} or sys.platform == "darwin"
+    use_simple = (
+        os.getenv("RQ_SIMPLE_WORKER", "").lower() in {"1", "true", "yes"}
+        or sys.platform == "darwin"
+    )
     worker_cls = SimpleWorker if use_simple else Worker
     worker = worker_cls([config.REDIS_QUEUE_NAME], connection=redis_conn)
     worker.work(with_scheduler=False)

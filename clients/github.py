@@ -133,7 +133,11 @@ class GitHubClient:
         """
         try:
             # Use gh api to list directory
-            api_path = f"repos/{self.org}/{repo}/contents/{path}" if path else f"repos/{self.org}/{repo}/contents"
+            api_path = (
+                f"repos/{self.org}/{repo}/contents/{path}"
+                if path
+                else f"repos/{self.org}/{repo}/contents"
+            )
 
             result = subprocess.run(
                 ["gh", "api", api_path, "--jq", ".[].name,.[].type,.[].path"],

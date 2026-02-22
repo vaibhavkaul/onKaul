@@ -8,8 +8,8 @@ from clients.datadog import datadog
 from clients.github import github
 from clients.jira import jira
 from clients.sentry import sentry
-from tools.local_code import list_directory_local, read_file_local, search_code_local
 from tools.fix_executor import create_pr_from_plan, update_pr_from_plan
+from tools.local_code import list_directory_local, read_file_local, search_code_local
 
 
 def execute_tool(name: str, inputs: dict) -> str:
@@ -153,6 +153,7 @@ def _handle_read_confluence_page(page_id: str) -> dict:
     """Handle read_confluence_page tool."""
     # Extract page ID from URL if full URL provided
     import re
+
     match = re.search(r"pages/(\d+)", page_id)
     if match:
         page_id = match.group(1)

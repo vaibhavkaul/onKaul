@@ -125,13 +125,9 @@ def _parse_inline(text: str) -> list:
 
         # Add formatted text
         if match.group(1).startswith("**"):  # Bold
-            nodes.append(
-                {"type": "text", "text": match.group(2), "marks": [{"type": "strong"}]}
-            )
+            nodes.append({"type": "text", "text": match.group(2), "marks": [{"type": "strong"}]})
         elif match.group(1).startswith("`"):  # Code
-            nodes.append(
-                {"type": "text", "text": match.group(3), "marks": [{"type": "code"}]}
-            )
+            nodes.append({"type": "text", "text": match.group(3), "marks": [{"type": "code"}]})
 
         current_pos = match.end()
 

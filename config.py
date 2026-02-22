@@ -36,7 +36,9 @@ class Config:
 
     # Slack Integration
     SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
-    SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")  # For webhook signature verification (optional)
+    SLACK_SIGNING_SECRET = os.getenv(
+        "SLACK_SIGNING_SECRET"
+    )  # For webhook signature verification (optional)
 
     # Jira Integration
     JIRA_BASE_URL = os.getenv("JIRA_BASE_URL")
@@ -47,7 +49,9 @@ class Config:
     CONFLUENCE_EMAIL = os.getenv("CONFLUENCE_EMAIL") or os.getenv("ATLASSIAN_EMAIL")
     CONFLUENCE_API_TOKEN = os.getenv("CONFLUENCE_API_TOKEN")
     CONFLUENCE_CLOUD_ID = os.getenv("CONFLUENCE_CLOUD_ID")
-    CONFLUENCE_API_BASE_URL = os.getenv("CONFLUENCE_API_BASE_URL", "https://api.atlassian.com/ex/confluence")
+    CONFLUENCE_API_BASE_URL = os.getenv(
+        "CONFLUENCE_API_BASE_URL", "https://api.atlassian.com/ex/confluence"
+    )
     CONFLUENCE_WIKI_BASE_URL = os.getenv("CONFLUENCE_WIKI_BASE_URL")
 
     # Sentry
@@ -88,11 +92,11 @@ class Config:
     # Claude CLI (headless) for fix planning/apply
     CLAUDE_PLAN_CMD = os.getenv(
         "CLAUDE_PLAN_CMD",
-        "claude -p --allowedTools \"Bash,Read\" --permission-mode acceptEdits --output-format text",
+        'claude -p --allowedTools "Bash,Read" --permission-mode acceptEdits --output-format text',
     )
     CLAUDE_APPLY_CMD = os.getenv(
         "CLAUDE_APPLY_CMD",
-        "claude -p --allowedTools \"Bash,Read,Edit\" --permission-mode acceptEdits --output-format text",
+        'claude -p --allowedTools "Bash,Read,Edit" --permission-mode acceptEdits --output-format text',
     )
     CLAUDE_TIMEOUT_SECONDS = int(os.getenv("CLAUDE_TIMEOUT_SECONDS", "1200"))
 

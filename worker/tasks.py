@@ -7,9 +7,8 @@ from clients.jira import jira
 from clients.slack import slack
 from config import config
 from tools.regulatory import (
-    is_regulatory_request,
     extract_regulatory_url,
-    format_regulatory_summary,
+    is_regulatory_request,
 )
 from utils.jira_formatter import markdown_to_adf
 from utils.logger import logger
@@ -83,6 +82,7 @@ def handle_slack_mention(
 
                 # Fetch page content
                 import httpx
+
                 try:
                     page_response = httpx.get(reg_url, timeout=30, follow_redirects=True)
                     if page_response.status_code == 200:
@@ -125,7 +125,9 @@ Calls to Action:
                         print("-" * 80)
 
                     else:
-                        response = f"❌ Failed to fetch regulatory page: HTTP {page_response.status_code}"
+                        response = (
+                            f"❌ Failed to fetch regulatory page: HTTP {page_response.status_code}"
+                        )
                         print("-" * 80)
 
                 except Exception as e:
@@ -140,7 +142,9 @@ Calls to Action:
             # Regular investigation (not a PR review)
             print("🧠 Calling agent...")
             # Real agent investigation with thread context and history
-            response = agent.investigate(user_message, context=context, thread_history=thread_context)
+            response = agent.investigate(
+                user_message, context=context, thread_history=thread_context
+            )
             print(f"✅ Investigation complete ({len(response)} chars)")
             print("-" * 80)
 
@@ -169,7 +173,7 @@ Calls to Action:
             slack_formatted = format_for_slack(response)
             result = slack.post_message(channel, slack_formatted, thread_ts)
             if result.get("success"):
-                print(f"✅ Successfully posted to Slack")
+                print("✅ Successfully posted to Slack")
                 print(f"🔗 Message timestamp: {result.get('ts')}")
             else:
                 print(f"❌ Failed to post to Slack: {result.get('error')}")
@@ -205,7 +209,7 @@ Calls to Action:
             slack_formatted = format_for_slack(error_response)
             result = slack.post_message(channel, slack_formatted, thread_ts)
             if result.get("success"):
-                print(f"✅ Error posted to Slack")
+                print("✅ Error posted to Slack")
             else:
                 print(f"❌ Failed to post error: {result.get('error')}")
 
@@ -247,6 +251,7 @@ def handle_jira_mention(
 
                 # Fetch page content
                 import httpx
+
                 try:
                     page_response = httpx.get(reg_url, timeout=30, follow_redirects=True)
                     if page_response.status_code == 200:
@@ -290,7 +295,9 @@ Calls to Action:
                         print("-" * 80)
 
                     else:
-                        response = f"❌ Failed to fetch regulatory page: HTTP {page_response.status_code}"
+                        response = (
+                            f"❌ Failed to fetch regulatory page: HTTP {page_response.status_code}"
+                        )
                         print("-" * 80)
 
                 except Exception as e:
@@ -329,7 +336,7 @@ Calls to Action:
         # Post to Jira if enabled
         if config.ENABLE_JIRA_POSTING:
             print(f"📤 Posting comment to {issue_key}...")
-            print(f"🎨 Converting markdown to ADF format...")
+            print("🎨 Converting markdown to ADF format...")
             adf_body = markdown_to_adf(response)
             result = jira.add_comment(issue_key, None, adf_body=adf_body)
             if result.get("success"):

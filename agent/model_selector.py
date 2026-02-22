@@ -1,7 +1,5 @@
 """Smart model selection based on task type."""
 
-import re
-
 
 class ModelSelector:
     """Select appropriate Claude model based on task complexity."""
@@ -71,7 +69,11 @@ class ModelSelector:
 
         # Check for deep research or complex debugging - use Opus for both
         if self._is_deep_research(combined_text) or self._is_complex_debug(combined_text):
-            reason = "Deep research/architectural task" if self._is_deep_research(combined_text) else "Complex debugging task"
+            reason = (
+                "Deep research/architectural task"
+                if self._is_deep_research(combined_text)
+                else "Complex debugging task"
+            )
             return {
                 "id": self.MODELS["opus"]["id"],
                 "name": self.MODELS["opus"]["name"],

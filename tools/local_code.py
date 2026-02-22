@@ -1,6 +1,5 @@
 """Local workspace code operations (clone, pull, search, read)."""
 
-import os
 import subprocess
 from pathlib import Path
 
@@ -105,7 +104,11 @@ def search_code_local(repo: str, query: str) -> dict:
 
     matches = []
     for file_path in files[:10]:
-        rel = str(Path(file_path).resolve().relative_to(path)) if Path(file_path).is_absolute() else file_path
+        rel = (
+            str(Path(file_path).resolve().relative_to(path))
+            if Path(file_path).is_absolute()
+            else file_path
+        )
         matches.append(
             {
                 "path": rel,
