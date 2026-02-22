@@ -13,10 +13,37 @@ def _repo_path(repo: str) -> Path:
 
 def _repo_url(repo: str) -> str:
     org = config.GITHUB_ORG
-    token = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
-    if token:
-        return f"https://{token}@github.com/{org}/{repo}.git"
     return f"https://github.com/{org}/{repo}.git"
+
+
+def _gh_available() -> bool:
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "status"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        return result.returncode == 0
+    except FileNotFoundError:
+        return False
+
+
+def _clone_repo(repo: str, path: Path) -> tuple[int, str, str]:
+    org = config.GITHUB_ORG
+    if _gh_available():
+        return _run_cmd(["gh", "repo", "clone", f"{org}/{repo}", str(path)])
+    return _run_cmd(["git", "clone", _repo_url(repo), str(path)])
+
+
+def _run_cmd(cmd: list[str]) -> tuple[int, str, str]:
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    return result.returncode, result.stdout.strip(), result.stderr.strip()
 
 
 def ensure_repo(repo: str) -> dict:
@@ -25,15 +52,9 @@ def ensure_repo(repo: str) -> dict:
     if not path.exists():
         print(f"📥 Local code: cloning {repo} into {path}...")
         path.mkdir(parents=True, exist_ok=True)
-        url = _repo_url(repo)
-        result = subprocess.run(
-            ["git", "clone", url, str(path)],
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-        if result.returncode != 0:
-            return {"error": f"git clone failed: {result.stderr.strip()}"}
+        code, out, err = _clone_repo(repo, path)
+        if code != 0:
+            return {"error": f"git clone failed: {(err or out).strip()}"}
         print(f"✅ Local code: cloned {repo}")
         return {"cloned": True, "path": str(path)}
 

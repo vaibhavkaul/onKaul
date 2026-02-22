@@ -13,10 +13,27 @@ from config import config
 
 def _repo_url(repo: str) -> str:
     org = config.GITHUB_ORG
-    token = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
-    if token:
-        return f"https://{token}@github.com/{org}/{repo}.git"
     return f"https://github.com/{org}/{repo}.git"
+
+
+def _gh_available() -> bool:
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "status"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        return result.returncode == 0
+    except FileNotFoundError:
+        return False
+
+
+def _clone_repo(repo: str, repo_dir: Path, work_root: Path) -> tuple[int, str, str]:
+    org = config.GITHUB_ORG
+    if _gh_available():
+        return _run(["gh", "repo", "clone", f"{org}/{repo}", str(repo_dir)], work_root, timeout=300)
+    return _run(["git", "clone", _repo_url(repo), str(repo_dir)], work_root, timeout=300)
 
 
 def _run(cmd: list[str], cwd: Path, timeout: int = 120) -> tuple[int, str, str]:
@@ -90,7 +107,7 @@ def _prepare_repo(repo: str, base_branch: str) -> tuple[Path, str] | tuple[None,
 
     if not repo_dir.exists():
         print(f"🛠️  Fix workspace: cloning {repo} into {repo_dir}")
-        code, out, err = _run(["git", "clone", _repo_url(repo), str(repo_dir)], work_root, timeout=300)
+        code, out, err = _clone_repo(repo, repo_dir, work_root)
         if code != 0:
             try:
                 if repo_dir.exists():
@@ -197,11 +214,7 @@ def create_pr_from_patch(
             return {"error": "Invalid patch format. Do not truncate or use ellipses in diffs."}
         if not repo_dir.exists():
             print(f"🛠️  Fix workspace: cloning {repo} into {repo_dir}")
-            code, out, err = _run(
-                ["git", "clone", _repo_url(repo), str(repo_dir)],
-                work_root,
-                timeout=300,
-            )
+            code, out, err = _clone_repo(repo, repo_dir, work_root)
             if code != 0:
                 try:
                     if repo_dir.exists():
@@ -517,11 +530,7 @@ def update_pr_from_plan(
     try:
         if not repo_dir.exists():
             print(f"🛠️  Fix workspace: cloning {repo} into {repo_dir}")
-            code, out, err = _run(
-                ["git", "clone", _repo_url(repo), str(repo_dir)],
-                work_root,
-                timeout=300,
-            )
+            code, out, err = _clone_repo(repo, repo_dir, work_root)
             if code != 0:
                 try:
                     if repo_dir.exists():
