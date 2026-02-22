@@ -336,55 +336,39 @@ TOOL_SCHEMAS = [
         },
     },
     {
-        "name": "create_pr_from_patch",
-        "description": """Create a PR by applying a unified diff patch in a temporary workspace.
+        "name": "create_pr_from_plan",
+        "description": """Create a PR using headless Codex to generate a plan and apply it (onKaul handles commit/push/PR).
 
         Use ONLY when the user explicitly asks to implement a fix or create a PR.
-        Provide a unified diff patch with paths relative to repo root.
+        Provide a concise context summary; Codex will plan and implement the changes.
         Returns the PR URL if successful.""",
         "input_schema": {
             "type": "object",
             "properties": {
                 "repo": {"type": "string", "description": "Repository name (e.g., 'appian-server')"},
-                "patch": {"type": "string", "description": "Unified diff patch (git apply compatible)"},
                 "title": {"type": "string", "description": "PR title"},
                 "body": {"type": "string", "description": "PR description/body"},
                 "base_branch": {"type": "string", "description": "Base branch (default: main)"},
+                "context": {"type": "string", "description": "Issue context and expectations for the fix"},
             },
-            "required": ["repo", "patch", "title", "body"],
+            "required": ["repo", "title", "body", "context"],
         },
     },
     {
-        "name": "create_pr_from_plan",
-        "description": """Create a PR by applying line-based edits in a temporary workspace.
+        "name": "update_pr_from_plan",
+        "description": """Update an existing PR by applying a plan to its head branch.
 
-        Use ONLY when the user explicitly asks to implement a fix or create a PR.
-        Provide a plan with line-based edits (replace/insert/delete) relative to repo root.
-        Returns the PR URL if successful.""",
+        Use when a user asks for changes to an existing PR (they provide a PR URL).
+        Provide a concise context summary; the executor will plan/apply and push to the PR branch.""",
         "input_schema": {
             "type": "object",
             "properties": {
-                "repo": {"type": "string", "description": "Repository name (e.g., 'appian-server')"},
-                "title": {"type": "string", "description": "PR title"},
-                "body": {"type": "string", "description": "PR description/body"},
-                "base_branch": {"type": "string", "description": "Base branch (default: main)"},
-                "edits": {
-                    "type": "array",
-                    "description": "Line-based edits",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "op": {"type": "string", "enum": ["replace", "insert", "delete"]},
-                            "path": {"type": "string"},
-                            "start_line": {"type": "integer"},
-                            "end_line": {"type": "integer"},
-                            "new_lines": {"type": "array", "items": {"type": "string"}},
-                        },
-                        "required": ["op", "path", "start_line"],
-                    },
-                },
+                "pr_url": {"type": "string", "description": "GitHub PR URL"},
+                "title": {"type": "string", "description": "Commit title for the update"},
+                "body": {"type": "string", "description": "PR context/body to guide planning"},
+                "context": {"type": "string", "description": "Issue context and requested changes"},
             },
-            "required": ["repo", "title", "body", "edits"],
+            "required": ["pr_url", "title", "body", "context"],
         },
     },
     {

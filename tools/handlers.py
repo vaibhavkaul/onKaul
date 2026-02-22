@@ -11,7 +11,7 @@ from clients.sentry import sentry
 from tools.local_code import list_directory_local, read_file_local, search_code_local
 from tools.legal import get_compliance_rules
 from tools.pr_review import review_github_pr
-from tools.fix_executor import create_pr_from_patch, create_pr_from_plan
+from tools.fix_executor import create_pr_from_plan, update_pr_from_plan
 
 
 def execute_tool(name: str, inputs: dict) -> str:
@@ -41,8 +41,8 @@ def execute_tool(name: str, inputs: dict) -> str:
         "web_search": _handle_web_search,
         "get_legal_compliance_rules": _handle_get_legal_compliance_rules,
         "review_github_pr": _handle_review_github_pr,
-        "create_pr_from_patch": _handle_create_pr_from_patch,
         "create_pr_from_plan": _handle_create_pr_from_plan,
+        "update_pr_from_plan": _handle_update_pr_from_plan,
         "read_confluence_page": _handle_read_confluence_page,
     }
 
@@ -142,26 +142,25 @@ def _handle_review_github_pr(pr_url: str) -> dict:
     return review_github_pr(pr_url)
 
 
-def _handle_create_pr_from_patch(
-    repo: str,
-    patch: str,
-    title: str,
-    body: str,
-    base_branch: str = "main",
-) -> dict:
-    """Handle create_pr_from_patch tool."""
-    return create_pr_from_patch(repo, patch, title, body, base_branch)
-
-
 def _handle_create_pr_from_plan(
     repo: str,
     title: str,
     body: str,
-    edits: list[dict],
+    context: str,
     base_branch: str = "main",
 ) -> dict:
     """Handle create_pr_from_plan tool."""
-    return create_pr_from_plan(repo, title, body, edits, base_branch)
+    return create_pr_from_plan(repo, title, body, context, base_branch)
+
+
+def _handle_update_pr_from_plan(
+    pr_url: str,
+    title: str,
+    body: str,
+    context: str,
+) -> dict:
+    """Handle update_pr_from_plan tool."""
+    return update_pr_from_plan(pr_url, title, body, context)
 
 
 def _handle_read_confluence_page(page_id: str) -> dict:

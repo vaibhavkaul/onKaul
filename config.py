@@ -71,6 +71,31 @@ class Config:
     REDIS_QUEUE_NAME = os.getenv("REDIS_QUEUE_NAME", "onkaul")
     JOB_TIMEOUT_SECONDS = int(os.getenv("JOB_TIMEOUT_SECONDS", "900"))
 
+    # Codex CLI (headless) for fix planning/apply
+    CODEX_PLAN_CMD = os.getenv(
+        "CODEX_PLAN_CMD",
+        "/Applications/Codex.app/Contents/Resources/codex exec --dangerously-bypass-approvals-and-sandbox --color never",
+    )
+    CODEX_APPLY_CMD = os.getenv(
+        "CODEX_APPLY_CMD",
+        "/Applications/Codex.app/Contents/Resources/codex exec --dangerously-bypass-approvals-and-sandbox --color never",
+    )
+    CODEX_TIMEOUT_SECONDS = int(os.getenv("CODEX_TIMEOUT_SECONDS", "1200"))
+
+    # Fix executor engine: codex or claude
+    FIX_EXECUTOR_ENGINE = os.getenv("FIX_EXECUTOR_ENGINE", "codex").lower()
+
+    # Claude CLI (headless) for fix planning/apply
+    CLAUDE_PLAN_CMD = os.getenv(
+        "CLAUDE_PLAN_CMD",
+        "claude -p --allowedTools \"Bash,Read\" --permission-mode acceptEdits --output-format text",
+    )
+    CLAUDE_APPLY_CMD = os.getenv(
+        "CLAUDE_APPLY_CMD",
+        "claude -p --allowedTools \"Bash,Read,Edit\" --permission-mode acceptEdits --output-format text",
+    )
+    CLAUDE_TIMEOUT_SECONDS = int(os.getenv("CLAUDE_TIMEOUT_SECONDS", "1200"))
+
     @classmethod
     def ensure_dirs(cls):
         """Ensure required directories exist."""
