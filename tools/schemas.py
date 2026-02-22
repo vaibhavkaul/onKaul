@@ -281,29 +281,6 @@ TOOL_SCHEMAS = [
         },
     },
     {
-        "name": "review_github_pr",
-        "description": """Review a GitHub Pull Request with comprehensive code analysis.
-
-        Use when:
-        - User shares a GitHub PR URL
-        - User asks to review PR #number
-        - User asks for code review feedback
-
-        Returns: PR metadata (title, author, description) and full diff for review.
-
-        Always use Opus model for PR reviews (deep analysis required).""",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "pr_url": {
-                    "type": "string",
-                    "description": "GitHub PR URL (e.g., 'https://github.com/your-org/your-repo/pull/1234') or short form (e.g., 'your-repo#1234')",
-                }
-            },
-            "required": ["pr_url"],
-        },
-    },
-    {
         "name": "create_pr_from_plan",
         "description": """Create a PR using headless Codex to generate a plan and apply it (onKaul handles commit/push/PR).
 

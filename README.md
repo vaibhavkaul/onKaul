@@ -10,7 +10,6 @@ Tag `@onkaul` in Slack or Jira to investigate issues, analyze code, and get acti
 
 **Current Features:**
 - 🤖 **Smart Model Selection** - Opus 4.5 for deep analysis, Sonnet 4 for quick investigations
-- 📝 **PR Reviews** - Posts comprehensive 4-tier reviews to GitHub PRs with summary in Slack
 - 📚 **Confluence Integration** - Reads and follows playbooks automatically
 - 🔍 **Production Monitoring** - Sentry errors, Datadog logs/monitors/metrics
 - 📁 **Code Search** - 3 repos (appian-frontend, appian-server, tts-business) via gh CLI
@@ -245,7 +244,6 @@ onKaul/
 **Code & Documentation:**
 - 📁 **GitHub Code Search** - 4 repos (appian-frontend, appian-server, tts-business, analytics) via `gh` CLI
 - 📄 **Read Files** - Full file contents from any repo
-- 📝 **PR Reviews** - Comprehensive 4-tier code reviews posted to GitHub
 - 📚 **Confluence** - Read playbooks, runbooks, RFCs automatically
 - 🌐 **Web Search** - Brave Search API for external docs, Stack Overflow, tutorials
 
