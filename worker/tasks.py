@@ -6,7 +6,6 @@ from agent.core import agent
 from clients.jira import jira
 from clients.slack import slack
 from config import config
-from tools.pr_review import extract_pr_url
 from tools.regulatory import (
     is_regulatory_request,
     extract_regulatory_url,
