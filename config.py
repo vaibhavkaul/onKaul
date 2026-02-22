@@ -71,6 +71,11 @@ class Config:
     REDIS_QUEUE_NAME = os.getenv("REDIS_QUEUE_NAME", "onkaul")
     JOB_TIMEOUT_SECONDS = int(os.getenv("JOB_TIMEOUT_SECONDS", "900"))
 
+    # Codex CLI (headless) for fix planning/apply
+    CODEX_PLAN_CMD = os.getenv("CODEX_PLAN_CMD", "codex --full-auto")
+    CODEX_APPLY_CMD = os.getenv("CODEX_APPLY_CMD", "codex --full-auto")
+    CODEX_TIMEOUT_SECONDS = int(os.getenv("CODEX_TIMEOUT_SECONDS", "1200"))
+
     @classmethod
     def ensure_dirs(cls):
         """Ensure required directories exist."""

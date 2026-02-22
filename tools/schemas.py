@@ -336,30 +336,11 @@ TOOL_SCHEMAS = [
         },
     },
     {
-        "name": "create_pr_from_patch",
-        "description": """Create a PR by applying a unified diff patch in a temporary workspace.
-
-        Use ONLY when the user explicitly asks to implement a fix or create a PR.
-        Provide a unified diff patch with paths relative to repo root.
-        Returns the PR URL if successful.""",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "repo": {"type": "string", "description": "Repository name (e.g., 'appian-server')"},
-                "patch": {"type": "string", "description": "Unified diff patch (git apply compatible)"},
-                "title": {"type": "string", "description": "PR title"},
-                "body": {"type": "string", "description": "PR description/body"},
-                "base_branch": {"type": "string", "description": "Base branch (default: main)"},
-            },
-            "required": ["repo", "patch", "title", "body"],
-        },
-    },
-    {
         "name": "create_pr_from_plan",
-        "description": """Create a PR by applying line-based edits in a temporary workspace.
+        "description": """Create a PR using headless Codex to generate a plan and apply it (onKaul handles commit/push/PR).
 
         Use ONLY when the user explicitly asks to implement a fix or create a PR.
-        Provide a plan with line-based edits (replace/insert/delete) relative to repo root.
+        Provide a concise context summary; Codex will plan and implement the changes.
         Returns the PR URL if successful.""",
         "input_schema": {
             "type": "object",
@@ -368,23 +349,9 @@ TOOL_SCHEMAS = [
                 "title": {"type": "string", "description": "PR title"},
                 "body": {"type": "string", "description": "PR description/body"},
                 "base_branch": {"type": "string", "description": "Base branch (default: main)"},
-                "edits": {
-                    "type": "array",
-                    "description": "Line-based edits",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "op": {"type": "string", "enum": ["replace", "insert", "delete"]},
-                            "path": {"type": "string"},
-                            "start_line": {"type": "integer"},
-                            "end_line": {"type": "integer"},
-                            "new_lines": {"type": "array", "items": {"type": "string"}},
-                        },
-                        "required": ["op", "path", "start_line"],
-                    },
-                },
+                "context": {"type": "string", "description": "Issue context and expectations for the fix"},
             },
-            "required": ["repo", "title", "body", "edits"],
+            "required": ["repo", "title", "body", "context"],
         },
     },
     {
