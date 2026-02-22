@@ -43,7 +43,7 @@ class JiraIssue(BaseModel):
 class JiraCommentAuthor(BaseModel):
     """Jira comment author."""
 
-    displayName: str = Field(alias="displayName")
+    display_name: str = Field(alias="displayName")
 
 
 class JiraComment(BaseModel):
@@ -76,7 +76,7 @@ async def slack_webhook(
         print("\n" + "=" * 80)
         print("🔐 SLACK URL VERIFICATION CHALLENGE")
         print("=" * 80)
-        print(f"✅ Responding with challenge token")
+        print("✅ Responding with challenge token")
         print("=" * 80 + "\n")
         return {"challenge": payload_dict["challenge"]}
 
@@ -116,10 +116,10 @@ async def slack_webhook(
     print(f"🔍 Contains @onkaul: {'@onkaul' in user_message.lower()}")
 
     # Add immediate reaction to acknowledge
-    print(f"👍 Adding :onkaul: reaction to message...")
+    print("👍 Adding :onkaul: reaction to message...")
     reaction_result = slack.add_reaction(channel, message_ts, "onkaul")
     if reaction_result.get("success"):
-        print(f"✅ Reaction added")
+        print("✅ Reaction added")
     else:
         print(f"⚠️  Failed to add reaction: {reaction_result.get('error')}")
 
@@ -139,7 +139,7 @@ async def slack_webhook(
     # Fetch thread context if this is a reply
     thread_context = None
     if thread_ts and thread_ts != event.ts:
-        print(f"📜 Fetching thread history for context...")
+        print("📜 Fetching thread history for context...")
         result = slack.get_thread(channel, thread_ts)
         if result.get("success"):
             messages = result.get("messages", [])
