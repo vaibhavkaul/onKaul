@@ -1,7 +1,0 @@
-{
-  "issue": {"key": "B2B-456"},
-  "comment": {
-    "body": "@onkaul can you investigate this Sentry issue?",
-    "author": {"displayName": "Sarah"}
-  }
-}
