@@ -73,13 +73,13 @@ ENABLE_SLACK_POSTING=true     # Set to true to post replies in Slack
 ```bash
 # Sentry - error investigation
 SENTRY_TOKEN=sntrys_...
-SENTRY_ORG=taptapsend
+SENTRY_ORG=your-sentry-org
 
 # GitHub - code search and PR reviews (uses gh CLI)
-GITHUB_ORG=taptapsend
+GITHUB_ORG=your-github-org
 
 # Jira - issue tracking and commenting
-JIRA_BASE_URL=https://taptapsend.atlassian.net
+JIRA_BASE_URL=https://yourcompany.atlassian.net
 JIRA_EMAIL=your.email@company.com
 JIRA_API_TOKEN=ATATT3xFfGF0...
 

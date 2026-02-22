@@ -297,7 +297,7 @@ TOOL_SCHEMAS = [
             "properties": {
                 "pr_url": {
                     "type": "string",
-                    "description": "GitHub PR URL (e.g., 'https://github.com/taptapsend/appian-frontend/pull/1234') or short form (e.g., 'appian-frontend#1234')",
+                    "description": "GitHub PR URL (e.g., 'https://github.com/your-org/your-repo/pull/1234') or short form (e.g., 'your-repo#1234')",
                 }
             },
             "required": ["pr_url"],

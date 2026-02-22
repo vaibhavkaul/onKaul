@@ -335,7 +335,8 @@ Calls to Action:
             result = jira.add_comment(issue_key, None, adf_body=adf_body)
             if result.get("success"):
                 print(f"✅ Successfully posted to {issue_key} (ADF formatted)")
-                print(f"🔗 View at: https://taptapsend.atlassian.net/browse/{issue_key}")
+                if config.JIRA_BASE_URL:
+                    print(f"🔗 View at: {config.JIRA_BASE_URL}/browse/{issue_key}")
                 if result.get("comment_id"):
                     print(f"📝 Comment ID: {result['comment_id']}")
             else:

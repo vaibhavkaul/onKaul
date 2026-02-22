@@ -4,6 +4,8 @@ import json
 import re
 import subprocess
 
+from config import config
+
 
 def extract_pr_url(text: str) -> str | None:
     """
@@ -20,10 +22,12 @@ def extract_pr_url(text: str) -> str | None:
     if match:
         return match.group(0)
 
-    # Match short form like "appian-frontend#1234"
-    match = re.search(r"(appian-frontend|appian-server|tts-business)#(\d+)", text)
+    # Match short form like "repo-name#1234"
+    match = re.search(r"([A-Za-z0-9_.-]+)#(\d+)", text)
     if match:
-        return f"https://github.com/taptapsend/{match.group(1)}/pull/{match.group(2)}"
+        if not config.GITHUB_ORG:
+            return None
+        return f"https://github.com/{config.GITHUB_ORG}/{match.group(1)}/pull/{match.group(2)}"
 
     return None
 
