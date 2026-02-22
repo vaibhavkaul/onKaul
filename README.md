@@ -185,14 +185,11 @@ tail -f logs/responses.jsonl | jq
 # Format and lint
 uv run ruff format .
 uv run ruff check .
-
-# Type checking
-uv run mypy .
 ```
 
 ### CI
 
-GitHub Actions runs ruff (format + lint) and mypy on every push and PR.
+GitHub Actions runs ruff (format + lint) on every push and PR.
 
 ### Testing
 
