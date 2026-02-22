@@ -190,6 +190,10 @@ uv run ruff check .
 uv run mypy .
 ```
 
+### CI
+
+GitHub Actions runs ruff (format + lint) and mypy on every push and PR.
+
 ### Testing
 
 ```bash
