@@ -40,6 +40,7 @@ uv.lock
 # Environment variables
 .env
 .env.local
+repository_config/repo_config.json
 
 # Logs
 logs/

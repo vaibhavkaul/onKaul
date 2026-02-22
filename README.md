@@ -97,7 +97,7 @@ CONFLUENCE_CLOUD_ID=...  # Get from https://yoursite.atlassian.net/_edge/tenant_
 CONFLUENCE_WIKI_BASE_URL=https://yourcompany.atlassian.net/wiki
 
 # Repo configuration
-REPO_CONFIG_PATH=./repository_config/repo_config.json
+REPO_CONFIG_PATH=./repository_config/repo_config_example.json
 ```
 
 **Prerequisites:**
