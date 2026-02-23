@@ -117,6 +117,7 @@ async def slack_webhook(
     Parses payload, adds emoji reaction, and queues background investigation.
     """
     body = await request.body()
+    print(f"🔐 Slack headers: {sorted(list(request.headers.keys()))}")
     ok, error = _verify_slack_signature(body, dict(request.headers))
     if not ok:
         return {"ok": False, "error": error}
