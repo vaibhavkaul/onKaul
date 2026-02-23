@@ -3,6 +3,11 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
     build: .
@@ -16,8 +21,14 @@ services:
     ports:
       - "8000:8000"
     command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   bee-worker:
     build: .
@@ -27,4 +38,5 @@ services:
       REDIS_URL: "redis://redis:6379/0"
     command: ["python", "-m", "bee.worker"]
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
