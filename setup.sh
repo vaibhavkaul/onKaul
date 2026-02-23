@@ -6,7 +6,8 @@ ask() {
   local prompt="$1"
   local reply
   read -r -p "$prompt" reply
-  case "${reply,,}" in
+  reply="$(echo "$reply" | tr '[:upper:]' '[:lower:]')"
+  case "$reply" in
     y|yes) return 0 ;;
     *) return 1 ;;
   esac
