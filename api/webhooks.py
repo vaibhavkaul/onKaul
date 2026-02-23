@@ -26,8 +26,9 @@ def _verify_slack_signature(body: bytes, headers: dict) -> tuple[bool, str | Non
         print("🔐 Slack signature verification failed: SLACK_SIGNING_SECRET not set")
         return False, "SLACK_SIGNING_SECRET not set"
 
-    timestamp = headers.get("X-Slack-Request-Timestamp")
-    signature = headers.get("X-Slack-Signature")
+    lower_headers = {k.lower(): v for k, v in headers.items()}
+    timestamp = lower_headers.get("x-slack-request-timestamp")
+    signature = lower_headers.get("x-slack-signature")
     if not timestamp or not signature:
         print(
             "🔐 Slack signature verification failed: missing headers "
