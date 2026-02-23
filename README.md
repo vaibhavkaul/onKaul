@@ -82,6 +82,7 @@ JIRA_BASE_URL=https://yourcompany.atlassian.net
 JIRA_EMAIL=your.email@company.com
 JIRA_API_TOKEN=ATATT3xFfGF0...
 JIRA_WEBHOOK_SECRET=your-jira-webhook-secret
+ENABLE_JIRA_WEBHOOK_VERIFICATION=true
 
 # Slack - posting responses
 SLACK_BOT_TOKEN=xoxb-...
@@ -125,6 +126,7 @@ Add a custom header to your Jira webhook:
 - Header value: your secret
 
 Then set `JIRA_WEBHOOK_SECRET` in your `.env`.
+If you need to disable verification (local dev), set `ENABLE_JIRA_WEBHOOK_VERIFICATION=false`.
 
 **Prerequisites:**
 - `gh` CLI: `brew install gh && gh auth login`

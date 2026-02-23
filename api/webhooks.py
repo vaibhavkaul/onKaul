@@ -230,7 +230,7 @@ async def jira_webhook(
 
     Parses payload and queues background investigation.
     """
-    if config.JIRA_WEBHOOK_SECRET:
+    if config.ENABLE_JIRA_WEBHOOK_VERIFICATION and config.JIRA_WEBHOOK_SECRET:
         secret = request.headers.get("X-Webhook-Secret")
         if not secret:
             return {"ok": False, "error": "Missing Jira webhook secret"}
