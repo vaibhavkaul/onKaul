@@ -13,7 +13,8 @@ onKaul is an open-source developer assistant that can investigate issues, analyz
 - 🛠️ Fix planning and PR creation workflows (plan → apply → push)
 - 🔎 GitHub code search and file reading via `gh` CLI
 - 📚 Confluence knowledge base lookups (optional)
-- 📈 Sentry and Datadog investigation tools (optional)
+- 📈 Sentry investigations (issues, stacktraces, frequency)
+- 📊 Datadog investigations (logs, monitors, metrics, incidents, events)
 - 📎 Attachments: OCR, PDF, and text extraction
 - 🧾 Structured logs for responses and tool usage
 
