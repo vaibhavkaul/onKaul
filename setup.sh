@@ -99,12 +99,14 @@ else
   say "✓ gh already installed"
 fi
 
-if ! require_cmd acli; then
-  if ask "Install Atlassian CLI (acli)? [y/N] "; then
-    brew install atlassian-cli
+if ask "Do you use Atlassian products (Jira/Confluence)? [y/N] "; then
+  if ! require_cmd acli; then
+    if ask "Install Atlassian CLI (acli)? [y/N] "; then
+      brew install atlassian-cli
+    fi
+  else
+    say "✓ acli already installed"
   fi
-else
-  say "✓ acli already installed"
 fi
 
 if [[ ! -f .env ]]; then
