@@ -102,6 +102,21 @@ CONFLUENCE_WIKI_BASE_URL=https://yourcompany.atlassian.net/wiki
 REPO_CONFIG_PATH=./repository_config/repo_config_example.json
 ```
 
+### Slack Setup
+
+1. Create a Slack app in your workspace.
+2. Enable **Event Subscriptions** and set the Request URL to:
+   `https://your-host/webhook/slack`
+3. Subscribe to the **app_mention** bot event.
+4. Add OAuth scopes (minimum):
+   - `chat:write`
+   - `reactions:write`
+   - `channels:history` (or the appropriate history scope for your channels)
+5. Install the app to your workspace.
+6. Copy the bot token and signing secret into your `.env`:
+   - `SLACK_BOT_TOKEN`
+   - `SLACK_SIGNING_SECRET`
+
 **Prerequisites:**
 - `gh` CLI: `brew install gh && gh auth login`
 - `acli` CLI: See [Atlassian CLI docs](https://developer.atlassian.com/cloud/acli/)
