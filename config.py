@@ -45,6 +45,7 @@ class Config:
     JIRA_BASE_URL = os.getenv("JIRA_BASE_URL")
     JIRA_EMAIL = os.getenv("JIRA_EMAIL")
     JIRA_API_TOKEN = os.getenv("JIRA_API_TOKEN")
+    JIRA_WEBHOOK_SECRET = os.getenv("JIRA_WEBHOOK_SECRET")
 
     # Confluence Integration - Read playbooks and wiki pages
     CONFLUENCE_EMAIL = os.getenv("CONFLUENCE_EMAIL") or os.getenv("ATLASSIAN_EMAIL")

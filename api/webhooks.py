@@ -230,6 +230,13 @@ async def jira_webhook(
 
     Parses payload and queues background investigation.
     """
+    if config.JIRA_WEBHOOK_SECRET:
+        secret = request.headers.get("X-Webhook-Secret")
+        if not secret:
+            return {"ok": False, "error": "Missing Jira webhook secret"}
+        if not hmac.compare_digest(secret, config.JIRA_WEBHOOK_SECRET):
+            return {"ok": False, "error": "Invalid Jira webhook secret"}
+
     payload_dict = await request.json()
 
     print("\n" + "=" * 80)
@@ -242,7 +249,7 @@ async def jira_webhook(
 
     issue_key = payload.issue.key
     comment_body = payload.comment.body
-    author = payload.comment.author.displayName
+    author = payload.comment.author.display_name
 
     print(f"📋 Issue: {issue_key}")
     print(f"👤 Author: {author}")

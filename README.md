@@ -81,6 +81,7 @@ GITHUB_ORG=your-github-org
 JIRA_BASE_URL=https://yourcompany.atlassian.net
 JIRA_EMAIL=your.email@company.com
 JIRA_API_TOKEN=ATATT3xFfGF0...
+JIRA_WEBHOOK_SECRET=your-jira-webhook-secret
 
 # Slack - posting responses
 SLACK_BOT_TOKEN=xoxb-...
@@ -116,6 +117,14 @@ REPO_CONFIG_PATH=./repository_config/repo_config_example.json
 6. Copy the bot token and signing secret into your `.env`:
    - `SLACK_BOT_TOKEN`
    - `SLACK_SIGNING_SECRET`
+
+### Jira Webhook Secret
+
+Add a custom header to your Jira webhook:
+- Header name: `X-Webhook-Secret`
+- Header value: your secret
+
+Then set `JIRA_WEBHOOK_SECRET` in your `.env`.
 
 **Prerequisites:**
 - `gh` CLI: `brew install gh && gh auth login`
