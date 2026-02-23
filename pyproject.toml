@@ -12,6 +12,9 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 urls = { Repository = "https://github.com/vaibhavkaul/onKaul", Issues = "https://github.com/vaibhavkaul/onKaul/issues" }
+
+[project.scripts]
+onkaul = "cli:main"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.0",

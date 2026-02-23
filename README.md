@@ -133,6 +133,14 @@ docker compose up --scale bee-worker=5
 
 API will be available at http://localhost:8000
 
+### CLI (Local)
+
+```bash
+uv run onkaul
+```
+
+Type your request and press Enter. Use `/exit` or `/quit` to leave.
+
 ### Testing Webhooks
 
 **Slack webhook:**
