@@ -278,6 +278,14 @@ onKaul/
 └── README.md
 ```
 
+## Project Policies
+
+- [LICENSE](./LICENSE)
+- [CONTRIBUTING](./CONTRIBUTING.md)
+- [Code of Conduct](./CODE_OF_CONDUCT.md)
+- [Security](./SECURITY.md)
+- [Support](./SUPPORT.md)
+
 ## Features
 
 ### Investigation Tools
