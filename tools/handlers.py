@@ -39,6 +39,7 @@ def execute_tool(name: str, inputs: dict) -> str:
         "web_search": _handle_web_search,
         "create_pr_from_plan": _handle_create_pr_from_plan,
         "update_pr_from_plan": _handle_update_pr_from_plan,
+        "close_pr": _handle_close_pr,
         "read_confluence_page": _handle_read_confluence_page,
     }
 
@@ -147,6 +148,11 @@ def _handle_update_pr_from_plan(
 ) -> dict:
     """Handle update_pr_from_plan tool."""
     return update_pr_from_plan(pr_url, title, body, context)
+
+
+def _handle_close_pr(pr_url: str) -> dict:
+    """Handle close_pr tool."""
+    return github.close_pr(pr_url)
 
 
 def _handle_read_confluence_page(page_id: str) -> dict:

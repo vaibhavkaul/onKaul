@@ -4,22 +4,28 @@ onKaul is an open-source developer assistant that can investigate issues, analyz
 
 ## Status
 
-Production-ready for internal deployments. Designed to be forked and configured for your organization.
+🚧 Early release. We’re looking for contributors to help harden this for production deployments. Designed to be forked and configured for your organization.
 
 ## Features
 
-- Smart model selection for deep analysis vs quick investigations
-- Slack and Jira integrations with formatted responses
-- GitHub code search and file reading via `gh` CLI
-- Confluence knowledge base lookups (optional)
-- Sentry and Datadog investigation tools (optional)
-- Attachment support (OCR, PDF, and text extraction)
-- Structured logs for responses and tool usage
+- 🤖 Claude + Codex headless execution for planning and code edits
+- 🧵 Slack and Jira integrations with structured, formatted responses
+- 🛠️ Fix planning and PR creation workflows (plan → apply → push)
+- 🔎 GitHub code search and file reading via `gh` CLI
+- 📚 Confluence knowledge base lookups (optional)
+- 📈 Sentry and Datadog investigation tools (optional)
+- 📎 Attachments: OCR, PDF, and text extraction
+- 🧾 Structured logs for responses and tool usage
 
 ## Modes
 
-**Webapp mode** runs a FastAPI server and listens to Slack and Jira webhooks.  
-**CLI mode** runs locally in your terminal and does not require Slack or Jira.
+### 🌐 Webapp Mode
+
+Runs a FastAPI server and listens to Slack and Jira webhooks for @mentions and comments. Best for shared team use and always‑on incident response.
+
+### 🧑‍💻 CLI Mode
+
+Runs locally in your terminal for fast, private investigations. No Slack or Jira required, and great for testing prompts and workflows.
 
 ## Installation
 
@@ -62,7 +68,7 @@ API_PORT=8000
 PUBLIC_BASE_URL=http://localhost:8000
 ```
 
-### Webapp Mode (required for Slack/Jira)
+### Webapp Mode (required for Slack/Jira usage)
 
 ```bash
 # Slack
@@ -80,7 +86,7 @@ ENABLE_JIRA_WEBHOOK_VERIFICATION=true
 ENABLE_JIRA_POSTING=true
 ```
 
-### Code and Repo Configuration
+### Code and Repo Configuration (required for code search / repo context)
 
 ```bash
 # GitHub (required for code search)
@@ -114,14 +120,14 @@ CONFLUENCE_API_BASE_URL=https://api.atlassian.com/ex/confluence
 BRAVE_SEARCH_API_KEY=...
 ```
 
-### Storage and Workspaces
+### Storage and Workspaces (optional, defaults shown)
 
 ```bash
 WORKSPACE_DIR=./workplace
 FIX_WORKSPACE_DIR=./fixes
 ```
 
-### Background Jobs (webapp)
+### Background Jobs (required for webapp workers)
 
 ```bash
 REDIS_URL=redis://localhost:6379/0
@@ -129,7 +135,7 @@ REDIS_QUEUE_NAME=onkaul
 JOB_TIMEOUT_SECONDS=900
 ```
 
-### Fix Executor (optional)
+### Fix Executor (optional, required for automated PRs)
 
 ```bash
 FIX_EXECUTOR_ENGINE=codex  # or claude

@@ -172,6 +172,36 @@ class GitHubClient:
         except Exception as e:
             return {"error": f"Failed to list directory: {str(e)}"}
 
+    def close_pr(self, pr_url: str) -> dict:
+        """
+        Close a pull request by URL.
+
+        Args:
+            pr_url: Full GitHub PR URL (e.g., https://github.com/org/repo/pull/123)
+
+        Returns:
+            Dict with success status
+        """
+        try:
+            result = subprocess.run(
+                ["gh", "pr", "close", pr_url],
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+
+            if result.returncode != 0:
+                return {"error": f"gh error: {result.stderr or result.stdout}"}
+
+            return {"success": True, "pr_url": pr_url}
+
+        except subprocess.TimeoutExpired:
+            return {"error": "gh command timed out"}
+        except FileNotFoundError:
+            return {"error": "gh CLI not installed or not in PATH"}
+        except Exception as e:
+            return {"error": f"Failed to close PR: {str(e)}"}
+
 
 # Singleton instance
 github = GitHubClient()

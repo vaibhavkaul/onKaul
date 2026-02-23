@@ -323,6 +323,20 @@ TOOL_SCHEMAS = [
         },
     },
     {
+        "name": "close_pr",
+        "description": """Close a GitHub pull request.
+
+        Use when the user explicitly asks to close a PR.
+        Requires a full PR URL (e.g., https://github.com/org/repo/pull/123).""",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "pr_url": {"type": "string", "description": "GitHub PR URL"},
+            },
+            "required": ["pr_url"],
+        },
+    },
+    {
         "name": "read_confluence_page",
         "description": """Read a Confluence wiki page (playbooks, documentation, RFCs).
 
