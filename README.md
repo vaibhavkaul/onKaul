@@ -27,6 +27,14 @@ See [plan.md](./plan.md) for full implementation details.
 - Python 3.12+
 - [uv](https://github.com/astral-sh/uv) (recommended) or pip
 
+### Quick Setup (macOS)
+
+```bash
+./setup.sh
+```
+
+This script checks dependencies, installs missing tools via Homebrew, and helps you create `.env`.
+
 ### Installation
 
 **With uv (recommended):**
