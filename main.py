@@ -9,7 +9,7 @@ from config import config
 # Create FastAPI app
 app = FastAPI(
     title=config.APP_NAME,
-    description="Internal developer assistant agent for TapTap Send",
+    description="Open-source developer assistant agent",
     version="0.1.0",
     debug=config.DEBUG,
 )

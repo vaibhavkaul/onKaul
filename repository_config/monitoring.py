@@ -1,7 +1,4 @@
-"""Monitoring configuration for TapTap Send - Sentry teams, Datadog tags, service context.
-
-Extracted from appian-server configuration.
-"""
+"""Monitoring configuration template - Sentry teams, Datadog tags, service context."""
 
 # Sentry team ownership mapping
 SENTRY_TEAMS = {
@@ -9,53 +6,25 @@ SENTRY_TEAMS = {
         "name": "Accounts Team",
         "responsibilities": ["User accounts", "Authentication", "Profile management"],
     },
-    "b2b": {
-        "name": "B2B Team",
-        "responsibilities": [
-            "Business-to-business features",
-            "Batch payments",
-            "Business wallets",
-            "KYB",
-        ],
+    "payments": {
+        "name": "Payments Team",
+        "responsibilities": ["Checkout flows", "Payment methods", "Payouts"],
     },
     "core": {
-        "name": "Core Team",
-        "responsibilities": [
-            "Core platform logic",
-            "KYC verification",
-            "Remittance core flows",
-            "Default fallback team",
-        ],
+        "name": "Core Platform Team",
+        "responsibilities": ["Core APIs", "Data models", "Shared services"],
     },
-    "expansion": {
-        "name": "Expansion Team",
-        "responsibilities": [
-            "New corridor integrations",
-            "Remittance service providers",
-            "Third-party payment integrations",
-        ],
+    "growth": {
+        "name": "Growth Team",
+        "responsibilities": ["Onboarding", "Activation", "Conversion funnels"],
     },
     "internal-tools": {
         "name": "Internal Tools Team",
         "responsibilities": ["Admin tools", "Internal dashboards", "Operations tooling"],
     },
-    "new-products": {
-        "name": "New Products Team",
-        "responsibilities": [
-            "Debit cards",
-            "Payment methods",
-            "Checkout flows",
-            "New payment products",
-        ],
-    },
     "platform": {
         "name": "Platform Team",
-        "responsibilities": [
-            "Infrastructure",
-            "Auth system",
-            "API gateway",
-            "Monitoring/observability",
-        ],
+        "responsibilities": ["Infrastructure", "Auth system", "Observability"],
     },
 }
 
@@ -98,32 +67,19 @@ DATADOG_COMMON_TAGS = [
 
 # Custom metric prefixes
 DATADOG_METRIC_PREFIXES = {
-    "custom": "tts.",  # All custom TapTap Send metrics
-    "third_party": "tts.3rd_party_api_",  # External API metrics
+    "custom": "org.",  # Custom metrics prefix
+    "third_party": "org.3rd_party_api_",  # External API metrics
 }
 
 # Queue-to-team mapping (sample - full list has 200+ queues)
 QUEUE_TO_TEAM_MAPPING = {
-    # New Products team
-    "payments": "new-products",
-    "adyen": "new-products",
-    "checkout-dot-com": "new-products",
-    "debit": "new-products",
-    "debit-cards": "new-products",
-    # Core team
+    "payments": "payments",
+    "checkout": "payments",
+    "payouts": "payments",
     "kyc": "core",
-    "onfido": "core",
-    "efr": "core",
-    "jumio": "core",
-    "namsor": "core",
-    # Platform team
+    "fraud": "core",
     "auth": "platform",
-    # Expansion team (most remittance integrations)
-    "thunes": "expansion",
-    "mastercard": "expansion",
-    "interswitch": "expansion",
-    "terrapay": "expansion",
-    "fincra": "expansion",
+    "ops": "internal-tools",
 }
 
 # Helpful query patterns
