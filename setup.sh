@@ -108,8 +108,88 @@ fi
 if [[ ! -f .env ]]; then
   if ask "Create .env from .env.example? [y/N] "; then
     cp .env.example .env
-    say "Created .env. Please fill in required values."
+    say "Created .env."
   fi
+fi
+
+if [[ -f .env ]]; then
+  say "\nConfiguring integrations..."
+
+  declare -A ENV_KV
+  while IFS='=' read -r key val; do
+    [[ -z "$key" || "$key" =~ ^# ]] && continue
+    ENV_KV["$key"]="$val"
+  done < .env
+
+  set_kv() {
+    local k="$1"
+    local v="$2"
+    ENV_KV["$k"]="$v"
+  }
+
+  write_env() {
+    {
+      while IFS= read -r line; do
+        if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)= ]]; then
+          key="${BASH_REMATCH[1]}"
+          if [[ -n "${ENV_KV[$key]+x}" ]]; then
+            echo "${key}=${ENV_KV[$key]}"
+          else
+            echo "$line"
+          fi
+        else
+          echo "$line"
+        fi
+      done < .env
+    } > .env.tmp
+    mv .env.tmp .env
+  }
+
+  say "\nSelect integrations to configure:"
+
+  if ask "Configure Sentry? [y/N] "; then
+    read -r -p "SENTRY_ORG: " val; set_kv "SENTRY_ORG" "$val"
+    read -r -p "SENTRY_TOKEN: " val; set_kv "SENTRY_TOKEN" "$val"
+  fi
+
+  if ask "Configure GitHub (gh CLI still required)? [y/N] "; then
+    read -r -p "GITHUB_ORG: " val; set_kv "GITHUB_ORG" "$val"
+  fi
+
+  if ask "Configure Datadog? [y/N] "; then
+    read -r -p "DD_API_KEY: " val; set_kv "DD_API_KEY" "$val"
+    read -r -p "DD_APP_KEY: " val; set_kv "DD_APP_KEY" "$val"
+    read -r -p "DD_SITE (default datadoghq.com): " val
+    if [[ -n "$val" ]]; then set_kv "DD_SITE" "$val"; fi
+  fi
+
+  if ask "Configure Confluence? [y/N] "; then
+    read -r -p "CONFLUENCE_EMAIL: " val; set_kv "CONFLUENCE_EMAIL" "$val"
+    read -r -p "CONFLUENCE_API_TOKEN: " val; set_kv "CONFLUENCE_API_TOKEN" "$val"
+    read -r -p "CONFLUENCE_CLOUD_ID: " val; set_kv "CONFLUENCE_CLOUD_ID" "$val"
+    read -r -p "CONFLUENCE_WIKI_BASE_URL: " val; set_kv "CONFLUENCE_WIKI_BASE_URL" "$val"
+  fi
+
+  if ask "Configure Brave Search? [y/N] "; then
+    read -r -p "BRAVE_SEARCH_API_KEY: " val; set_kv "BRAVE_SEARCH_API_KEY" "$val"
+  fi
+
+  if [[ "$MODE" == "webapp" ]]; then
+    say "\nWebapp mode requires Slack and Jira configuration."
+
+    read -r -p "SLACK_BOT_TOKEN: " val; set_kv "SLACK_BOT_TOKEN" "$val"
+    read -r -p "SLACK_SIGNING_SECRET: " val; set_kv "SLACK_SIGNING_SECRET" "$val"
+    set_kv "SLACK_VERIFY_SIGNATURE" "true"
+
+    read -r -p "JIRA_BASE_URL: " val; set_kv "JIRA_BASE_URL" "$val"
+    read -r -p "JIRA_EMAIL: " val; set_kv "JIRA_EMAIL" "$val"
+    read -r -p "JIRA_API_TOKEN: " val; set_kv "JIRA_API_TOKEN" "$val"
+    read -r -p "JIRA_WEBHOOK_SECRET: " val; set_kv "JIRA_WEBHOOK_SECRET" "$val"
+    set_kv "ENABLE_JIRA_WEBHOOK_VERIFICATION" "true"
+  fi
+
+  write_env
+  say "Updated .env with selected integrations."
 fi
 
 say "\nSetup complete."
