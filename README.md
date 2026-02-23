@@ -16,13 +16,10 @@ Production-ready for internal deployments. Designed to be forked and configured 
 - Attachment support (OCR, PDF, and text extraction)
 - Structured logs for responses and tool usage
 
-## Quickstart (macOS)
+## Modes
 
-```bash
-./setup.sh
-```
-
-This script checks dependencies, installs missing tools via Homebrew, and helps you create `.env`.
+**Webapp mode** runs a FastAPI server and listens to Slack and Jira webhooks.  
+**CLI mode** runs locally in your terminal and does not require Slack or Jira.
 
 ## Installation
 
@@ -48,22 +45,31 @@ Create a `.env` file (copy from `.env.example`):
 cp .env.example .env
 ```
 
-### Required
+### Required (all modes)
 
 ```bash
-# Agent (required)
+# Agent
 ANTHROPIC_API_KEY=sk-ant-...
-
-# Enable posting (optional, default: false)
-ENABLE_JIRA_POSTING=true
-ENABLE_SLACK_POSTING=true
 ```
 
-### Integrations (optional)
+### App Configuration (optional, defaults shown)
 
 ```bash
-# GitHub (required for code search)
-GITHUB_ORG=your-github-org
+DEBUG=false
+LOG_LEVEL=INFO
+API_HOST=0.0.0.0
+API_PORT=8000
+PUBLIC_BASE_URL=http://localhost:8000
+```
+
+### Webapp Mode (required for Slack/Jira)
+
+```bash
+# Slack
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_SIGNING_SECRET=your-slack-signing-secret
+SLACK_VERIFY_SIGNATURE=true
+ENABLE_SLACK_POSTING=true
 
 # Jira
 JIRA_BASE_URL=https://yourcompany.atlassian.net
@@ -71,19 +77,30 @@ JIRA_EMAIL=your.email@company.com
 JIRA_API_TOKEN=...
 JIRA_WEBHOOK_SECRET=your-jira-webhook-secret
 ENABLE_JIRA_WEBHOOK_VERIFICATION=true
+ENABLE_JIRA_POSTING=true
+```
 
-# Slack
-SLACK_BOT_TOKEN=xoxb-...
-SLACK_SIGNING_SECRET=your-slack-signing-secret
-SLACK_VERIFY_SIGNATURE=true
+### Code and Repo Configuration
 
+```bash
+# GitHub (required for code search)
+GITHUB_ORG=your-github-org
+GITHUB_TOKEN=...  # Optional if gh CLI is already authenticated
+
+# Repo configuration
+REPO_CONFIG_PATH=./repository_config/repo_config_example.json
+```
+
+### Optional Integrations
+
+```bash
 # Sentry
 SENTRY_TOKEN=...
 SENTRY_ORG=your-sentry-org
 
 # Datadog
-DD_API_KEY=...
-DD_APP_KEY=...
+DD_API_KEY=...   # or DATADOG_API_KEY
+DD_APP_KEY=...   # or DATADOG_APP_KEY
 DD_SITE=datadoghq.com
 
 # Confluence
@@ -93,8 +110,35 @@ CONFLUENCE_CLOUD_ID=...
 CONFLUENCE_WIKI_BASE_URL=https://yourcompany.atlassian.net/wiki
 CONFLUENCE_API_BASE_URL=https://api.atlassian.com/ex/confluence
 
-# Repo configuration
-REPO_CONFIG_PATH=./repository_config/repo_config_example.json
+# Brave Search
+BRAVE_SEARCH_API_KEY=...
+```
+
+### Storage and Workspaces
+
+```bash
+WORKSPACE_DIR=./workplace
+FIX_WORKSPACE_DIR=./fixes
+```
+
+### Background Jobs (webapp)
+
+```bash
+REDIS_URL=redis://localhost:6379/0
+REDIS_QUEUE_NAME=onkaul
+JOB_TIMEOUT_SECONDS=900
+```
+
+### Fix Executor (optional)
+
+```bash
+FIX_EXECUTOR_ENGINE=codex  # or claude
+CODEX_PLAN_CMD=/Applications/Codex.app/Contents/Resources/codex exec --dangerously-bypass-approvals-and-sandbox --color never
+CODEX_APPLY_CMD=/Applications/Codex.app/Contents/Resources/codex exec --dangerously-bypass-approvals-and-sandbox --color never
+CODEX_TIMEOUT_SECONDS=1200
+CLAUDE_PLAN_CMD=claude -p --allowedTools "Bash,Read" --permission-mode acceptEdits --output-format text
+CLAUDE_APPLY_CMD=claude -p --allowedTools "Bash,Read,Edit" --permission-mode acceptEdits --output-format text
+CLAUDE_TIMEOUT_SECONDS=1200
 ```
 
 ## Slack Setup
@@ -139,6 +183,16 @@ uv run onkaul
 ```
 
 Type your request and press Enter. Use `/exit` or `/quit` to leave.
+
+## Quickstart (macOS)
+
+Status: beta. Linux version coming soon.
+
+```bash
+./setup.sh
+```
+
+This script checks dependencies, installs missing tools via Homebrew, and helps you create `.env`.
 
 ## Testing Webhooks
 
