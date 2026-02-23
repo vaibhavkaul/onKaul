@@ -79,6 +79,11 @@ if [[ "$MODE" == "webapp" ]]; then
   if ! require_cmd redis-server; then
     say "Redis not found."
     install_brew_pkg redis
+    if require_cmd redis-server; then
+      say "✓ redis installed"
+    fi
+  else
+    say "✓ redis already installed"
   fi
 fi
 
