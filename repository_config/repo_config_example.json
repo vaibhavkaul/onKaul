@@ -1,28 +1,55 @@
 {
   "repositories": {
-    "app-frontend": {
-      "name": "app-frontend",
+    "merchant-console": {
+      "name": "merchant-console",
       "org": "acme",
-      "description": "React web app",
-      "tech_stack": ["React", "TypeScript", "Vite"],
-      "key_systems": ["Auth", "Payments", "Checkout"],
-      "handles": ["UI bugs", "Frontend crashes", "Performance regressions"],
+      "description": "Merchant operations web console",
+      "tech_stack": [
+        "React 19 + TypeScript",
+        "Vite",
+        "React Router",
+        "Material-UI + TailwindCSS"
+      ],
+      "key_systems": ["Auth", "Payouts", "Disputes"],
+      "handles": ["UI bugs", "Console crashes", "Performance regressions"],
       "context_files": []
     },
-    "app-backend": {
-      "name": "app-backend",
+    "core-api": {
+      "name": "core-api",
       "org": "acme",
-      "description": "Backend API service",
-      "tech_stack": ["Python", "FastAPI", "PostgreSQL"],
+      "description": "Core backend API service",
+      "tech_stack": [
+        "Python/FastAPI",
+        "PostgreSQL + SQLModel",
+        "Alembic (migrations)"
+      ],
       "key_systems": ["API", "Billing", "Webhooks"],
       "handles": ["API errors", "DB issues", "Latency spikes"],
+      "context_files": []
+    },
+    "mobile-app": {
+      "name": "mobile-app",
+      "org": "acme",
+      "description": "React Native mobile application",
+      "tech_stack": [
+        "React Native",
+        "TypeScript/TSX",
+        "Redux (state management)",
+        "GraphQL (with code generation)",
+        "XState (state machines)",
+        "Jest (unit tests)",
+        "Detox (E2E tests)"
+      ],
+      "key_systems": ["Wallet", "Onboarding", "Transfers"],
+      "handles": ["App crashes", "Mobile UI bugs", "Sync issues"],
       "context_files": []
     }
   },
   "investigation_strategy": {
-    "Frontend/UI bugs": "app-frontend",
-    "API errors": "app-backend",
-    "Database issues": "app-backend"
+    "Frontend/UI bugs": "merchant-console",
+    "API errors": "core-api",
+    "Database issues": "core-api",
+    "Mobile crashes": "mobile-app"
   },
   "additional_context": {
     "Sentry Integration": "/path/to/sentry-integration.md",
