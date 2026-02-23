@@ -1,33 +1,22 @@
 # onKaul
 
-Internal developer assistant agent for TapTap Send.
-
-Tag `@onkaul` in Slack or Jira to investigate issues, analyze code, and get actionable guidance.
+onKaul is an open-source developer assistant that can investigate issues, analyze code, and provide actionable guidance via Slack, Jira, or a local CLI.
 
 ## Status
 
-✅ **Production Ready** - Fully functional internal developer assistant
+Production-ready for internal deployments. Designed to be forked and configured for your organization.
 
-**Current Features:**
-- 🤖 **Smart Model Selection** - Opus 4.5 for deep analysis, Sonnet 4 for quick investigations
-- 📚 **Confluence Integration** - Reads and follows playbooks automatically
-- 🔍 **Production Monitoring** - Sentry errors, Datadog logs/monitors/metrics
-- 📁 **Code Search** - 3 repos (appian-frontend, appian-server, tts-business) via gh CLI
-- 💬 **Formatted Responses** - ADF for Jira, mrkdwn for Slack
-- 📎 **Attachment Support** - OCR from images, PDF extraction
-- :onkaul: **Emoji Reactions** - Immediate acknowledgment in Slack
-- 📜 **Thread Context** - Reads full conversation history
+## Features
 
-See [plan.md](./plan.md) for full implementation details.
+- Smart model selection for deep analysis vs quick investigations
+- Slack and Jira integrations with formatted responses
+- GitHub code search and file reading via `gh` CLI
+- Confluence knowledge base lookups (optional)
+- Sentry and Datadog investigation tools (optional)
+- Attachment support (OCR, PDF, and text extraction)
+- Structured logs for responses and tool usage
 
-## Setup
-
-### Requirements
-
-- Python 3.12+
-- [uv](https://github.com/astral-sh/uv) (recommended) or pip
-
-### Quick Setup (macOS)
+## Quickstart (macOS)
 
 ```bash
 ./setup.sh
@@ -35,30 +24,23 @@ See [plan.md](./plan.md) for full implementation details.
 
 This script checks dependencies, installs missing tools via Homebrew, and helps you create `.env`.
 
-### Installation
+## Installation
 
-**With uv (recommended):**
+### With uv (recommended)
 
 ```bash
-# Install uv if you don't have it
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Install dependencies
 uv sync
 ```
 
-**With pip:**
+### With pip
 
 ```bash
-# Create virtual environment
 python3.12 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Configuration
+## Configuration
 
 Create a `.env` file (copy from `.env.example`):
 
@@ -66,68 +48,66 @@ Create a `.env` file (copy from `.env.example`):
 cp .env.example .env
 ```
 
-**Required:**
+### Required
+
 ```bash
 # Agent (required)
-ANTHROPIC_API_KEY=sk-ant-...  # Get from https://console.anthropic.com/
+ANTHROPIC_API_KEY=sk-ant-...
 
 # Enable posting (optional, default: false)
-ENABLE_JIRA_POSTING=true      # Set to true to post comments to Jira
-ENABLE_SLACK_POSTING=true     # Set to true to post replies in Slack
+ENABLE_JIRA_POSTING=true
+ENABLE_SLACK_POSTING=true
 ```
 
-**Tool Integration (required for investigations):**
-```bash
-# Sentry - error investigation
-SENTRY_TOKEN=sntrys_...
-SENTRY_ORG=your-sentry-org
+### Integrations (optional)
 
-# GitHub - code search and PR reviews (uses gh CLI)
+```bash
+# GitHub (required for code search)
 GITHUB_ORG=your-github-org
 
-# Jira - issue tracking and commenting
+# Jira
 JIRA_BASE_URL=https://yourcompany.atlassian.net
 JIRA_EMAIL=your.email@company.com
-JIRA_API_TOKEN=ATATT3xFfGF0...
+JIRA_API_TOKEN=...
 JIRA_WEBHOOK_SECRET=your-jira-webhook-secret
 ENABLE_JIRA_WEBHOOK_VERIFICATION=true
 
-# Slack - posting responses
+# Slack
 SLACK_BOT_TOKEN=xoxb-...
 SLACK_SIGNING_SECRET=your-slack-signing-secret
 SLACK_VERIFY_SIGNATURE=true
 
-# Datadog - logs, monitors, metrics
-DD_API_KEY=...  # or DATADOG_API_KEY
-DD_APP_KEY=...  # or DATADOG_APP_KEY
+# Sentry
+SENTRY_TOKEN=...
+SENTRY_ORG=your-sentry-org
+
+# Datadog
+DD_API_KEY=...
+DD_APP_KEY=...
 DD_SITE=datadoghq.com
 
-# Confluence - read playbooks and wiki pages
+# Confluence
 CONFLUENCE_EMAIL=your.email@company.com
-CONFLUENCE_API_TOKEN=ATATT3xFfGF0...  # Scoped token with read:confluence-content.all
-CONFLUENCE_CLOUD_ID=...  # Get from https://yoursite.atlassian.net/_edge/tenant_info
+CONFLUENCE_API_TOKEN=...
+CONFLUENCE_CLOUD_ID=...
 CONFLUENCE_WIKI_BASE_URL=https://yourcompany.atlassian.net/wiki
+CONFLUENCE_API_BASE_URL=https://api.atlassian.com/ex/confluence
 
 # Repo configuration
 REPO_CONFIG_PATH=./repository_config/repo_config_example.json
 ```
 
-### Slack Setup
+## Slack Setup
 
 1. Create a Slack app in your workspace.
-2. Enable **Event Subscriptions** and set the Request URL to:
+2. Enable Event Subscriptions and set the Request URL to:
    `https://your-host/webhook/slack`
-3. Subscribe to the **app_mention** bot event.
-4. Add OAuth scopes (minimum):
-   - `chat:write`
-   - `reactions:write`
-   - `channels:history` (or the appropriate history scope for your channels)
+3. Subscribe to the `app_mention` bot event.
+4. Add OAuth scopes (minimum): `chat:write`, `reactions:write`, and a history scope.
 5. Install the app to your workspace.
-6. Copy the bot token and signing secret into your `.env`:
-   - `SLACK_BOT_TOKEN`
-   - `SLACK_SIGNING_SECRET`
+6. Set `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET` in your `.env`.
 
-### Jira Webhook Secret
+## Jira Webhook Secret
 
 Add a custom header to your Jira webhook:
 - Header name: `X-Webhook-Secret`
@@ -136,38 +116,21 @@ Add a custom header to your Jira webhook:
 Then set `JIRA_WEBHOOK_SECRET` in your `.env`.
 If you need to disable verification (local dev), set `ENABLE_JIRA_WEBHOOK_VERIFICATION=false`.
 
-**Prerequisites:**
-- `gh` CLI: `brew install gh && gh auth login`
-- `acli` CLI: See [Atlassian CLI docs](https://developer.atlassian.com/cloud/acli/)
-- `tesseract`: `brew install tesseract` (for OCR)
-
-**Note**: The bot works without API keys but will return helpful setup messages.
-
 ## Running
 
 ### Development Server
 
 ```bash
-# With uv
 uv run uvicorn main:app --reload --port 8000
-
-# With pip (after activating venv)
-uvicorn main:app --reload --port 8000
 ```
 
-Server will be available at http://localhost:8000
+Server will be available at `http://localhost:8000`.
 
 ### Dockerized (API + Workers + Redis)
 
 ```bash
-# Build and start API + Redis + 1 worker
 docker compose up --build
-
-# Scale workers
-docker compose up --scale bee-worker=5
 ```
-
-API will be available at http://localhost:8000
 
 ### CLI (Local)
 
@@ -177,9 +140,9 @@ uv run onkaul
 
 Type your request and press Enter. Use `/exit` or `/quit` to leave.
 
-### Testing Webhooks
+## Testing Webhooks
 
-**Slack webhook:**
+### Slack
 
 ```bash
 curl -X POST http://localhost:8000/webhook/slack \
@@ -196,7 +159,7 @@ curl -X POST http://localhost:8000/webhook/slack \
   }'
 ```
 
-**Jira webhook:**
+### Jira
 
 ```bash
 curl -X POST http://localhost:8000/webhook/jira \
@@ -204,45 +167,33 @@ curl -X POST http://localhost:8000/webhook/jira \
   -d '{
     "issue": {"key": "B2B-456"},
     "comment": {
-      "body": "@onkaul can you investigate this Sentry issue?",
+      "body": "@onkaul can you investigate this issue?",
       "author": {"displayName": "Sarah"}
     }
   }'
 ```
 
-### Check Logs
+## Logs
 
 Responses are logged to:
-- **Console**: Real-time structured output
-- **File**: `logs/responses.jsonl` (JSON Lines format)
+- Console: real-time structured output
+- File: `logs/responses.jsonl` (JSON Lines)
 
 ```bash
-# Tail the response log
 tail -f logs/responses.jsonl | jq
 ```
 
-## Development
-
-### Code Quality
+## Code Quality
 
 ```bash
-# Format and lint
 uv run ruff format .
 uv run ruff check .
 ```
 
-### CI
-
-GitHub Actions runs ruff (format + lint) on every push and PR.
-
-### Testing
+## Testing
 
 ```bash
-# Run tests
 uv run pytest
-
-# With coverage
-uv run pytest --cov=. --cov-report=html
 ```
 
 ## Project Structure
@@ -261,20 +212,19 @@ onKaul/
 │   ├── datadog.py               # Datadog API
 │   └── slack.py                 # Slack API
 ├── tools/
-│   ├── schemas.py               # Tool definitions for Claude
+│   ├── schemas.py               # Tool definitions
 │   └── handlers.py              # Tool execution
 ├── utils/
 │   ├── logger.py                # Response logger (JSONL)
-│   └── slack_formatter.py       # Markdown → mrkdwn
+│   └── slack_formatter.py       # Markdown to mrkdwn
 ├── worker/
 │   └── tasks.py                 # Background investigation handlers
 ├── repository_config/
-│   └── repositories.py          # TapTap Send repo metadata
+│   └── repositories.py          # Repo metadata loader
 ├── logs/                        # Response logs (gitignored)
 ├── main.py                      # FastAPI app
 ├── config.py                    # Environment config
-├── .env                         # API keys (gitignored)
-├── pyproject.toml               # uv config
+├── pyproject.toml               # Project metadata
 └── README.md
 ```
 
@@ -285,59 +235,3 @@ onKaul/
 - [Code of Conduct](./CODE_OF_CONDUCT.md)
 - [Security](./SECURITY.md)
 - [Support](./SUPPORT.md)
-
-## Features
-
-### Investigation Tools
-
-**Production Monitoring:**
-- 🔍 **Sentry** - Error details, stacktraces, frequency, affected users
-- 📊 **Datadog Logs** - Query production logs with filters
-- 📈 **Datadog Monitors** - Check alerting monitors, get details
-- 📉 **Datadog Metrics** - Query time series (latency, error rates)
-- 🚨 **Datadog Events** - Search deployments and config changes
-
-**Code & Documentation:**
-- 📁 **GitHub Code Search** - 4 repos (appian-frontend, appian-server, tts-business, analytics) via `gh` CLI
-- 📄 **Read Files** - Full file contents from any repo
-- 📚 **Confluence** - Read playbooks, runbooks, RFCs automatically
-- 🌐 **Web Search** - Brave Search API for external docs, Stack Overflow, tutorials
-
-**Context:**
-- 🎫 **Jira** - Issue details + full comment history (via `acli` CLI)
-
-**Attachments:**
-- 📎 **OCR** - Extract text from screenshots (Tesseract)
-- 📄 **PDF** - Extract text from PDF files
-- 📝 **Text Files** - Read .txt and .log files
-
-### Response Capabilities
-- **Slack**: Posts formatted responses (mrkdwn), adds :onkaul: reactions, reads thread context
-- **Jira**: Posts ADF-formatted comments (proper headings, bold, code blocks)
-- **GitHub**: Posts PR review comments with link back to Slack/Jira
-- **Logging**: All responses logged to console + `logs/responses.jsonl`
-- **Real-time**: Detailed logging shows each tool use as it happens (100 max iterations)
-
-### Response Format
-Investigations include:
-- 🔍 **Investigation Path** - What the agent checked
-- 📊 **Confidence Score** - 🟢 High / 🟡 Medium / 🔴 Low
-- ⚠️ **Impact Assessment** - Severity, users affected, related issues
-- 📝 **Findings** - Root cause with file:line references
-- 💻 **Claude Code Prompt** - (Only when user asks for fix)
-
-### Configuration
-- **Max Iterations**: 100 (allows very thorough investigations)
-- **Max Output**: 8,192 tokens (comprehensive responses)
-- **Thread Context**: Reads Slack thread history and Jira comments
-- **Smart Routing**: Uses correct repo based on error type
-
-## Future Enhancements (Optional)
-
-Potential additions for production hardening:
-- Webhook signature verification (Slack)
-- Rate limiting per user/channel
-- Allowlist for authorized channels/projects
-- Database audit logging
-- Caching layer for API responses
-- Automated PR creation (V2 - sandbox agents)
