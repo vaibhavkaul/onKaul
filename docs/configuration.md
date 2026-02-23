@@ -82,7 +82,11 @@ FIX_WORKSPACE_DIR=./fixes
 ## Background Jobs (required for webapp workers)
 
 ```bash
-REDIS_URL=redis://localhost:6379/0
+# Local host-run (no Docker)
+# REDIS_URL=redis://localhost:6379/0
+
+# Docker Compose (default in .env.example)
+REDIS_URL=redis://redis:6379/0
 REDIS_QUEUE_NAME=onkaul
 JOB_TIMEOUT_SECONDS=900
 ```
