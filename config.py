@@ -46,9 +46,9 @@ class Config:
     JIRA_EMAIL = os.getenv("JIRA_EMAIL")
     JIRA_API_TOKEN = os.getenv("JIRA_API_TOKEN")
     JIRA_WEBHOOK_SECRET = os.getenv("JIRA_WEBHOOK_SECRET")
-    ENABLE_JIRA_WEBHOOK_VERIFICATION = os.getenv(
-        "ENABLE_JIRA_WEBHOOK_VERIFICATION", "true"
-    ).lower() == "true"
+    ENABLE_JIRA_WEBHOOK_VERIFICATION = (
+        os.getenv("ENABLE_JIRA_WEBHOOK_VERIFICATION", "true").lower() == "true"
+    )
 
     # Confluence Integration - Read playbooks and wiki pages
     CONFLUENCE_EMAIL = os.getenv("CONFLUENCE_EMAIL") or os.getenv("ATLASSIAN_EMAIL")

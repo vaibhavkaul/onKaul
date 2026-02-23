@@ -1,7 +1,7 @@
 """Webhook endpoints for Slack and Jira."""
 
-import hmac
 import hashlib
+import hmac
 import json
 import time
 
@@ -47,9 +47,7 @@ def _verify_slack_signature(body: bytes, headers: dict) -> tuple[bool, str | Non
         return False, "Slack request timestamp too old"
 
     base = f"v0:{timestamp}:".encode("utf-8") + body
-    digest = hmac.new(
-        config.SLACK_SIGNING_SECRET.encode("utf-8"), base, hashlib.sha256
-    ).hexdigest()
+    digest = hmac.new(config.SLACK_SIGNING_SECRET.encode("utf-8"), base, hashlib.sha256).hexdigest()
     expected = f"v0={digest}"
 
     if not hmac.compare_digest(expected, signature):
