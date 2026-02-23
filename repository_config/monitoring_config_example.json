@@ -1,0 +1,146 @@
+{
+  "sentry_teams": {
+    "accounts": {
+      "name": "Accounts Team",
+      "responsibilities": [
+        "User accounts",
+        "Authentication",
+        "Profile management"
+      ]
+    },
+    "payments": {
+      "name": "Payments Team",
+      "responsibilities": [
+        "Checkout flows",
+        "Payment methods",
+        "Payouts"
+      ]
+    },
+    "core": {
+      "name": "Core Platform Team",
+      "responsibilities": [
+        "Core APIs",
+        "Data models",
+        "Shared services"
+      ]
+    },
+    "growth": {
+      "name": "Growth Team",
+      "responsibilities": [
+        "Onboarding",
+        "Activation",
+        "Conversion funnels"
+      ]
+    },
+    "internal-tools": {
+      "name": "Internal Tools Team",
+      "responsibilities": [
+        "Admin tools",
+        "Internal dashboards",
+        "Operations tooling"
+      ]
+    },
+    "platform": {
+      "name": "Platform Team",
+      "responsibilities": [
+        "Infrastructure",
+        "Auth system",
+        "Observability"
+      ]
+    }
+  },
+  "datadog_services": {
+    "payment_processors": [
+      "stripe",
+      "adyen",
+      "checkout-dot-com",
+      "worldpay",
+      "visa-direct"
+    ],
+    "mobile_money": [
+      "mtn",
+      "orange-money",
+      "airtel-money",
+      "m-pesa"
+    ],
+    "remittance_providers": [
+      "thunes",
+      "terrapay",
+      "dlocal"
+    ],
+    "banks": [
+      "hdfc",
+      "icici",
+      "equity"
+    ],
+    "kyc_verification": [
+      "jumio",
+      "onfido",
+      "alloy"
+    ],
+    "fraud_detection": [
+      "sift",
+      "chainalysis"
+    ],
+    "notifications": [
+      "twilio",
+      "infobip",
+      "mandrill"
+    ],
+    "infrastructure": [
+      "aws-s3",
+      "dynamodb",
+      "sqs",
+      "redis"
+    ]
+  },
+  "datadog_tiers": {
+    "dev": {
+      "name": "Development",
+      "description": "Local development environment"
+    },
+    "staging": {
+      "name": "Staging",
+      "description": "Pre-production testing"
+    },
+    "prod": {
+      "name": "Production",
+      "description": "Live production environment"
+    }
+  },
+  "datadog_common_tags": [
+    "tier",
+    "env",
+    "service",
+    "operation",
+    "clientPlatform",
+    "clientVersion",
+    "container_id"
+  ],
+  "datadog_metric_prefixes": {
+    "custom": "org.",
+    "third_party": "org.3rd_party_api_"
+  },
+  "queue_to_team_mapping": {
+    "payments": "payments",
+    "checkout": "payments",
+    "payouts": "payments",
+    "kyc": "core",
+    "fraud": "core",
+    "auth": "platform",
+    "ops": "internal-tools"
+  },
+  "datadog_query_patterns": {
+    "errors_by_service": "status:error @service:{service_name}",
+    "errors_in_prod": "status:error @tier:prod",
+    "slow_requests": "@latency:>1000 @tier:prod",
+    "third_party_errors": "@service:* status:error",
+    "mobile_errors": "@clientPlatform:(ios OR android) status:error",
+    "recent_deployments": "tags:deployment"
+  },
+  "sentry_query_patterns": {
+    "by_team": "assigned:#team-name",
+    "unresolved_prod": "is:unresolved environment:prod",
+    "recent_errors": "is:unresolved firstSeen:-24h"
+  }
+}

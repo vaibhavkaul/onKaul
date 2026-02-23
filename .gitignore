@@ -41,6 +41,7 @@ uv.lock
 .env
 .env.local
 repository_config/repo_config.json
+repository_config/monitoring_config.json
 
 # Logs
 logs/
