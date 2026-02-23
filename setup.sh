@@ -84,29 +84,30 @@ fi
 
 say ""
 say "Optional tools (install if you use these features):"
-if ! require_cmd tesseract; then
+
+if require_cmd tesseract; then
+  say "✓ tesseract already installed"
+else
   if ask "Install tesseract (OCR for attachments)? [y/N] "; then
     install_brew_pkg tesseract
   fi
-else
-  say "✓ tesseract already installed"
 fi
 
-if ! require_cmd gh; then
+if require_cmd gh; then
+  say "✓ gh already installed"
+else
   if ask "Install GitHub CLI (gh)? [y/N] "; then
     install_brew_pkg gh
   fi
-else
-  say "✓ gh already installed"
 fi
 
-if ask "Do you use Atlassian products (Jira/Confluence)? [y/N] "; then
-  if ! require_cmd acli; then
+if require_cmd acli; then
+  say "✓ acli already installed"
+else
+  if ask "Do you use Atlassian products (Jira/Confluence)? [y/N] "; then
     if ask "Install Atlassian CLI (acli)? [y/N] "; then
       brew install atlassian-cli
     fi
-  else
-    say "✓ acli already installed"
   fi
 fi
 
