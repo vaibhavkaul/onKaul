@@ -39,6 +39,7 @@ class Config:
     SLACK_SIGNING_SECRET = os.getenv(
         "SLACK_SIGNING_SECRET"
     )  # For webhook signature verification (optional)
+    SLACK_VERIFY_SIGNATURE = os.getenv("SLACK_VERIFY_SIGNATURE", "true").lower() == "true"
 
     # Jira Integration
     JIRA_BASE_URL = os.getenv("JIRA_BASE_URL")

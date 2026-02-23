@@ -1,5 +1,10 @@
 """Webhook endpoints for Slack and Jira."""
 
+import hmac
+import hashlib
+import json
+import time
+
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
@@ -10,6 +15,38 @@ from config import config
 from utils.attachment_processor import attachment_processor
 
 router = APIRouter()
+
+
+def _verify_slack_signature(body: bytes, headers: dict) -> tuple[bool, str | None]:
+    if not config.SLACK_VERIFY_SIGNATURE:
+        return True, None
+
+    if not config.SLACK_SIGNING_SECRET:
+        return False, "SLACK_SIGNING_SECRET not set"
+
+    timestamp = headers.get("X-Slack-Request-Timestamp")
+    signature = headers.get("X-Slack-Signature")
+    if not timestamp or not signature:
+        return False, "Missing Slack signature headers"
+
+    try:
+        ts_int = int(timestamp)
+    except ValueError:
+        return False, "Invalid Slack timestamp"
+
+    if abs(time.time() - ts_int) > 60 * 5:
+        return False, "Slack request timestamp too old"
+
+    base = f"v0:{timestamp}:".encode("utf-8") + body
+    digest = hmac.new(
+        config.SLACK_SIGNING_SECRET.encode("utf-8"), base, hashlib.sha256
+    ).hexdigest()
+    expected = f"v0={digest}"
+
+    if not hmac.compare_digest(expected, signature):
+        return False, "Invalid Slack signature"
+
+    return True, None
 
 
 # Pydantic models for request validation
@@ -69,7 +106,12 @@ async def slack_webhook(
 
     Parses payload, adds emoji reaction, and queues background investigation.
     """
-    payload_dict = await request.json()
+    body = await request.body()
+    ok, error = _verify_slack_signature(body, dict(request.headers))
+    if not ok:
+        return {"ok": False, "error": error}
+
+    payload_dict = json.loads(body.decode("utf-8"))
 
     # Handle Slack URL verification challenge
     if payload_dict.get("type") == "url_verification":

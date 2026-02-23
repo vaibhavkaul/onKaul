@@ -84,6 +84,8 @@ JIRA_API_TOKEN=ATATT3xFfGF0...
 
 # Slack - posting responses
 SLACK_BOT_TOKEN=xoxb-...
+SLACK_SIGNING_SECRET=your-slack-signing-secret
+SLACK_VERIFY_SIGNATURE=true
 
 # Datadog - logs, monitors, metrics
 DD_API_KEY=...  # or DATADOG_API_KEY
