@@ -56,7 +56,8 @@ select mode in "CLI" "Webapp"; do
   esac
 done
 
-say "\nChecking core dependencies..."
+say ""
+say "Checking core dependencies..."
 if ! require_cmd python3; then
   say "Python3 not found."
   install_brew_pkg python@3.12
@@ -80,7 +81,8 @@ if [[ "$MODE" == "webapp" ]]; then
   fi
 fi
 
-say "\nOptional tools (install if you use these features):"
+say ""
+say "Optional tools (install if you use these features):"
 if ! require_cmd tesseract; then
   if ask "Install tesseract (OCR for attachments)? [y/N] "; then
     install_brew_pkg tesseract
@@ -113,39 +115,39 @@ if [[ ! -f .env ]]; then
 fi
 
 if [[ -f .env ]]; then
-  say "\nConfiguring integrations..."
-
-  declare -A ENV_KV
-  while IFS='=' read -r key val; do
-    [[ -z "$key" || "$key" =~ ^# ]] && continue
-    ENV_KV["$key"]="$val"
-  done < .env
+  say ""
+  say "Configuring integrations..."
 
   set_kv() {
     local k="$1"
     local v="$2"
-    ENV_KV["$k"]="$v"
+    python3 - <<PY
+from pathlib import Path
+import re
+
+path = Path(".env")
+text = path.read_text()
+lines = text.splitlines()
+key = "${k}"
+val = "${v}"
+key_re = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=")
+out = []
+found = False
+for line in lines:
+    m = key_re.match(line)
+    if m and m.group(1) == key:
+        out.append(f"{key}={val}")
+        found = True
+    else:
+        out.append(line)
+if not found:
+    out.append(f"{key}={val}")
+path.write_text("\\n".join(out) + "\\n")
+PY
   }
 
-  write_env() {
-    {
-      while IFS= read -r line; do
-        if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)= ]]; then
-          key="${BASH_REMATCH[1]}"
-          if [[ -n "${ENV_KV[$key]+x}" ]]; then
-            echo "${key}=${ENV_KV[$key]}"
-          else
-            echo "$line"
-          fi
-        else
-          echo "$line"
-        fi
-      done < .env
-    } > .env.tmp
-    mv .env.tmp .env
-  }
-
-  say "\nSelect integrations to configure:"
+  say ""
+  say "Select integrations to configure:"
 
   if ask "Configure Sentry? [y/N] "; then
     read -r -p "SENTRY_ORG: " val; set_kv "SENTRY_ORG" "$val"
@@ -188,11 +190,11 @@ if [[ -f .env ]]; then
     set_kv "ENABLE_JIRA_WEBHOOK_VERIFICATION" "true"
   fi
 
-  write_env
   say "Updated .env with selected integrations."
 fi
 
-say "\nSetup complete."
+say ""
+say "Setup complete."
 if [[ "$MODE" == "cli" ]]; then
   say "Run: uv run onkaul"
 else
