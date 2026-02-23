@@ -19,22 +19,30 @@ router = APIRouter()
 
 def _verify_slack_signature(body: bytes, headers: dict) -> tuple[bool, str | None]:
     if not config.SLACK_VERIFY_SIGNATURE:
+        print("🔐 Slack signature verification disabled (SLACK_VERIFY_SIGNATURE=false)")
         return True, None
 
     if not config.SLACK_SIGNING_SECRET:
+        print("🔐 Slack signature verification failed: SLACK_SIGNING_SECRET not set")
         return False, "SLACK_SIGNING_SECRET not set"
 
     timestamp = headers.get("X-Slack-Request-Timestamp")
     signature = headers.get("X-Slack-Signature")
     if not timestamp or not signature:
+        print(
+            "🔐 Slack signature verification failed: missing headers "
+            f"(timestamp={bool(timestamp)}, signature={bool(signature)})"
+        )
         return False, "Missing Slack signature headers"
 
     try:
         ts_int = int(timestamp)
     except ValueError:
+        print("🔐 Slack signature verification failed: invalid timestamp")
         return False, "Invalid Slack timestamp"
 
     if abs(time.time() - ts_int) > 60 * 5:
+        print("🔐 Slack signature verification failed: timestamp too old")
         return False, "Slack request timestamp too old"
 
     base = f"v0:{timestamp}:".encode("utf-8") + body
@@ -44,8 +52,10 @@ def _verify_slack_signature(body: bytes, headers: dict) -> tuple[bool, str | Non
     expected = f"v0={digest}"
 
     if not hmac.compare_digest(expected, signature):
+        print("🔐 Slack signature verification failed: signature mismatch")
         return False, "Invalid Slack signature"
 
+    print("🔐 Slack signature verification passed")
     return True, None
 
 
