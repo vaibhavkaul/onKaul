@@ -206,6 +206,39 @@ def _chat(base_url: str, user_input: str) -> str:
     return response
 
 
+def _chat_stream(base_url: str, user_input: str) -> str:
+    endpoint = f"{base_url.rstrip('/')}/chat/stream"
+    chunks: list[str] = []
+
+    with httpx.Client(timeout=1200.0) as client:
+        try:
+            with client.stream("POST", endpoint, json={"message": user_input}) as resp:
+                resp.raise_for_status()
+                for chunk in resp.iter_text():
+                    if not chunk:
+                        continue
+                    print(chunk, end="", flush=True)
+                    chunks.append(chunk)
+        except httpx.ConnectError as exc:
+            raise RuntimeError(
+                "Could not connect to local server. Start Docker first with "
+                "'docker compose up --build'."
+            ) from exc
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 404:
+                # Fallback for older servers that do not expose /chat/stream yet.
+                response = _chat(base_url, user_input)
+                print(response, end="", flush=True)
+                return response
+            raise RuntimeError(
+                f"Server returned {exc.response.status_code}: {exc.response.text}"
+            ) from exc
+        except httpx.HTTPError as exc:
+            raise RuntimeError(f"Request to local server failed: {exc}") from exc
+
+    return "".join(chunks)
+
+
 def run_shell(base_url: str) -> int:
     _print_banner(base_url)
 
@@ -237,12 +270,15 @@ def run_shell(base_url: str) -> int:
             continue
 
         try:
-            response = _chat(base_url, user_input)
+            print()
+            response = _chat_stream(base_url, user_input)
         except Exception as exc:
             print(f"Error: {exc}\n")
             continue
 
-        print("\n" + response + "\n")
+        if not response.endswith("\n"):
+            print()
+        print()
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

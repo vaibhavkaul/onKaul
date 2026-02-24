@@ -1,5 +1,7 @@
 """Agent core with Claude API integration."""
 
+from collections.abc import Iterator
+
 import anthropic
 
 from agent.model_selector import model_selector
@@ -40,6 +42,21 @@ class Agent:
         # All investigations use Claude with tools
         # Opus will be selected for research questions and use web_search tool
         return self._run_claude_investigation(user_message, context)
+
+    def investigate_stream(
+        self, user_message: str, context: str = "", thread_history: list | None = None
+    ) -> Iterator[str]:
+        """
+        Stream investigation text chunks based on user message.
+
+        This is intended for local CLI usage and keeps tool behavior aligned
+        with the non-streaming investigate() loop.
+        """
+        if not self.client:
+            yield self._no_api_key_response(user_message)
+            return
+
+        yield from self._run_claude_investigation_stream(user_message, context)
 
     def _run_claude_investigation(self, user_message: str, context: str) -> str:
         """Run standard Claude investigation (original investigate logic)."""
@@ -129,6 +146,86 @@ class Agent:
             return f"❌ API Error: {str(e)}\n\nPlease check your ANTHROPIC_API_KEY configuration."
         except Exception as e:
             return f"❌ Unexpected error during investigation: {str(e)}"
+
+    def _run_claude_investigation_stream(self, user_message: str, context: str) -> Iterator[str]:
+        """Run Claude investigation with streaming text output."""
+        model_config = model_selector.select_model(user_message, context)
+        print(f"\n🤖 Selected model: {model_config['name']}")
+        print(f"📋 Reason: {model_config['reason']}")
+        print(f"🎯 Max tokens: {model_config['max_tokens']}")
+
+        full_message = user_message
+        if context:
+            full_message = f"{context}\n\n---\n\n{user_message}"
+
+        messages = [{"role": "user", "content": full_message}]
+
+        try:
+            for iteration in range(self.max_iterations):
+                print(f"\n{'─' * 80}")
+                print(f"🔄 Agent Iteration {iteration + 1}/{self.max_iterations} (stream)")
+                print(f"{'─' * 80}")
+
+                api_params = {
+                    "model": model_config["id"],
+                    "max_tokens": model_config["max_tokens"],
+                    "system": SYSTEM_PROMPT,
+                    "tools": TOOL_SCHEMAS,
+                    "messages": messages,
+                }
+                if "thinking" in model_config:
+                    api_params["thinking"] = model_config["thinking"]
+
+                with self.client.messages.stream(**api_params) as stream:
+                    for text in stream.text_stream:
+                        yield text
+                    response = stream.get_final_message()
+
+                if response.stop_reason == "end_turn":
+                    print("✅ Agent finished (stop_reason: end_turn)")
+                    return
+
+                if response.stop_reason == "tool_use":
+                    tool_uses = [block for block in response.content if block.type == "tool_use"]
+                    print(f"\n🔧 Agent wants to use {len(tool_uses)} tool(s):")
+                    for block in tool_uses:
+                        print(f"  • {block.name}({self._format_inputs(block.input)})")
+
+                    messages.append({"role": "assistant", "content": response.content})
+
+                    tool_results = []
+                    for block in response.content:
+                        if block.type == "tool_use":
+                            print(f"\n  ▶ Executing {block.name}...")
+                            result = execute_tool(block.name, block.input)
+                            result_preview = result[:200] + "..." if len(result) > 200 else result
+                            print(f"  ◀ Result: {result_preview}")
+                            tool_results.append(
+                                {
+                                    "type": "tool_result",
+                                    "tool_use_id": block.id,
+                                    "content": result,
+                                }
+                            )
+
+                    messages.append({"role": "user", "content": tool_results})
+                    continue
+
+                print(f"⚠️  Unexpected stop_reason: {response.stop_reason}")
+                text = self._extract_text(response)
+                if text:
+                    yield text
+                return
+
+            yield (
+                f"\n\n_[Note: Investigation reached iteration limit after {self.max_iterations} "
+                "tool uses. Consider breaking this into smaller questions.]_"
+            )
+
+        except anthropic.APIError as e:
+            yield f"❌ API Error: {str(e)}\n\nPlease check your ANTHROPIC_API_KEY configuration."
+        except Exception as e:
+            yield f"❌ Unexpected error during investigation: {str(e)}"
 
     def _extract_text(self, response) -> str:
         """Extract text content from response."""
