@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -28,6 +29,14 @@ def _print_help() -> None:
 
 def _clear_screen() -> None:
     print("\033[2J\033[H", end="")
+
+
+def _ask_yes_no(prompt: str, default_yes: bool = True) -> bool:
+    suffix = " [Y/n]: " if default_yes else " [y/N]: "
+    value = input(prompt + suffix).strip().lower()
+    if not value:
+        return default_yes
+    return value in {"y", "yes"}
 
 
 def _ensure_env_file() -> Path:
@@ -134,7 +143,36 @@ def _run_setup_wizard() -> None:
             _prompt_env_value(env_path, "MONITORING_CONFIG_PATH", "MONITORING_CONFIG_PATH")
         elif choice == "9":
             print("\nSetup complete.")
-            print("Restart docker for change to take effect.\n")
+            if _ask_yes_no("Restart docker for change to take effect now?"):
+                try:
+                    result = subprocess.run(
+                        [
+                            "docker",
+                            "compose",
+                            "up",
+                            "-d",
+                            "--build",
+                            "--force-recreate",
+                            "api",
+                            "bee-worker",
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=600,
+                    )
+                    if result.returncode == 0:
+                        print("Docker services restarted: api, bee-worker.\n")
+                    else:
+                        print("Failed to restart docker services.")
+                        if result.stderr.strip():
+                            print(result.stderr.strip())
+                        print()
+                except FileNotFoundError:
+                    print("Docker CLI not found. Please restart docker manually.\n")
+                except subprocess.TimeoutExpired:
+                    print("Docker restart timed out. Please check docker compose status.\n")
+            else:
+                print("Restart docker for change to take effect.\n")
             return
         else:
             print("Invalid selection.\n")
