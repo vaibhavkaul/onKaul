@@ -193,7 +193,9 @@ def _chat(base_url: str, user_input: str) -> str:
                 "'docker compose up --build'."
             ) from exc
         except httpx.HTTPStatusError as exc:
-            raise RuntimeError(f"Server returned {exc.response.status_code}: {exc.response.text}") from exc
+            raise RuntimeError(
+                f"Server returned {exc.response.status_code}: {exc.response.text}"
+            ) from exc
         except httpx.HTTPError as exc:
             raise RuntimeError(f"Request to local server failed: {exc}") from exc
 

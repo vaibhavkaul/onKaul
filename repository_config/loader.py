@@ -80,5 +80,7 @@ def load_repo_config() -> dict:
         "investigation_strategy": investigation_strategy,
         "additional_context": additional_context,
         "_configured": bool(repositories),
-        "_error": "" if repositories else "Repo config is empty. Add repositories or point to a valid config file.",
+        "_error": ""
+        if repositories
+        else "Repo config is empty. Add repositories or point to a valid config file.",
     }
