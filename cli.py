@@ -133,7 +133,8 @@ def _run_setup_wizard() -> None:
             _prompt_env_value(env_path, "REPO_CONFIG_PATH", "REPO_CONFIG_PATH")
             _prompt_env_value(env_path, "MONITORING_CONFIG_PATH", "MONITORING_CONFIG_PATH")
         elif choice == "9":
-            print("\nSetup complete. Restart API/worker if they are already running.\n")
+            print("\nSetup complete.")
+            print("Restart docker for change to take effect.\n")
             return
         else:
             print("Invalid selection.\n")
