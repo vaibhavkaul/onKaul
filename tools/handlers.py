@@ -8,8 +8,32 @@ from clients.datadog import datadog
 from clients.github import github
 from clients.jira import jira
 from clients.sentry import sentry
+from repository_config.monitoring import MONITORING_CONFIG_ERROR, MONITORING_CONFIGURED
+from repository_config.repositories import REPO_CONFIG_ERROR, REPO_CONFIGURED
 from tools.fix_executor import create_pr_from_plan, update_pr_from_plan
 from tools.local_code import list_directory_local, read_file_local, search_code_local
+
+
+def _repo_config_not_ready() -> dict | None:
+    if REPO_CONFIGURED:
+        return None
+    return {
+        "error": (
+            "Repository config is not set. "
+            f"{REPO_CONFIG_ERROR or 'Set REPO_CONFIG_PATH in .env to a valid config file.'}"
+        )
+    }
+
+
+def _monitoring_config_not_ready() -> dict | None:
+    if MONITORING_CONFIGURED:
+        return None
+    return {
+        "error": (
+            "Monitoring config is not set. "
+            f"{MONITORING_CONFIG_ERROR or 'Set MONITORING_CONFIG_PATH in .env to a valid config file.'}"
+        )
+    }
 
 
 def execute_tool(name: str, inputs: dict) -> str:
@@ -56,11 +80,17 @@ def execute_tool(name: str, inputs: dict) -> str:
 
 def _handle_get_sentry_issue(issue_id: str) -> dict:
     """Handle get_sentry_issue tool."""
+    cfg_error = _monitoring_config_not_ready()
+    if cfg_error:
+        return cfg_error
     return sentry.get_issue(issue_id)
 
 
 def _handle_search_code(repo: str, query: str) -> dict:
     """Handle search_code tool."""
+    cfg_error = _repo_config_not_ready()
+    if cfg_error:
+        return cfg_error
     local_result = search_code_local(repo, query)
     if "error" not in local_result:
         return local_result
@@ -69,6 +99,9 @@ def _handle_search_code(repo: str, query: str) -> dict:
 
 def _handle_read_file(repo: str, path: str, branch: str = "main") -> dict:
     """Handle read_file tool."""
+    cfg_error = _repo_config_not_ready()
+    if cfg_error:
+        return cfg_error
     local_result = read_file_local(repo, path)
     if "error" not in local_result:
         return local_result
@@ -77,6 +110,9 @@ def _handle_read_file(repo: str, path: str, branch: str = "main") -> dict:
 
 def _handle_list_directory(repo: str, path: str) -> dict:
     """Handle list_directory tool."""
+    cfg_error = _repo_config_not_ready()
+    if cfg_error:
+        return cfg_error
     local_result = list_directory_local(repo, path)
     if "error" not in local_result:
         return local_result
@@ -85,32 +121,50 @@ def _handle_list_directory(repo: str, path: str) -> dict:
 
 def _handle_query_datadog_logs(query: str, timeframe: str = "1h", limit: int = 50) -> dict:
     """Handle query_datadog_logs tool."""
+    cfg_error = _monitoring_config_not_ready()
+    if cfg_error:
+        return cfg_error
     return datadog.query_logs(query, timeframe, limit)
 
 
 def _handle_list_datadog_monitors(tags: str | None = None) -> dict:
     """Handle list_datadog_monitors tool."""
+    cfg_error = _monitoring_config_not_ready()
+    if cfg_error:
+        return cfg_error
     tag_list = tags.split(",") if tags else None
     return datadog.list_monitors(tags=tag_list)
 
 
 def _handle_get_datadog_monitor(monitor_id: int) -> dict:
     """Handle get_datadog_monitor tool."""
+    cfg_error = _monitoring_config_not_ready()
+    if cfg_error:
+        return cfg_error
     return datadog.get_monitor(monitor_id)
 
 
 def _handle_query_datadog_metrics(query: str, timeframe: str = "1h") -> dict:
     """Handle query_datadog_metrics tool."""
+    cfg_error = _monitoring_config_not_ready()
+    if cfg_error:
+        return cfg_error
     return datadog.query_metrics(query, timeframe)
 
 
 def _handle_list_datadog_incidents(query: str = "state:active") -> dict:
     """Handle list_datadog_incidents tool."""
+    cfg_error = _monitoring_config_not_ready()
+    if cfg_error:
+        return cfg_error
     return datadog.list_incidents(query)
 
 
 def _handle_search_datadog_events(query: str, timeframe: str = "1h") -> dict:
     """Handle search_datadog_events tool."""
+    cfg_error = _monitoring_config_not_ready()
+    if cfg_error:
+        return cfg_error
     return datadog.search_events(query, timeframe)
 
 

@@ -98,6 +98,12 @@ Check logs:
 docker compose logs api bee-worker --tail=100
 ```
 
+Use local shell (no Slack/Jira required for testing):
+
+```bash
+uv run onkaul
+```
+
 Stop services:
 
 ```bash

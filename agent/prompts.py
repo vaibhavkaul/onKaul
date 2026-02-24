@@ -16,24 +16,30 @@ def build_system_prompt() -> str:
 
     # Build repositories section
     repos_section = "## Our Repositories\n\n"
-    for repo_name, repo_info in repos.items():
-        repos_section += f"- **{repo_name}**: {repo_info['description']}\n"
-        repos_section += f"  - Location: {repo_info['org']}/{repo_name} on GitHub\n"
-        repos_section += f"  - Tech: {', '.join(repo_info['tech_stack'][:5])}\n"
-        if repo_info.get("key_systems"):
-            repos_section += f"  - Key Systems: {', '.join(repo_info['key_systems'][:3])}\n"
-        repos_section += "\n"
+    if repos:
+        for repo_name, repo_info in repos.items():
+            repos_section += f"- **{repo_name}**: {repo_info['description']}\n"
+            repos_section += f"  - Location: {repo_info['org']}/{repo_name} on GitHub\n"
+            repos_section += f"  - Tech: {', '.join(repo_info['tech_stack'][:5])}\n"
+            if repo_info.get("key_systems"):
+                repos_section += f"  - Key Systems: {', '.join(repo_info['key_systems'][:3])}\n"
+            repos_section += "\n"
+    else:
+        repos_section += "- Repository config not loaded. Set `REPO_CONFIG_PATH` in `.env`.\n\n"
 
     # Build investigation strategy section
     strategy_section = "## Investigation Strategy\n\nWhen investigating issues:\n"
-    for issue, repo in list(INVESTIGATION_STRATEGY.items())[:5]:
-        strategy_section += f"- **{issue}** → search {repo}\n"
+    if INVESTIGATION_STRATEGY:
+        for issue, repo in list(INVESTIGATION_STRATEGY.items())[:5]:
+            strategy_section += f"- **{issue}** → search {repo}\n"
+    else:
+        strategy_section += "- Strategy config unavailable (repo config not loaded)\n"
     strategy_section += "- **Production errors** → check Sentry first, then Datadog logs\n"
     strategy_section += "- **Related context** → search Jira when explicitly asked\n"
 
     # Build monitoring context
-    sentry_teams_str = ", ".join(SENTRY_TEAMS.keys())
-    datadog_tiers_str = ", ".join(DATADOG_TIERS.keys())
+    sentry_teams_str = ", ".join(SENTRY_TEAMS.keys()) or "not configured"
+    datadog_tiers_str = ", ".join(DATADOG_TIERS.keys()) or "not configured"
 
     return f"""You are a senior developer assistant for your organization.
 

@@ -12,6 +12,8 @@ DATADOG_METRIC_PREFIXES = _config.get("datadog_metric_prefixes", {})
 QUEUE_TO_TEAM_MAPPING = _config.get("queue_to_team_mapping", {})
 DATADOG_QUERY_PATTERNS = _config.get("datadog_query_patterns", {})
 SENTRY_QUERY_PATTERNS = _config.get("sentry_query_patterns", {})
+MONITORING_CONFIGURED = bool(_config.get("_configured"))
+MONITORING_CONFIG_ERROR = _config.get("_error", "")
 
 
 def get_sentry_team(team_key: str) -> dict:

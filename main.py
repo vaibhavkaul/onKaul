@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
+from api.chat import router as chat_router
 from api.webhooks import router as webhook_router
 from config import config
 
@@ -16,6 +17,7 @@ app = FastAPI(
 
 # Include routers
 app.include_router(webhook_router)
+app.include_router(chat_router)
 
 
 @app.get("/")

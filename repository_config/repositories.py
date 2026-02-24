@@ -9,6 +9,8 @@ _config = load_repo_config()
 REPOSITORIES = _config["repositories"]
 INVESTIGATION_STRATEGY = _config["investigation_strategy"]
 ADDITIONAL_CONTEXT = _config["additional_context"]
+REPO_CONFIGURED = bool(_config.get("_configured"))
+REPO_CONFIG_ERROR = _config.get("_error", "")
 
 
 def get_repository_info(repo_name: str) -> dict:
