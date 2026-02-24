@@ -113,6 +113,16 @@ def _run_setup_wizard() -> None:
             _prompt_env_value(env_path, "ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY")
         elif choice == "2":
             _prompt_env_value(env_path, "GITHUB_ORG", "GITHUB_ORG")
+            _prompt_env_value(
+                env_path,
+                "GH_TOKEN",
+                "GH_TOKEN (recommended for Docker/non-interactive auth)",
+            )
+            _prompt_env_value(
+                env_path,
+                "GITHUB_TOKEN",
+                "GITHUB_TOKEN (optional fallback; Enter to skip)",
+            )
         elif choice == "3":
             _prompt_env_value(env_path, "DD_API_KEY", "DD_API_KEY")
             _prompt_env_value(env_path, "DD_APP_KEY", "DD_APP_KEY")
