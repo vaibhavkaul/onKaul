@@ -6,6 +6,7 @@ from collections.abc import Iterator
 
 from agent.providers.anthropic_provider import AnthropicAgentProvider
 from agent.providers.base import AgentProvider
+from agent.providers.openai_provider import OpenAIAgentProvider
 from config import config
 
 
@@ -41,6 +42,8 @@ class Agent:
     def _create_provider(self, provider_name: str) -> AgentProvider:
         if provider_name == "anthropic":
             return AnthropicAgentProvider()
+        if provider_name == "openai":
+            return OpenAIAgentProvider()
         return _UnsupportedProvider(provider_name)
 
     def investigate(

@@ -9,8 +9,10 @@ cp .env.example .env
 ## Required (all modes)
 
 ```bash
-AGENT_PROVIDER=anthropic
-ANTHROPIC_API_KEY=sk-ant-...
+AGENT_PROVIDER=anthropic  # or openai
+ANTHROPIC_API_KEY=sk-ant-...  # required when AGENT_PROVIDER=anthropic
+OPENAI_API_KEY=sk-...  # required when AGENT_PROVIDER=openai
+OPENAI_STORE=true  # set false to disable server-side response storage
 ```
 
 ## Agent Provider (core investigations)

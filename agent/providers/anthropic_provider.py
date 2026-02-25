@@ -52,7 +52,7 @@ class AnthropicAgentProvider:
     def _run_claude_investigation(self, user_message: str, context: str) -> str:
         """Run standard Claude investigation (original investigate logic)."""
 
-        model_config = model_selector.select_model(user_message, context)
+        model_config = model_selector.select_model(user_message, context, provider="anthropic")
         print(f"\n🤖 Selected model: {model_config['name']}")
         print(f"📋 Reason: {model_config['reason']}")
         print(f"🎯 Max tokens: {model_config['max_tokens']}")
@@ -127,7 +127,7 @@ class AnthropicAgentProvider:
 
     def _run_claude_investigation_stream(self, user_message: str, context: str) -> Iterator[str]:
         """Run Claude investigation with streaming text output."""
-        model_config = model_selector.select_model(user_message, context)
+        model_config = model_selector.select_model(user_message, context, provider="anthropic")
         print(f"\n🤖 Selected model: {model_config['name']}")
         print(f"📋 Reason: {model_config['reason']}")
         print(f"🎯 Max tokens: {model_config['max_tokens']}")

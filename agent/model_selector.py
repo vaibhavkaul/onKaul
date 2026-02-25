@@ -1,24 +1,41 @@
 """Smart model selection based on task type."""
 
+from config import config
+
 
 class ModelSelector:
-    """Select appropriate Claude model based on task complexity."""
+    """Select appropriate model based on task complexity and provider."""
 
-    # Model configurations
-    MODELS = {
-        "opus": {
-            "id": "claude-opus-4-5-20251101",
-            "name": "Opus 4.5",
-            "max_tokens": 16384,
-            "best_for": "Deep research, complex reasoning, architectural analysis",
-        },
-        "sonnet": {
-            "id": "claude-sonnet-4-20250514",
-            "name": "Sonnet 4",
-            "max_tokens": 8192,
-            "best_for": "Standard investigations, quick analysis",
-        },
-    }
+    def __init__(self):
+        # Model configurations by provider.
+        self.models = {
+            "anthropic": {
+                "deep": {
+                    "id": config.ANTHROPIC_REASONING_MODEL or "claude-opus-4-5-20251101",
+                    "name": "Opus 4.5",
+                    "max_tokens": 16384,
+                    "best_for": "Deep research, complex reasoning, architectural analysis",
+                },
+                "standard": {
+                    "id": config.ANTHROPIC_MODEL or "claude-sonnet-4-20250514",
+                    "name": "Sonnet 4",
+                    "max_tokens": 8192,
+                    "best_for": "Standard investigations, quick analysis",
+                },
+            },
+            "openai": {
+                "deep": {
+                    "id": config.OPENAI_REASONING_MODEL or "gpt-5",
+                    "name": "GPT-5",
+                    "best_for": "Deep research, complex reasoning, architectural analysis",
+                },
+                "standard": {
+                    "id": config.OPENAI_MODEL or "gpt-5-mini",
+                    "name": "GPT-5 mini",
+                    "best_for": "Standard investigations, quick analysis",
+                },
+            },
+        }
 
     # Keywords that indicate deep research tasks
     DEEP_RESEARCH_KEYWORDS = [
@@ -54,39 +71,42 @@ class ModelSelector:
         "intermittent",
     ]
 
-    def select_model(self, user_message: str, context: str = "") -> dict:
+    def select_model(
+        self, user_message: str, context: str = "", provider: str = "anthropic"
+    ) -> dict:
         """
         Select appropriate model based on task.
 
         Args:
             user_message: User's question/request
             context: Additional context (thread, Jira, etc.)
+            provider: Model provider ("anthropic" or "openai")
 
         Returns:
             Dict with model config: {id, max_tokens, thinking_budget?}
         """
         combined_text = (user_message + " " + context).lower()
+        provider_models = self.models.get(provider, self.models["anthropic"])
+        use_deep_model = self._is_deep_research(combined_text) or self._is_complex_debug(
+            combined_text
+        )
+        selected = provider_models["deep"] if use_deep_model else provider_models["standard"]
 
         # Check for deep research or complex debugging - use Opus for both
-        if self._is_deep_research(combined_text) or self._is_complex_debug(combined_text):
-            reason = (
-                "Deep research/architectural task"
-                if self._is_deep_research(combined_text)
-                else "Complex debugging task"
+        reason = (
+            "Deep research/architectural task"
+            if self._is_deep_research(combined_text)
+            else (
+                "Complex debugging task"
+                if self._is_complex_debug(combined_text)
+                else "Standard investigation"
             )
-            return {
-                "id": self.MODELS["opus"]["id"],
-                "name": self.MODELS["opus"]["name"],
-                "max_tokens": self.MODELS["opus"]["max_tokens"],
-                "reason": reason,
-            }
-
-        # Default: Standard Sonnet for quick investigations
+        )
         return {
-            "id": self.MODELS["sonnet"]["id"],
-            "name": self.MODELS["sonnet"]["name"],
-            "max_tokens": self.MODELS["sonnet"]["max_tokens"],
-            "reason": "Standard investigation",
+            "id": selected["id"],
+            "name": selected["name"],
+            "reason": reason,
+            **({"max_tokens": selected["max_tokens"]} if "max_tokens" in selected else {}),
         }
 
     def _is_deep_research(self, text: str) -> bool:
