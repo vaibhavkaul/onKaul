@@ -36,8 +36,9 @@ def test_handle_slack_mention_posts_success(monkeypatch):
     monkeypatch.setattr(
         tasks.slack,
         "post_message",
-        lambda channel, message, thread_ts: posts.append((channel, message, thread_ts))
-        or {"success": True, "ts": "1.23"},
+        lambda channel, message, thread_ts: (
+            posts.append((channel, message, thread_ts)) or {"success": True, "ts": "1.23"}
+        ),
     )
 
     tasks.handle_slack_mention(
@@ -77,8 +78,9 @@ def test_handle_slack_mention_logs_and_posts_error(monkeypatch):
     monkeypatch.setattr(
         tasks.slack,
         "post_message",
-        lambda channel, message, thread_ts: posts.append((channel, message, thread_ts))
-        or {"success": True},
+        lambda channel, message, thread_ts: (
+            posts.append((channel, message, thread_ts)) or {"success": True}
+        ),
     )
 
     tasks.handle_slack_mention(
@@ -106,10 +108,10 @@ def test_handle_jira_mention_posts_success(monkeypatch):
     monkeypatch.setattr(
         tasks.jira,
         "add_comment",
-        lambda issue_key, _legacy_body, adf_body=None: comments.append(
-            (issue_key, _legacy_body, adf_body)
-        )
-        or {"success": True, "comment_id": "100"},
+        lambda issue_key, _legacy_body, adf_body=None: (
+            comments.append((issue_key, _legacy_body, adf_body))
+            or {"success": True, "comment_id": "100"}
+        ),
     )
 
     tasks.handle_jira_mention(issue_key="ABC-1", comment_body="@onkaul investigate", author="Alice")
@@ -135,10 +137,9 @@ def test_handle_jira_mention_logs_and_posts_error(monkeypatch):
     monkeypatch.setattr(
         tasks.jira,
         "add_comment",
-        lambda issue_key, _legacy_body, adf_body=None: comments.append(
-            (issue_key, _legacy_body, adf_body)
-        )
-        or {"success": True},
+        lambda issue_key, _legacy_body, adf_body=None: (
+            comments.append((issue_key, _legacy_body, adf_body)) or {"success": True}
+        ),
     )
 
     tasks.handle_jira_mention(issue_key="ABC-1", comment_body="@onkaul break", author="Alice")
