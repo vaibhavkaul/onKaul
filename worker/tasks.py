@@ -6,10 +6,6 @@ from agent.core import agent
 from clients.jira import jira
 from clients.slack import slack
 from config import config
-from tools.regulatory import (
-    extract_regulatory_url,
-    is_regulatory_request,
-)
 from utils.jira_formatter import markdown_to_adf
 from utils.logger import logger
 from utils.slack_formatter import format_for_slack
@@ -72,81 +68,12 @@ def handle_slack_mention(
                     print(f"  ✅ Added text from {filename} ({len(extracted)} chars)")
             print(f"✅ Processed {len(attachments)} attachment(s)")
 
-        # Check if this is a regulatory publication request
-        if is_regulatory_request(user_message):
-            print("📋 Detected regulatory publication request")
-            reg_url = extract_regulatory_url(user_message)
-            if reg_url:
-                print(f"🔗 URL: {reg_url}")
-                print("📥 Fetching regulatory publication...")
-
-                # Fetch page content
-                import httpx
-
-                try:
-                    page_response = httpx.get(reg_url, timeout=30, follow_redirects=True)
-                    if page_response.status_code == 200:
-                        html_content = page_response.text
-                        print(f"✅ Fetched page ({len(html_content)} chars)")
-
-                        # Ask Claude to extract structured data
-                        extraction_prompt = f"""Extract regulatory publication information from this webpage:
-
-**URL:** {reg_url}
-
-**Task:** Extract the following fields:
-1. **Jurisdiction** - Which country/region (e.g., UK, US, Dubai, Singapore)
-2. **Date of Implementation** - When this regulation takes effect (extract from content or URL)
-3. **Summary** - One sentence describing what the publication is, then summarize the calls to action in 3 short bullet points for a payments firm doing regulatory horizon scanning
-
-**Provide response in this exact format:**
-
-Jurisdiction: [jurisdiction]
-
-Date of Implementation: [date]
-
-Summary:
-[One sentence description of the publication]
-
-Calls to Action:
-1. [First action in ~20 words]
-2. [Second action in ~20 words]
-3. [Third action in ~20 words]
-
----
-
-**Page Content (first 20,000 chars):**
-{html_content[:20000]}
-"""
-
-                        print("🧠 Calling agent to extract regulatory info...")
-                        response = agent.investigate(extraction_prompt, context="")
-                        print(f"✅ Extraction complete ({len(response)} chars)")
-                        print("-" * 80)
-
-                    else:
-                        response = (
-                            f"❌ Failed to fetch regulatory page: HTTP {page_response.status_code}"
-                        )
-                        print("-" * 80)
-
-                except Exception as e:
-                    response = f"❌ Failed to fetch regulatory page: {str(e)}"
-                    print(f"❌ Error: {str(e)}")
-                    print("-" * 80)
-            else:
-                response = "I couldn't find a regulatory publication URL in your message. Please provide a link to FCA, SEC, FinCEN, DFSA, MAS, or other regulatory authority."
-                print("-" * 80)
-
-        else:
-            # Regular investigation (not a PR review)
-            print("🧠 Calling agent...")
-            # Real agent investigation with thread context and history
-            response = agent.investigate(
-                user_message, context=context, thread_history=thread_context
-            )
-            print(f"✅ Investigation complete ({len(response)} chars)")
-            print("-" * 80)
+        # Regular investigation (not a PR review)
+        print("🧠 Calling agent...")
+        # Real agent investigation with thread context and history
+        response = agent.investigate(user_message, context=context, thread_history=thread_context)
+        print(f"✅ Investigation complete ({len(response)} chars)")
+        print("-" * 80)
 
         # Calculate duration
         duration_ms = (time.time() - start_time) * 1000
@@ -241,80 +168,12 @@ def handle_jira_mention(
         # Build context from Jira issue
         context = f"Jira Issue: {issue_key}\nComment from {author}"
 
-        # Check if this is a regulatory publication request
-        if is_regulatory_request(comment_body):
-            print("📋 Detected regulatory publication request")
-            reg_url = extract_regulatory_url(comment_body)
-            if reg_url:
-                print(f"🔗 URL: {reg_url}")
-                print("📥 Fetching regulatory publication...")
-
-                # Fetch page content
-                import httpx
-
-                try:
-                    page_response = httpx.get(reg_url, timeout=30, follow_redirects=True)
-                    if page_response.status_code == 200:
-                        html_content = page_response.text
-                        print(f"✅ Fetched page ({len(html_content)} chars)")
-
-                        # Ask Claude to extract structured data
-                        extraction_prompt = f"""Extract regulatory publication information from this webpage:
-
-**URL:** {reg_url}
-
-**CRITICAL:** Follow this EXACT format with each field on its own line:
-
-Jurisdiction: [jurisdiction]
-
-Date of Implementation: [date]
-
-Summary:
-[One sentence description of what the publication is about]
-
-Calls to Action:
-1. [First action - be specific and actionable, ~20 words]
-2. [Second action - be specific and actionable, ~20 words]
-3. [Third action - be specific and actionable, ~20 words]
-
-**Requirements:**
-- Put "Jurisdiction:" and "Date of Implementation:" on SEPARATE lines with blank line between
-- Extract implementation date from page content, meta tags, or URL
-- Summary should be ONE clear sentence explaining the publication's purpose
-- Calls to action should be what a payments firm needs to DO (monitor, implement, review, update, etc.)
-
----
-
-**Page Content (first 20,000 chars):**
-{html_content[:20000]}
-"""
-
-                        print("🧠 Calling agent to extract regulatory info...")
-                        response = agent.investigate(extraction_prompt, context=context)
-                        print(f"✅ Extraction complete ({len(response)} chars)")
-                        print("-" * 80)
-
-                    else:
-                        response = (
-                            f"❌ Failed to fetch regulatory page: HTTP {page_response.status_code}"
-                        )
-                        print("-" * 80)
-
-                except Exception as e:
-                    response = f"❌ Failed to fetch regulatory page: {str(e)}"
-                    print(f"❌ Error: {str(e)}")
-                    print("-" * 80)
-            else:
-                response = "I couldn't find a regulatory publication URL in your comment. Please provide a link to FCA, SEC, FinCEN, DFSA, MAS, or other regulatory authority."
-                print("-" * 80)
-
-        else:
-            # Regular investigation (not a PR review)
-            print("🧠 Calling agent...")
-            # Real agent investigation
-            response = agent.investigate(comment_body, context=context)
-            print(f"✅ Investigation complete ({len(response)} chars)")
-            print("-" * 80)
+        # Regular investigation (not a PR review)
+        print("🧠 Calling agent...")
+        # Real agent investigation
+        response = agent.investigate(comment_body, context=context)
+        print(f"✅ Investigation complete ({len(response)} chars)")
+        print("-" * 80)
 
         # Calculate duration
         duration_ms = (time.time() - start_time) * 1000
