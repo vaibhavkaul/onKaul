@@ -15,4 +15,7 @@ uv run ruff format --check .
 echo "Running: ruff check ."
 uv run ruff check .
 
+echo "Running: pytest -q"
+uv run pytest -q
+
 echo "All CI checks passed."
