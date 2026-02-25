@@ -10,12 +10,12 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 echo "Running: ruff format --check ."
-uv run ruff format --check .
+uv run --with ruff ruff format --check .
 
 echo "Running: ruff check ."
-uv run ruff check .
+uv run --with ruff ruff check .
 
 echo "Running: pytest -q"
-uv run pytest -q
+uv run --with pytest pytest -q
 
 echo "All CI checks passed."
