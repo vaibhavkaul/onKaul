@@ -98,7 +98,7 @@ def _run_setup_wizard() -> None:
 
     while True:
         print("Setup wizard - choose integration:")
-        print("  1) Anthropic")
+        print("  1) Agent provider (Anthropic/OpenAI)")
         print("  2) GitHub")
         print("  3) Datadog")
         print("  4) Sentry")
@@ -110,7 +110,28 @@ def _run_setup_wizard() -> None:
         choice = input("Select 1-9: ").strip()
 
         if choice == "1":
-            _prompt_env_value(env_path, "ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY")
+            current_provider = _load_env_map(env_path).get("AGENT_PROVIDER", "anthropic")
+            provider = input(f"AGENT_PROVIDER [anthropic/openai] [{current_provider}]: ").strip()
+            if provider in {"anthropic", "openai"}:
+                _upsert_env_value(env_path, "AGENT_PROVIDER", provider)
+                current_provider = provider
+            elif provider:
+                print("Invalid provider. Use 'anthropic' or 'openai'.\n")
+                continue
+
+            if current_provider == "openai":
+                _prompt_env_value(env_path, "OPENAI_API_KEY", "OPENAI_API_KEY")
+                _prompt_env_value(env_path, "OPENAI_STORE", "OPENAI_STORE (true/false)")
+                _prompt_env_value(env_path, "OPENAI_MODEL", "OPENAI_MODEL")
+                _prompt_env_value(env_path, "OPENAI_REASONING_MODEL", "OPENAI_REASONING_MODEL")
+            else:
+                _prompt_env_value(env_path, "ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY")
+                _prompt_env_value(env_path, "ANTHROPIC_MODEL", "ANTHROPIC_MODEL")
+                _prompt_env_value(
+                    env_path,
+                    "ANTHROPIC_REASONING_MODEL",
+                    "ANTHROPIC_REASONING_MODEL",
+                )
         elif choice == "2":
             _prompt_env_value(env_path, "GITHUB_ORG", "GITHUB_ORG")
             _prompt_env_value(

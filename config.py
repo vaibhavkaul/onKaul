@@ -32,7 +32,14 @@ class Config:
     FIX_WORKSPACE_DIR = Path(os.getenv("FIX_WORKSPACE_DIR") or (BASE_DIR / "fixes"))
 
     # AI Agent API Keys
+    AGENT_PROVIDER = os.getenv("AGENT_PROVIDER", "anthropic").lower()
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+    ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL")
+    ANTHROPIC_REASONING_MODEL = os.getenv("ANTHROPIC_REASONING_MODEL")
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_STORE = os.getenv("OPENAI_STORE", "true").lower() == "true"
+    OPENAI_MODEL = os.getenv("OPENAI_MODEL")
+    OPENAI_REASONING_MODEL = os.getenv("OPENAI_REASONING_MODEL")
 
     # Slack Integration
     SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")

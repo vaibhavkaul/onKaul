@@ -9,7 +9,28 @@ cp .env.example .env
 ## Required (all modes)
 
 ```bash
+AGENT_PROVIDER=anthropic  # or openai
+ANTHROPIC_API_KEY=sk-ant-...  # required when AGENT_PROVIDER=anthropic
+OPENAI_API_KEY=sk-...  # required when AGENT_PROVIDER=openai
+OPENAI_STORE=true  # set false to disable server-side response storage
+```
+
+## Agent Provider (core investigations)
+
+```bash
+# Core investigation provider
+AGENT_PROVIDER=anthropic  # or openai
+
+# Anthropic
 ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_MODEL=claude-sonnet-4-20250514
+ANTHROPIC_REASONING_MODEL=claude-opus-4-5-20251101
+
+# OpenAI
+OPENAI_API_KEY=
+OPENAI_STORE=true
+OPENAI_MODEL=gpt-5-mini
+OPENAI_REASONING_MODEL=gpt-5
 ```
 
 ## App Configuration (optional, defaults shown)
