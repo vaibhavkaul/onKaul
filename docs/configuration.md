@@ -9,7 +9,23 @@ cp .env.example .env
 ## Required (all modes)
 
 ```bash
+AGENT_PROVIDER=anthropic
 ANTHROPIC_API_KEY=sk-ant-...
+```
+
+## Agent Provider (core investigations)
+
+```bash
+# Core investigation provider (currently supported: anthropic)
+AGENT_PROVIDER=anthropic
+
+# Anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+
+# OpenAI (reserved for provider support rollout)
+OPENAI_API_KEY=
+OPENAI_MODEL=
+OPENAI_REASONING_MODEL=
 ```
 
 ## App Configuration (optional, defaults shown)
