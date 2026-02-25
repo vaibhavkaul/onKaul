@@ -37,7 +37,10 @@ cp .env.example .env
 Edit `.env` and set at least:
 
 ```bash
-ANTHROPIC_API_KEY=sk-ant-...
+AGENT_PROVIDER=anthropic  # or openai
+ANTHROPIC_API_KEY=sk-ant-...  # required for anthropic
+OPENAI_API_KEY=sk-...  # required for openai
+OPENAI_STORE=true
 PUBLIC_BASE_URL=http://localhost:8000
 ```
 
@@ -141,7 +144,8 @@ Notes:
 
 ## Features
 
-- 🤖 Claude + Codex headless execution for planning and code edits
+- 🤖 Anthropic or OpenAI for core investigations (configurable)
+- 🧠 Codex/Claude headless execution for planning and code edits
 - 🧵 Slack and Jira integrations with structured, formatted responses
 - 🛠️ Fix planning and PR creation workflows (plan → apply → push)
 - 🔎 GitHub code search and file reading via `gh` CLI

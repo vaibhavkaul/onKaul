@@ -348,6 +348,7 @@ ensure_local_config_paths() {
 
 initialize_env() {
   local key=""
+  local provider=""
 
   if [[ -f ".env" ]]; then
     success ".env already exists; leaving it as-is"
@@ -357,15 +358,46 @@ initialize_env() {
   cp .env.example .env
   success "Created .env from .env.example"
 
-  while true; do
-    read_prompt "Enter ANTHROPIC_API_KEY (required): " key
-    if [[ -n "$key" ]]; then
-      break
-    fi
-    warn "ANTHROPIC_API_KEY is required."
-  done
-  upsert_env_value "ANTHROPIC_API_KEY" "$key" ".env"
-  success "Saved ANTHROPIC_API_KEY in .env"
+  if [[ "$USE_GUM" -eq 1 ]]; then
+    provider="$(gum choose --cursor.foreground 212 --selected.foreground 212 "anthropic" "openai" </dev/tty)"
+  else
+    say "Select core provider:"
+    say "1) anthropic"
+    say "2) openai"
+    while true; do
+      read_prompt "Choose 1-2: " provider
+      case "$provider" in
+        1) provider="anthropic"; break ;;
+        2) provider="openai"; break ;;
+        anthropic|openai) break ;;
+        *) warn "Please enter 1, 2, anthropic, or openai." ;;
+      esac
+    done
+  fi
+  upsert_env_value "AGENT_PROVIDER" "$provider" ".env"
+
+  if [[ "$provider" == "openai" ]]; then
+    while true; do
+      read_prompt "Enter OPENAI_API_KEY (required): " key
+      if [[ -n "$key" ]]; then
+        break
+      fi
+      warn "OPENAI_API_KEY is required when AGENT_PROVIDER=openai."
+    done
+    upsert_env_value "OPENAI_API_KEY" "$key" ".env"
+    upsert_env_value "OPENAI_STORE" "true" ".env"
+    success "Saved AGENT_PROVIDER=openai and OPENAI_API_KEY in .env"
+  else
+    while true; do
+      read_prompt "Enter ANTHROPIC_API_KEY (required): " key
+      if [[ -n "$key" ]]; then
+        break
+      fi
+      warn "ANTHROPIC_API_KEY is required when AGENT_PROVIDER=anthropic."
+    done
+    upsert_env_value "ANTHROPIC_API_KEY" "$key" ".env"
+    success "Saved AGENT_PROVIDER=anthropic and ANTHROPIC_API_KEY in .env"
+  fi
 }
 
 is_stack_running() {

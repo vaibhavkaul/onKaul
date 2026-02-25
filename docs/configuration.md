@@ -18,16 +18,19 @@ OPENAI_STORE=true  # set false to disable server-side response storage
 ## Agent Provider (core investigations)
 
 ```bash
-# Core investigation provider (currently supported: anthropic)
-AGENT_PROVIDER=anthropic
+# Core investigation provider
+AGENT_PROVIDER=anthropic  # or openai
 
 # Anthropic
 ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_MODEL=claude-sonnet-4-20250514
+ANTHROPIC_REASONING_MODEL=claude-opus-4-5-20251101
 
-# OpenAI (reserved for provider support rollout)
+# OpenAI
 OPENAI_API_KEY=
-OPENAI_MODEL=
-OPENAI_REASONING_MODEL=
+OPENAI_STORE=true
+OPENAI_MODEL=gpt-5-mini
+OPENAI_REASONING_MODEL=gpt-5
 ```
 
 ## App Configuration (optional, defaults shown)

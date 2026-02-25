@@ -158,6 +158,14 @@ if [[ ! -f .env || "$RESET_ENV" -eq 1 ]]; then
       echo "REDIS_QUEUE_NAME=onkaul"
       echo "JOB_TIMEOUT_SECONDS=900"
       echo ""
+      echo "# Core agent provider"
+      echo "AGENT_PROVIDER=anthropic"
+      echo "ANTHROPIC_MODEL=claude-sonnet-4-20250514"
+      echo "ANTHROPIC_REASONING_MODEL=claude-opus-4-5-20251101"
+      echo "OPENAI_MODEL=gpt-5-mini"
+      echo "OPENAI_REASONING_MODEL=gpt-5"
+      echo "OPENAI_STORE=true"
+      echo ""
       echo "# Headless execution timeouts"
       echo "CODEX_TIMEOUT_SECONDS=1200"
       echo "CLAUDE_TIMEOUT_SECONDS=1200"
@@ -256,6 +264,12 @@ PY
   if [[ -z "$(get_current "API_HOST")" ]]; then set_kv "API_HOST" "0.0.0.0"; fi
   if [[ -z "$(get_current "API_PORT")" ]]; then set_kv "API_PORT" "8000"; fi
   if [[ -z "$(get_current "PUBLIC_BASE_URL")" ]]; then set_kv "PUBLIC_BASE_URL" "http://localhost:8000"; fi
+  if [[ -z "$(get_current "AGENT_PROVIDER")" ]]; then set_kv "AGENT_PROVIDER" "anthropic"; fi
+  if [[ -z "$(get_current "ANTHROPIC_MODEL")" ]]; then set_kv "ANTHROPIC_MODEL" "claude-sonnet-4-20250514"; fi
+  if [[ -z "$(get_current "ANTHROPIC_REASONING_MODEL")" ]]; then set_kv "ANTHROPIC_REASONING_MODEL" "claude-opus-4-5-20251101"; fi
+  if [[ -z "$(get_current "OPENAI_MODEL")" ]]; then set_kv "OPENAI_MODEL" "gpt-5-mini"; fi
+  if [[ -z "$(get_current "OPENAI_REASONING_MODEL")" ]]; then set_kv "OPENAI_REASONING_MODEL" "gpt-5"; fi
+  if [[ -z "$(get_current "OPENAI_STORE")" ]]; then set_kv "OPENAI_STORE" "true"; fi
   if [[ -z "$(get_current "CODEX_TIMEOUT_SECONDS")" ]]; then set_kv "CODEX_TIMEOUT_SECONDS" "1200"; fi
   if [[ -z "$(get_current "CLAUDE_TIMEOUT_SECONDS")" ]]; then set_kv "CLAUDE_TIMEOUT_SECONDS" "1200"; fi
   if [[ -z "$(get_current "REDIS_URL")" ]]; then set_kv "REDIS_URL" "redis://localhost:6379/0"; fi
@@ -268,7 +282,21 @@ PY
   say ""
   say "Select integrations to configure:"
 
-  if ask "Configure Anthropic (required for agent)? [Y/n] "; then
+  say ""
+  say "Select core agent provider:"
+  select provider in "Anthropic" "OpenAI"; do
+    case "$REPLY" in
+      1) set_kv "AGENT_PROVIDER" "anthropic"; break ;;
+      2) set_kv "AGENT_PROVIDER" "openai"; break ;;
+      *) say "Please choose 1 or 2." ;;
+    esac
+  done
+
+  current_provider="$(get_current "AGENT_PROVIDER")"
+  if [[ "$current_provider" == "openai" ]]; then
+    prompt_kv "OPENAI_API_KEY" "OPENAI_API_KEY"
+    prompt_kv "OPENAI_STORE" "OPENAI_STORE (true/false, default true)"
+  else
     prompt_kv "ANTHROPIC_API_KEY" "ANTHROPIC_API_KEY"
   fi
 
