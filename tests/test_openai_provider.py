@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from openai import APIError
+
 from agent.providers import openai_provider as provider_mod
 
 
@@ -69,6 +71,37 @@ class _FakeResponsesAPI:
 class _FakeClient:
     def __init__(self, streams: list[_FakeStream]):
         self.responses = _FakeResponsesAPI(streams)
+
+
+class _ErrorResponsesAPI:
+    def __init__(self, error: Exception):
+        self.error = error
+
+    def stream(self, **kwargs):
+        raise self.error
+
+
+class _ErrorClient:
+    def __init__(self, error: Exception):
+        self.responses = _ErrorResponsesAPI(error)
+
+
+def test_openai_provider_no_api_key_non_stream(monkeypatch):
+    monkeypatch.setattr(provider_mod.config, "OPENAI_API_KEY", None)
+    provider = provider_mod.OpenAIAgentProvider()
+
+    out = provider.investigate("hello")
+
+    assert "OPENAI_API_KEY not configured" in out
+
+
+def test_openai_provider_no_api_key_stream(monkeypatch):
+    monkeypatch.setattr(provider_mod.config, "OPENAI_API_KEY", None)
+    provider = provider_mod.OpenAIAgentProvider()
+
+    out = "".join(provider.investigate_stream("hello"))
+
+    assert "OPENAI_API_KEY not configured" in out
 
 
 def test_openai_provider_uses_previous_response_id_when_store_enabled(monkeypatch):
@@ -160,3 +193,50 @@ def test_openai_provider_avoids_previous_response_id_when_store_disabled(monkeyp
     assert "previous_response_id" not in fake_client.responses.calls[1]
     # With store disabled, second call includes accumulated conversation input.
     assert len(fake_client.responses.calls[1]["input"]) >= 3
+
+
+def test_openai_provider_api_error_path(monkeypatch):
+    monkeypatch.setattr(provider_mod.config, "OPENAI_API_KEY", "sk-test")
+    monkeypatch.setattr(provider_mod.config, "OPENAI_STORE", True)
+    monkeypatch.setattr(
+        provider_mod.model_selector,
+        "select_model",
+        lambda *_args, **_kwargs: {"id": "gpt-test", "name": "GPT test", "reason": "test"},
+    )
+
+    provider = provider_mod.OpenAIAgentProvider()
+    provider.client = _ErrorClient(APIError("bad", request=None, body={}))
+
+    out = provider.investigate("hello")
+
+    assert "API Error" in out
+
+
+def test_openai_provider_unexpected_error_path(monkeypatch):
+    monkeypatch.setattr(provider_mod.config, "OPENAI_API_KEY", "sk-test")
+    monkeypatch.setattr(provider_mod.config, "OPENAI_STORE", True)
+    monkeypatch.setattr(
+        provider_mod.model_selector,
+        "select_model",
+        lambda *_args, **_kwargs: {"id": "gpt-test", "name": "GPT test", "reason": "test"},
+    )
+
+    provider = provider_mod.OpenAIAgentProvider()
+    provider.client = _ErrorClient(RuntimeError("boom"))
+
+    out = provider.investigate("hello")
+
+    assert "Unexpected error during investigation: boom" in out
+
+
+def test_openai_extract_tool_calls_handles_bad_json(monkeypatch):
+    monkeypatch.setattr(provider_mod.config, "OPENAI_API_KEY", "sk-test")
+    provider = provider_mod.OpenAIAgentProvider()
+    response = _FakeResponse(
+        "resp_1",
+        [_FakeOutputItem("function_call", call_id="c1", name="tool", arguments="{not-json}")],
+    )
+
+    calls = provider._extract_tool_calls(response)
+
+    assert calls == [{"call_id": "c1", "name": "tool", "args": {}}]
