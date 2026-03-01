@@ -32,7 +32,7 @@ class AnthropicAgentProvider:
         if not self.client:
             return self._no_api_key_response(user_message)
 
-        return self._run_claude_investigation(user_message, context)
+        return self._run_claude_investigation(user_message, context, thread_history)
 
     def investigate_stream(
         self, user_message: str, context: str = "", thread_history: list | None = None
@@ -47,9 +47,11 @@ class AnthropicAgentProvider:
             yield self._no_api_key_response(user_message)
             return
 
-        yield from self._run_claude_investigation_stream(user_message, context)
+        yield from self._run_claude_investigation_stream(user_message, context, thread_history)
 
-    def _run_claude_investigation(self, user_message: str, context: str) -> str:
+    def _run_claude_investigation(
+        self, user_message: str, context: str, thread_history: list | None = None
+    ) -> str:
         """Run standard Claude investigation (original investigate logic)."""
 
         model_config = model_selector.select_model(user_message, context, provider="anthropic")
@@ -61,7 +63,8 @@ class AnthropicAgentProvider:
         if context:
             full_message = f"{context}\n\n---\n\n{user_message}"
 
-        messages = [{"role": "user", "content": full_message}]
+        current_turn = {"role": "user", "content": full_message}
+        messages = list(thread_history) + [current_turn] if thread_history else [current_turn]
 
         try:
             for iteration in range(self.max_iterations):
@@ -125,7 +128,9 @@ class AnthropicAgentProvider:
         except Exception as e:
             return f"❌ Unexpected error during investigation: {str(e)}"
 
-    def _run_claude_investigation_stream(self, user_message: str, context: str) -> Iterator[str]:
+    def _run_claude_investigation_stream(
+        self, user_message: str, context: str, thread_history: list | None = None
+    ) -> Iterator[str]:
         """Run Claude investigation with streaming text output."""
         model_config = model_selector.select_model(user_message, context, provider="anthropic")
         print(f"\n🤖 Selected model: {model_config['name']}")
@@ -136,7 +141,8 @@ class AnthropicAgentProvider:
         if context:
             full_message = f"{context}\n\n---\n\n{user_message}"
 
-        messages = [{"role": "user", "content": full_message}]
+        current_turn = {"role": "user", "content": full_message}
+        messages = list(thread_history) + [current_turn] if thread_history else [current_turn]
 
         try:
             for iteration in range(self.max_iterations):

@@ -4,15 +4,20 @@ import subprocess
 from pathlib import Path
 
 from config import config
+from repository_config.repositories import get_repository_info
 
 
 def _repo_path(repo: str) -> Path:
     return config.WORKSPACE_DIR / repo
 
 
+def _repo_org(repo: str) -> str:
+    info = get_repository_info(repo)
+    return info.get("org") or config.GITHUB_ORG
+
+
 def _repo_url(repo: str) -> str:
-    org = config.GITHUB_ORG
-    return f"https://github.com/{org}/{repo}.git"
+    return f"https://github.com/{_repo_org(repo)}/{repo}.git"
 
 
 def _gh_available() -> bool:
@@ -29,7 +34,7 @@ def _gh_available() -> bool:
 
 
 def _clone_repo(repo: str, path: Path) -> tuple[int, str, str]:
-    org = config.GITHUB_ORG
+    org = _repo_org(repo)
     if _gh_available():
         return _run_cmd(["gh", "repo", "clone", f"{org}/{repo}", str(path)])
     return _run_cmd(["git", "clone", _repo_url(repo), str(path)])
@@ -50,7 +55,7 @@ def ensure_repo(repo: str) -> dict:
     path = _repo_path(repo)
     if not path.exists():
         print(f"📥 Local code: cloning {repo} into {path}...")
-        path.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
         code, out, err = _clone_repo(repo, path)
         if code != 0:
             return {"error": f"git clone failed: {(err or out).strip()}"}

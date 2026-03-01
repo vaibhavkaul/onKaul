@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.prose pre {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+  font-size: 0.85em;
+}
+.prose code:not(pre code) {
+  background: #e2e8f0;
+  border-radius: 0.25rem;
+  padding: 0.1em 0.35em;
+  font-size: 0.875em;
+}
+.prose p { margin: 0.5rem 0; }
+.prose ul, .prose ol { margin: 0.5rem 0; padding-left: 1.5rem; }
+.prose li { margin: 0.2rem 0; }
+.prose h1, .prose h2, .prose h3, .prose h4 { font-weight: 600; margin: 0.75rem 0 0.25rem; }
+.prose h1 { font-size: 1.25em; }
+.prose h2 { font-size: 1.1em; }
+.prose h3 { font-size: 1em; }
+.prose blockquote { border-left: 3px solid #94a3b8; padding-left: 0.75rem; color: #64748b; margin: 0.5rem 0; }
+.prose a { color: #3b82f6; text-decoration: underline; }
+.prose table { border-collapse: collapse; width: 100%; margin: 0.5rem 0; }
+.prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.4rem 0.75rem; }
+.prose th { background: #f8fafc; font-weight: 600; }
+
+.streaming-cursor::after {
+  content: '▋';
+  animation: blink 1s step-start infinite;
+  margin-left: 1px;
+}
+@keyframes blink { 50% { opacity: 0; } }
