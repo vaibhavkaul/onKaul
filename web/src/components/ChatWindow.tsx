@@ -38,6 +38,8 @@ export default function ChatWindow({ sessionId, onSessionChange }: Props) {
     abortRef.current = controller
     let buffer = ''
     let accumulated = ''
+    // Track the session ID locally so we don't trigger a key change mid-stream
+    let resolvedSessionId = sessionId
 
     try {
       const res = await fetch('/web/chat/stream', {
@@ -69,7 +71,9 @@ export default function ChatWindow({ sessionId, onSessionChange }: Props) {
                 session_id?: string
               }
               if (event.type === 'session' && event.session_id) {
-                onSessionChange(event.session_id)
+                // Store locally — don't call onSessionChange yet or the key
+                // prop changes and React remounts this component mid-stream
+                resolvedSessionId = event.session_id
               } else if (event.type === 'text' && event.content) {
                 accumulated += event.content
                 const snapshot = accumulated
@@ -78,6 +82,9 @@ export default function ChatWindow({ sessionId, onSessionChange }: Props) {
                   updated[updated.length - 1] = { role: 'assistant', content: snapshot }
                   return updated
                 })
+              } else if (event.type === 'done') {
+                // Stream complete — safe to propagate the session ID now
+                if (resolvedSessionId) onSessionChange(resolvedSessionId)
               }
             } catch {
               /* skip malformed events */
