@@ -1,5 +1,19 @@
 """Tool schema definitions for Claude API."""
 
+from repository_config.repositories import REPOSITORIES
+
+_repo_names: list[str] = list(REPOSITORIES.keys())
+
+# Repo field used in search_code, read_file, list_directory.
+# Uses an enum when repos are configured so the agent picks valid names;
+# falls back to a plain string when no config is loaded yet.
+def _repo_field(description: str = "Repository name") -> dict:
+    field: dict = {"type": "string", "description": description}
+    if _repo_names:
+        field["enum"] = _repo_names
+    return field
+
+
 TOOL_SCHEMAS = [
     {
         "name": "get_sentry_issue",
@@ -27,20 +41,13 @@ TOOL_SCHEMAS = [
         "description": """Search for code in a repository.
 
         Use to find relevant files, functions, patterns, or usages.
-        Choose repo based on what you're investigating:
-        - appian-frontend: React Native mobile app (TypeScript/TSX)
-        - appian-server: Kotlin/Spring Boot backend
-        - tts-business: B2B money transfer platform (Python/React)
+        Choose the repo that matches what you're investigating based on the repository descriptions in the system prompt.
 
         Returns up to 10 matching files with paths and URLs.""",
         "input_schema": {
             "type": "object",
             "properties": {
-                "repo": {
-                    "type": "string",
-                    "enum": ["appian-frontend", "appian-server", "tts-business", "analytics"],
-                    "description": "Repository to search",
-                },
+                "repo": _repo_field("Repository to search"),
                 "query": {
                     "type": "string",
                     "description": "Search query - function names, class names, error messages, keywords",
@@ -58,10 +65,7 @@ TOOL_SCHEMAS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "repo": {
-                    "type": "string",
-                    "enum": ["appian-frontend", "appian-server", "tts-business", "analytics"],
-                },
+                "repo": _repo_field(),
                 "path": {
                     "type": "string",
                     "description": "Path to file from repo root (e.g., src/api/routes/users.py)",
@@ -82,10 +86,7 @@ TOOL_SCHEMAS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "repo": {
-                    "type": "string",
-                    "enum": ["appian-frontend", "appian-server", "tts-business", "analytics"],
-                },
+                "repo": _repo_field(),
                 "path": {
                     "type": "string",
                     "description": "Directory path (empty string for repo root)",
@@ -292,7 +293,7 @@ TOOL_SCHEMAS = [
             "properties": {
                 "repo": {
                     "type": "string",
-                    "description": "Repository name (e.g., 'appian-server')",
+                    "description": "Repository name (must match a repo in your repository config)",
                 },
                 "title": {"type": "string", "description": "PR title"},
                 "body": {"type": "string", "description": "PR description/body"},
