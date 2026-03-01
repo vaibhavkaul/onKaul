@@ -334,7 +334,7 @@ def upsert_repo(config: dict, owner: str, name: str, entry: dict) -> str:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 
-def process_repo(owner: str, name: str) -> None:
+def process_repo(owner: str, name: str, dry_run: bool = False) -> None:
     slug = f"{owner}/{name}"
     print(f"\n→ {slug}")
 
@@ -359,6 +359,11 @@ def process_repo(owner: str, name: str) -> None:
     context_files = find_context_files(owner, name, root_files)
     print(f"  context files: {context_files or '(none)'}")
 
+    if dry_run:
+        action = "would update" if name in load_config()["repositories"] else "would add"
+        print(f"  ↳ {action} in {CONFIG_PATH.relative_to(REPO_ROOT)} (dry run)")
+        return
+
     clone_if_needed(owner, name)
 
     config = load_config()
@@ -373,6 +378,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("repos", nargs="*", help="Repos to add (org/name or name)")
     parser.add_argument("--file", "-f", help="File with one repo per line")
+    parser.add_argument("--dry-run", "-n", action="store_true", help="Show what would be done without editing files or cloning")
     args = parser.parse_args()
 
     check_gh()
@@ -397,9 +403,12 @@ def main() -> None:
         print("No valid repos found.")
         sys.exit(1)
 
+    if args.dry_run:
+        print("(dry run — no files will be written or repos cloned)\n")
+
     print(f"\nProcessing {len(repos)} repo(s)...\n")
     for org, name in repos:
-        process_repo(org, name)
+        process_repo(org, name, dry_run=args.dry_run)
 
     print("\nDone.")
 
