@@ -4,6 +4,7 @@ from repository_config.repositories import REPOSITORIES
 
 _repo_names: list[str] = list(REPOSITORIES.keys())
 
+
 # Repo field used in search_code, read_file, list_directory.
 # Uses an enum when repos are configured so the agent picks valid names;
 # falls back to a plain string when no config is loaded yet.
