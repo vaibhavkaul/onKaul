@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchSessions } from './api'
+import { deleteSession, fetchSessions } from './api'
 import ChatWindow from './components/ChatWindow'
 import Sidebar from './components/Sidebar'
 import type { SessionSummary } from './types'
@@ -30,6 +30,18 @@ export default function App() {
     localStorage.removeItem(SESSION_KEY)
   }, [])
 
+  const handleDeleteSession = useCallback(
+    async (sessionId: string) => {
+      await deleteSession(sessionId)
+      if (currentSessionId === sessionId) {
+        setCurrentSessionId(null)
+        localStorage.removeItem(SESSION_KEY)
+      }
+      loadSessions()
+    },
+    [currentSessionId, loadSessions],
+  )
+
   const handleSessionChange = useCallback(
     (sessionId: string) => {
       setCurrentSessionId(sessionId)
@@ -46,6 +58,7 @@ export default function App() {
         currentSessionId={currentSessionId}
         onSelectSession={selectSession}
         onNewConversation={newConversation}
+        onDeleteSession={handleDeleteSession}
       />
       <ChatWindow
         key={currentSessionId ?? 'new'}

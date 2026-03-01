@@ -72,6 +72,17 @@ async def get_session(
     return session
 
 
+@router.delete("/web/sessions/{session_id}", status_code=204)
+async def delete_session(
+    session_id: str,
+    user_id: str | None = Cookie(default=None, alias=USER_COOKIE),
+):
+    """Delete a session and remove it from the user's session list."""
+    if not user_id:
+        return JSONResponse(status_code=401, content={"detail": "Not authenticated"})
+    store.delete_session(session_id, user_id)
+
+
 @router.post("/web/chat/stream")
 async def web_chat_stream(
     payload: WebChatRequest,

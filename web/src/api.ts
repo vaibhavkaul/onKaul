@@ -19,3 +19,12 @@ export async function fetchSession(sessionId: string): Promise<SessionDetail | n
     return null
   }
 }
+
+export async function deleteSession(sessionId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/web/sessions/${sessionId}`, { method: 'DELETE' })
+    return res.ok
+  } catch {
+    return false
+  }
+}
