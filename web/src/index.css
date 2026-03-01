@@ -2,50 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Fonts ─────────────────────────────────────────────────────────────────── */
-body {
-  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #f5f4f0;
-  color: #0d1117;
-}
-
-/* ── Prose (markdown) ────────────────────────────────────────────────────── */
+/* ── Prose (markdown rendering) ──────────────────────────────────────────── */
 .prose pre {
-  background: #0d1117;
-  color: #e6edf7;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  overflow-x: auto;
-  margin: 0.75rem 0;
-  font-size: 0.85em;
-  font-family: 'IBM Plex Mono', monospace;
+  @apply bg-text text-panel rounded-lg p-4 overflow-x-auto my-3 text-[0.85em] font-mono;
 }
 .prose code:not(pre code) {
-  background: #eef0f5;
-  border-radius: 0.25rem;
-  padding: 0.1em 0.35em;
-  font-size: 0.875em;
-  font-family: 'IBM Plex Mono', monospace;
-  color: #ff7a59;
+  @apply bg-surface rounded px-1.5 py-0.5 text-[0.875em] font-mono text-accent;
 }
-.prose p { margin: 0.5rem 0; }
-.prose ul, .prose ol { margin: 0.5rem 0; padding-left: 1.5rem; }
-.prose li { margin: 0.2rem 0; }
-.prose h1, .prose h2, .prose h3, .prose h4 { font-weight: 700; margin: 0.75rem 0 0.25rem; }
-.prose h1 { font-size: 1.25em; }
-.prose h2 { font-size: 1.1em; }
-.prose h3 { font-size: 1em; }
-.prose blockquote { border-left: 3px solid #63e6be; padding-left: 0.75rem; color: #6b7280; margin: 0.5rem 0; }
-.prose a { color: #ff7a59; text-decoration: underline; }
-.prose table { border-collapse: collapse; width: 100%; margin: 0.5rem 0; }
-.prose th, .prose td { border: 1px solid #e5e7eb; padding: 0.4rem 0.75rem; }
-.prose th { background: #f0f0ee; font-weight: 600; }
+.prose p { @apply my-2; }
+.prose ul, .prose ol { @apply my-2 pl-6; }
+.prose li { @apply my-0.5; }
+.prose h1, .prose h2, .prose h3, .prose h4 { @apply font-bold my-2; }
+.prose h1 { @apply text-xl; }
+.prose h2 { @apply text-lg; }
+.prose h3 { @apply text-base; }
+.prose blockquote { @apply border-l-[3px] border-teal pl-3 text-muted my-2; }
+.prose a { @apply text-accent underline; }
+.prose table { @apply border-collapse w-full my-2; }
+.prose th, .prose td { @apply border border-border-faint px-3 py-1.5; }
+.prose th { @apply bg-sidebar font-semibold; }
 
 /* ── Streaming cursor ─────────────────────────────────────────────────────── */
 .streaming-cursor::after {
   content: '▋';
   animation: blink 1s step-start infinite;
   margin-left: 1px;
-  color: #ff7a59;
+  @apply text-accent;
 }
 @keyframes blink { 50% { opacity: 0; } }
