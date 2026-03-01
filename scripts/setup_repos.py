@@ -138,7 +138,9 @@ def parse_repos(raw: list[str], default_org: str) -> list[tuple[str, str]]:
         elif default_org:
             org, name = default_org, token
         else:
-            print(f"  ⚠  Cannot resolve org for '{token}' — provide as org/name or set GITHUB_ORG in .env")
+            print(
+                f"  ⚠  Cannot resolve org for '{token}' — provide as org/name or set GITHUB_ORG in .env"
+            )
             continue
         key = f"{org}/{name}"
         if key not in seen:
@@ -178,7 +180,9 @@ def _list_dir(owner: str, repo: str, path: str) -> list[str]:
     return [item["name"] for item in data if isinstance(item, dict)]
 
 
-def detect_tech_stack(owner: str, repo: str, root_files: set[str], primary_language: str) -> list[str]:
+def detect_tech_stack(
+    owner: str, repo: str, root_files: set[str], primary_language: str
+) -> list[str]:
     stack: list[str] = []
 
     # Parse package.json
@@ -206,8 +210,11 @@ def detect_tech_stack(owner: str, repo: str, root_files: set[str], primary_langu
     if "requirements.txt" in root_files:
         raw = _fetch_file_decoded(owner, repo, "requirements.txt")
         if raw:
-            py_deps.update(line.split("=")[0].split(">")[0].split("<")[0].strip().lower()
-                           for line in raw.splitlines() if line.strip() and not line.startswith("#"))
+            py_deps.update(
+                line.split("=")[0].split(">")[0].split("<")[0].strip().lower()
+                for line in raw.splitlines()
+                if line.strip() and not line.startswith("#")
+            )
     if py_deps:
         for label, indicators in TECH_INDICATORS.items():
             if any(ind.lower() in py_deps for ind in indicators):
@@ -288,7 +295,7 @@ def clone_if_needed(org: str, name: str) -> None:
     print(f"  ⬇  Cloning {org}/{name} into workplace/{name}...")
     result = run(["gh", "repo", "clone", f"{org}/{name}", str(workspace)], check=False)
     if result.returncode == 0:
-        print(f"  ✓ Cloned successfully")
+        print("  ✓ Cloned successfully")
     else:
         print(f"  ⚠  Clone failed: {result.stderr.strip()}")
 
@@ -306,7 +313,9 @@ def save_config(config: dict) -> None:
     CONFIG_PATH.write_text(json.dumps(config, indent=2) + "\n")
 
 
-def build_repo_entry(owner: str, name: str, description: str, tech_stack: list[str], context_files: list[str]) -> dict:
+def build_repo_entry(
+    owner: str, name: str, description: str, tech_stack: list[str], context_files: list[str]
+) -> dict:
     return {
         "name": name,
         "org": owner,
@@ -341,7 +350,7 @@ def process_repo(owner: str, name: str, dry_run: bool = False) -> None:
     # Fetch GitHub metadata
     meta = gh(f"repos/{owner}/{name}")
     if not isinstance(meta, dict):
-        print(f"  ✗ Could not fetch repo info (check org/name and gh auth)")
+        print("  ✗ Could not fetch repo info (check org/name and gh auth)")
         return
 
     description: str = meta.get("description") or f"{name} repository"
@@ -375,10 +384,17 @@ def process_repo(owner: str, name: str, dry_run: bool = False) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("repos", nargs="*", help="Repos to add (org/name or name)")
     parser.add_argument("--file", "-f", help="File with one repo per line")
-    parser.add_argument("--dry-run", "-n", action="store_true", help="Show what would be done without editing files or cloning")
+    parser.add_argument(
+        "--dry-run",
+        "-n",
+        action="store_true",
+        help="Show what would be done without editing files or cloning",
+    )
     args = parser.parse_args()
 
     check_gh()

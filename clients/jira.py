@@ -1,154 +1,179 @@
-"""Jira client using acli CLI for reading, REST API for posting."""
-
-import json
-import subprocess
+"""Jira client using Jira REST API v3."""
 
 import httpx
 
 from config import config
 
+# Fields to request when fetching an issue
+_ISSUE_FIELDS = (
+    "summary,description,status,issuetype,assignee,reporter,created,updated,components,labels"
+)
+
 
 class JiraClient:
-    """Client for Jira using acli CLI."""
+    """Client for Jira REST API v3."""
+
+    def _auth(self) -> tuple[str, str]:
+        return (config.JIRA_EMAIL, config.JIRA_API_TOKEN)
+
+    def _base(self) -> str:
+        return config.JIRA_BASE_URL.rstrip("/")
+
+    def _headers(self) -> dict:
+        return {"Accept": "application/json", "Content-Type": "application/json"}
 
     def query_issues(self, jql: str) -> dict:
-        """
-        Search Jira issues using JQL.
+        """Search Jira issues using JQL."""
+        if not config.JIRA_EMAIL or not config.JIRA_API_TOKEN:
+            return {"error": "JIRA_EMAIL or JIRA_API_TOKEN not configured"}
 
-        Args:
-            jql: JQL query string
-
-        Returns:
-            Dict with matching issues
-        """
         try:
-            result = subprocess.run(
-                ["acli", "jira", "workitem", "search", "--jql", jql, "--json"],
-                capture_output=True,
-                text=True,
-                timeout=10,
+            response = httpx.get(
+                f"{self._base()}/rest/api/3/search",
+                auth=self._auth(),
+                headers=self._headers(),
+                params={"jql": jql, "fields": "summary,status,issuetype", "maxResults": 50},
+                timeout=15.0,
             )
+            if response.status_code != 200:
+                return {"error": f"Jira API error: {response.status_code} {response.text}"}
 
-            if result.returncode != 0:
-                return {"error": f"acli error: {result.stderr}"}
-
-            # Parse JSON output
-            data = json.loads(result.stdout)
+            data = response.json()
             issues = []
-
-            # Extract relevant fields (same structure as get_issue)
-            for issue in data:
+            for issue in data.get("issues", []):
                 fields = issue.get("fields", {})
-                status_data = fields.get("status", {})
-                issuetype_data = fields.get("issuetype", {})
-
                 issues.append(
                     {
                         "key": issue.get("key"),
                         "summary": fields.get("summary"),
-                        "status": status_data.get("name") if status_data else None,
-                        "type": issuetype_data.get("name") if issuetype_data else None,
+                        "status": (fields.get("status") or {}).get("name"),
+                        "type": (fields.get("issuetype") or {}).get("name"),
                     }
                 )
 
-            return {"issues": issues, "total": len(issues)}
+            return {"issues": issues, "total": data.get("total", len(issues))}
 
-        except subprocess.TimeoutExpired:
-            return {"error": "acli command timed out"}
-        except json.JSONDecodeError:
-            return {"error": "Failed to parse acli JSON output"}
-        except FileNotFoundError:
-            return {"error": "acli not installed or not in PATH"}
+        except httpx.HTTPError as e:
+            return {"error": f"HTTP error: {str(e)}"}
         except Exception as e:
             return {"error": f"Failed to query Jira: {str(e)}"}
 
     def get_issue(self, issue_key: str) -> dict:
-        """
-        Get full details of a Jira issue including comments.
+        """Get full details of a Jira issue including comments."""
+        if not config.JIRA_EMAIL or not config.JIRA_API_TOKEN:
+            return {"error": "JIRA_EMAIL or JIRA_API_TOKEN not configured"}
 
-        Args:
-            issue_key: Jira issue key (e.g., 'B2B-456')
-
-        Returns:
-            Dict with issue details and comments
-        """
         try:
-            result = subprocess.run(
-                ["acli", "jira", "workitem", "view", issue_key, "--json"],
-                capture_output=True,
-                text=True,
-                timeout=10,
+            response = httpx.get(
+                f"{self._base()}/rest/api/3/issue/{issue_key}",
+                auth=self._auth(),
+                headers=self._headers(),
+                params={"fields": _ISSUE_FIELDS},
+                timeout=15.0,
             )
+            if response.status_code != 200:
+                return {"error": f"Jira API error: {response.status_code} {response.text}"}
 
-            if result.returncode != 0:
-                return {"error": f"acli error: {result.stderr}"}
-
-            # Parse JSON output
-            data = json.loads(result.stdout)
+            data = response.json()
             fields = data.get("fields", {})
 
-            # Extract description from Atlassian Document Format (ADF)
-            description = self._extract_adf_text(fields.get("description"))
-
-            # Extract assignee
             assignee_data = fields.get("assignee")
-            assignee = assignee_data.get("displayName") if assignee_data else None
-
-            # Extract reporter
             reporter_data = fields.get("reporter")
-            reporter = reporter_data.get("displayName") if reporter_data else None
-
-            # Extract status
-            status_data = fields.get("status", {})
-            status = status_data.get("name") if status_data else None
-
-            # Extract issue type
-            issuetype_data = fields.get("issuetype", {})
-            issue_type = issuetype_data.get("name") if issuetype_data else None
-
-            # Extract components
-            components = [c.get("name") for c in fields.get("components", []) if c.get("name")]
-
-            # Fetch comments separately
-            comments = self._get_comments(issue_key)
 
             return {
                 "key": data.get("key"),
                 "summary": fields.get("summary"),
-                "description": description,
-                "status": status,
-                "type": issue_type,
-                "assignee": assignee,
-                "reporter": reporter,
+                "description": self._extract_adf_text(fields.get("description")),
+                "status": (fields.get("status") or {}).get("name"),
+                "type": (fields.get("issuetype") or {}).get("name"),
+                "assignee": assignee_data.get("displayName") if assignee_data else None,
+                "reporter": reporter_data.get("displayName") if reporter_data else None,
                 "created": fields.get("created"),
                 "updated": fields.get("updated"),
-                "components": components,
+                "components": [
+                    c.get("name") for c in fields.get("components", []) if c.get("name")
+                ],
                 "labels": fields.get("labels", []),
-                "comments": comments,
+                "comments": self._get_comments(issue_key),
             }
 
-        except subprocess.TimeoutExpired:
-            return {"error": "acli command timed out"}
-        except json.JSONDecodeError:
-            return {"error": "Failed to parse acli JSON output"}
-        except FileNotFoundError:
-            return {"error": "acli not installed or not in PATH"}
+        except httpx.HTTPError as e:
+            return {"error": f"HTTP error: {str(e)}"}
         except Exception as e:
             return {"error": f"Failed to get Jira issue: {str(e)}"}
+
+    def _get_comments(self, issue_key: str) -> list:
+        """Fetch comments for a Jira issue."""
+        try:
+            response = httpx.get(
+                f"{self._base()}/rest/api/3/issue/{issue_key}/comment",
+                auth=self._auth(),
+                headers=self._headers(),
+                params={"orderBy": "created", "maxResults": 50},
+                timeout=15.0,
+            )
+            if response.status_code != 200:
+                return []
+
+            data = response.json()
+            return [
+                {
+                    "id": c.get("id"),
+                    "author": (c.get("author") or {}).get("displayName", "Unknown"),
+                    "body": self._extract_adf_text(c.get("body")),
+                    "created": c.get("created"),
+                }
+                for c in data.get("comments", [])
+            ]
+
+        except Exception:
+            return []
+
+    def add_comment(self, issue_key: str, comment: str, adf_body: dict | None = None) -> dict:
+        """Add a comment to a Jira issue in ADF format."""
+        if not config.JIRA_EMAIL or not config.JIRA_API_TOKEN:
+            return {"error": "JIRA_EMAIL or JIRA_API_TOKEN not configured", "success": False}
+
+        body = adf_body or {
+            "version": 1,
+            "type": "doc",
+            "content": [{"type": "paragraph", "content": [{"type": "text", "text": comment}]}],
+        }
+
+        try:
+            response = httpx.post(
+                f"{self._base()}/rest/api/3/issue/{issue_key}/comment",
+                auth=self._auth(),
+                headers=self._headers(),
+                json={"body": body},
+                timeout=30.0,
+            )
+            if response.status_code == 201:
+                return {
+                    "success": True,
+                    "message": f"Comment added to {issue_key}",
+                    "comment_id": response.json().get("id"),
+                }
+            return {
+                "error": f"Jira API error: {response.status_code} {response.text}",
+                "success": False,
+            }
+
+        except httpx.HTTPError as e:
+            return {"error": f"HTTP error: {str(e)}", "success": False}
+        except Exception as e:
+            return {"error": f"Failed to add comment: {str(e)}", "success": False}
 
     def _extract_adf_text(self, adf_content) -> str:
         """Extract plain text from Atlassian Document Format."""
         if not adf_content:
             return ""
-
-        text_parts = []
+        parts: list[str] = []
 
         def walk(node):
             if isinstance(node, dict):
-                # Text nodes have the actual text
                 if node.get("type") == "text":
-                    text_parts.append(node.get("text", ""))
-                # Recurse into content
+                    parts.append(node.get("text", ""))
                 for child in node.get("content", []):
                     walk(child)
             elif isinstance(node, list):
@@ -156,110 +181,7 @@ class JiraClient:
                     walk(item)
 
         walk(adf_content)
-        return " ".join(text_parts)
-
-    def _get_comments(self, issue_key: str) -> list:
-        """
-        Fetch comments for a Jira issue.
-
-        Args:
-            issue_key: Jira issue key
-
-        Returns:
-            List of comments with author and body
-        """
-        try:
-            result = subprocess.run(
-                ["acli", "jira", "workitem", "comment", "list", "--key", issue_key, "--json"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-
-            if result.returncode != 0:
-                # If comments fail, return empty list rather than failing whole request
-                return []
-
-            # Parse JSON output
-            data = json.loads(result.stdout)
-            comments_data = data.get("comments", [])
-
-            comments = []
-            for comment in comments_data:
-                comments.append(
-                    {
-                        "author": comment.get("author", "Unknown"),
-                        "body": comment.get("body", ""),
-                        "id": comment.get("id"),
-                    }
-                )
-
-            return comments
-
-        except Exception:
-            # If comments fail, return empty list
-            return []
-
-    def add_comment(self, issue_key: str, comment: str, adf_body: dict | None = None) -> dict:
-        """
-        Add a comment to a Jira issue using REST API v3 with ADF formatting.
-
-        Args:
-            issue_key: Jira issue key (e.g., 'B2B-333')
-            comment: Comment text (plain text, deprecated - use adf_body)
-            adf_body: ADF formatted body (if provided, comment is ignored)
-
-        Returns:
-            Dict with success/error status
-        """
-        if not config.JIRA_EMAIL or not config.JIRA_API_TOKEN:
-            return {
-                "error": "JIRA_EMAIL or JIRA_API_TOKEN not configured",
-                "success": False,
-            }
-
-        try:
-            # Use ADF body if provided, otherwise plain text paragraph
-            if adf_body:
-                body = adf_body
-            else:
-                # Fallback to plain text wrapped in ADF
-                body = {
-                    "version": 1,
-                    "type": "doc",
-                    "content": [
-                        {
-                            "type": "paragraph",
-                            "content": [{"type": "text", "text": comment}],
-                        }
-                    ],
-                }
-
-            response = httpx.post(
-                f"{config.JIRA_BASE_URL}/rest/api/3/issue/{issue_key}/comment",
-                auth=(config.JIRA_EMAIL, config.JIRA_API_TOKEN),
-                headers={"Content-Type": "application/json"},
-                json={"body": body},
-                timeout=30.0,
-            )
-
-            if response.status_code == 201:
-                data = response.json()
-                return {
-                    "success": True,
-                    "message": f"Comment added to {issue_key}",
-                    "comment_id": data.get("id"),
-                }
-            else:
-                return {
-                    "error": f"Jira API error: {response.status_code} {response.text}",
-                    "success": False,
-                }
-
-        except httpx.HTTPError as e:
-            return {"error": f"HTTP error: {str(e)}", "success": False}
-        except Exception as e:
-            return {"error": f"Failed to add comment: {str(e)}", "success": False}
+        return " ".join(parts)
 
 
 # Singleton instance
