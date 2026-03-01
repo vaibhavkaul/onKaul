@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>onKaul</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    /* Code blocks inside markdown responses */
+    .prose pre {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      overflow-x: auto;
+      margin: 0.75rem 0;
+      font-size: 0.85em;
+    }
+    .prose code:not(pre code) {
+      background: #e2e8f0;
+      border-radius: 0.25rem;
+      padding: 0.1em 0.35em;
+      font-size: 0.875em;
+    }
+    .prose p { margin: 0.5rem 0; }
+    .prose ul, .prose ol { margin: 0.5rem 0; padding-left: 1.5rem; }
+    .prose li { margin: 0.2rem 0; }
+    .prose h1,.prose h2,.prose h3,.prose h4 { font-weight: 600; margin: 0.75rem 0 0.25rem; }
+    .prose h1 { font-size: 1.25em; }
+    .prose h2 { font-size: 1.1em; }
+    .prose h3 { font-size: 1em; }
+    .prose blockquote {
+      border-left: 3px solid #94a3b8;
+      padding-left: 0.75rem;
+      color: #64748b;
+      margin: 0.5rem 0;
+    }
+    .prose a { color: #3b82f6; text-decoration: underline; }
+    .prose table { border-collapse: collapse; width: 100%; margin: 0.5rem 0; }
+    .prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.4rem 0.75rem; }
+    .prose th { background: #f8fafc; font-weight: 600; }
+
+    /* Cursor blink while streaming */
+    .streaming-cursor::after {
+      content: '▋';
+      animation: blink 1s step-start infinite;
+      margin-left: 1px;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* Scrollbar */
+    #messages::-webkit-scrollbar { width: 6px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+</head>
+<body class="bg-slate-50 h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm">
+    <div class="flex items-center gap-2">
+      <span class="text-xl font-bold text-slate-800">onKaul</span>
+      <span class="text-xs text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded-full">AI Developer Assistant</span>
+    </div>
+    <button
+      id="newChatBtn"
+      class="text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors"
+      title="Start a new conversation"
+    >
+      New conversation
+    </button>
+  </header>
+
+  <!-- Messages -->
+  <main id="messages" class="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-4">
+    <!-- Welcome message -->
+    <div id="welcome" class="flex justify-center">
+      <div class="max-w-xl text-center text-slate-400 mt-16">
+        <div class="text-4xl mb-4">🤖</div>
+        <p class="text-lg font-medium text-slate-600">Ask onKaul anything</p>
+        <p class="text-sm mt-1">Investigate errors, search code, query Datadog, look up Jira issues, and more.</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Input bar -->
+  <footer class="bg-white border-t border-slate-200 px-4 py-3">
+    <form id="chatForm" class="max-w-3xl mx-auto flex gap-2 items-end">
+      <textarea
+        id="messageInput"
+        rows="1"
+        placeholder="Ask onKaul something…"
+        class="flex-1 resize-none overflow-hidden rounded-xl border border-slate-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 transition-all"
+        style="max-height: 160px;"
+      ></textarea>
+      <button
+        id="submitBtn"
+        type="submit"
+        class="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl px-4 py-2.5 text-sm font-medium transition-colors flex-shrink-0"
+      >
+        Send
+      </button>
+      <button
+        id="stopBtn"
+        type="button"
+        class="hidden bg-slate-200 hover:bg-red-100 hover:text-red-600 hover:border-red-300 border border-slate-200 text-slate-600 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors flex-shrink-0"
+      >
+        Stop
+      </button>
+    </form>
+    <p class="text-center text-xs text-slate-300 mt-2">
+      Conversation is remembered for 24 hours · <button id="sessionInfo" class="underline hover:text-slate-400">session info</button>
+    </p>
+  </footer>
+
+  <script>
+    // ─── State ───────────────────────────────────────────────────────────────
+    const STORAGE_KEY = 'onkaul_session_id';
+    let sessionId = localStorage.getItem(STORAGE_KEY) || null;
+    let isStreaming = false;
+    let abortController = null;
+
+    // ─── DOM refs ─────────────────────────────────────────────────────────────
+    const messagesEl   = document.getElementById('messages');
+    const welcomeEl    = document.getElementById('welcome');
+    const form         = document.getElementById('chatForm');
+    const input        = document.getElementById('messageInput');
+    const submitBtn    = document.getElementById('submitBtn');
+    const stopBtn      = document.getElementById('stopBtn');
+    const newChatBtn   = document.getElementById('newChatBtn');
+    const sessionInfoBtn = document.getElementById('sessionInfo');
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+    marked.setOptions({ breaks: true, gfm: true });
+
+    function renderMarkdown(text) {
+      return marked.parse(text || '');
+    }
+
+    function scrollToBottom() {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function hideWelcome() {
+      if (welcomeEl) welcomeEl.remove();
+    }
+
+    function autoResize() {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+    }
+
+    function setStreaming(streaming) {
+      isStreaming = streaming;
+      submitBtn.classList.toggle('hidden', streaming);
+      stopBtn.classList.toggle('hidden', !streaming);
+      input.disabled = streaming;
+    }
+
+    // ─── Message rendering ────────────────────────────────────────────────────
+    function appendUserMessage(text) {
+      hideWelcome();
+      const el = document.createElement('div');
+      el.className = 'flex justify-end';
+      el.innerHTML = `
+        <div class="max-w-xl bg-blue-500 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm whitespace-pre-wrap">
+          ${escapeHtml(text)}
+        </div>`;
+      messagesEl.appendChild(el);
+      scrollToBottom();
+      return el;
+    }
+
+    function appendAssistantMessage() {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'flex justify-start';
+      const bubble = document.createElement('div');
+      bubble.className = 'max-w-2xl bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-slate-800 shadow-sm prose streaming-cursor';
+      wrapper.appendChild(bubble);
+      messagesEl.appendChild(wrapper);
+      scrollToBottom();
+      return bubble;
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function appendErrorMessage(text) {
+      const el = document.createElement('div');
+      el.className = 'flex justify-center';
+      el.innerHTML = `
+        <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-2.5 text-sm max-w-lg">
+          ⚠️ ${escapeHtml(text)}
+        </div>`;
+      messagesEl.appendChild(el);
+      scrollToBottom();
+    }
+
+    // ─── SSE stream consumer ──────────────────────────────────────────────────
+    async function sendMessage(message) {
+      setStreaming(true);
+      appendUserMessage(message);
+
+      const bubble = appendAssistantMessage();
+      let rawText = '';
+      let buffer = '';
+
+      abortController = new AbortController();
+
+      try {
+        const res = await fetch('/web/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, session_id: sessionId }),
+          signal: abortController.signal,
+        });
+
+        if (!res.ok) {
+          throw new Error(`Server error ${res.status}`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          // SSE lines are separated by \n\n
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop(); // last incomplete part stays in buffer
+
+          for (const part of parts) {
+            for (const line of part.split('\n')) {
+              if (!line.startsWith('data: ')) continue;
+              let event;
+              try { event = JSON.parse(line.slice(6)); } catch { continue; }
+
+              if (event.type === 'session') {
+                sessionId = event.session_id;
+                localStorage.setItem(STORAGE_KEY, sessionId);
+
+              } else if (event.type === 'text') {
+                rawText += event.content;
+                bubble.innerHTML = renderMarkdown(rawText);
+                scrollToBottom();
+
+              } else if (event.type === 'done') {
+                bubble.classList.remove('streaming-cursor');
+
+              } else if (event.type === 'error') {
+                bubble.remove();
+                appendErrorMessage(event.content);
+              }
+            }
+          }
+        }
+
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          // User stopped — keep whatever was already rendered, mark it done
+          bubble.classList.remove('streaming-cursor');
+          if (!rawText) bubble.remove();
+        } else {
+          bubble.remove();
+          appendErrorMessage(err.message || 'Connection failed');
+        }
+      } finally {
+        abortController = null;
+        bubble.classList.remove('streaming-cursor');
+        setStreaming(false);
+        input.focus();
+      }
+    }
+
+    // ─── Event listeners ──────────────────────────────────────────────────────
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const message = input.value.trim();
+      if (!message || isStreaming) return;
+      input.value = '';
+      autoResize();
+      sendMessage(message);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        form.dispatchEvent(new Event('submit'));
+      }
+    });
+
+    input.addEventListener('input', autoResize);
+
+    stopBtn.addEventListener('click', () => {
+      if (abortController) abortController.abort();
+    });
+
+    newChatBtn.addEventListener('click', () => {
+      if (isStreaming) return;
+      sessionId = null;
+      localStorage.removeItem(STORAGE_KEY);
+      // Clear messages and re-add welcome
+      messagesEl.innerHTML = `
+        <div id="welcome" class="flex justify-center">
+          <div class="max-w-xl text-center text-slate-400 mt-16">
+            <div class="text-4xl mb-4">🤖</div>
+            <p class="text-lg font-medium text-slate-600">Ask onKaul anything</p>
+            <p class="text-sm mt-1">Investigate errors, search code, query Datadog, look up Jira issues, and more.</p>
+          </div>
+        </div>`;
+    });
+
+    sessionInfoBtn.addEventListener('click', () => {
+      const msg = sessionId
+        ? `Session ID: ${sessionId}\n\nThis ID is stored in your browser (localStorage). The conversation history is kept in Redis for 24 hours.`
+        : 'No active session yet. Send a message to start one.';
+      alert(msg);
+    });
+  </script>
+</body>
+</html>
