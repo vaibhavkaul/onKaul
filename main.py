@@ -2,7 +2,6 @@
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 
 from api.chat import router as chat_router
 from api.web_chat import router as web_chat_router
@@ -21,9 +20,6 @@ app = FastAPI(
 app.include_router(webhook_router)
 app.include_router(chat_router)
 app.include_router(web_chat_router)
-
-# Serve the web chat UI at /ui
-app.mount("/ui", StaticFiles(directory="static", html=True), name="static")
 
 
 @app.get("/")
