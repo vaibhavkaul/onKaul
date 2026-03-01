@@ -48,7 +48,9 @@ class WebChatRequest(BaseModel):
     """Web chat request payload."""
 
     message: str = Field(min_length=1, description="User message")
-    session_id: str | None = Field(default=None, description="Session ID to continue; omit to start a new conversation")
+    session_id: str | None = Field(
+        default=None, description="Session ID to continue; omit to start a new conversation"
+    )
 
 
 @router.post("/web/chat/stream")
