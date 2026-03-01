@@ -50,7 +50,7 @@ def ensure_repo(repo: str) -> dict:
     path = _repo_path(repo)
     if not path.exists():
         print(f"📥 Local code: cloning {repo} into {path}...")
-        path.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
         code, out, err = _clone_repo(repo, path)
         if code != 0:
             return {"error": f"git clone failed: {(err or out).strip()}"}
