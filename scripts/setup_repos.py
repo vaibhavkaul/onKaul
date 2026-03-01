@@ -108,7 +108,15 @@ def _load_default_org() -> str:
 
 
 def parse_repos(raw: list[str], default_org: str) -> list[tuple[str, str]]:
-    """Return list of (org, name) tuples."""
+    """Return list of (org, name) tuples.
+
+    Accepts any of:
+      https://github.com/org/name
+      https://github.com/org/name/tree/main/...
+      github.com/org/name
+      org/name
+      name   (uses default_org)
+    """
     # Flatten: split on commas, whitespace, newlines
     tokens: list[str] = []
     for item in raw:
@@ -120,8 +128,13 @@ def parse_repos(raw: list[str], default_org: str) -> list[tuple[str, str]]:
         token = token.strip().strip("/")
         if not token:
             continue
-        if "/" in token:
+        # Strip full GitHub URL down to org/name
+        m = re.search(r"github\.com/([^/]+)/([^/\s?#]+)", token)
+        if m:
+            org, name = m.group(1), m.group(2).removesuffix(".git")
+        elif "/" in token:
             org, name = token.split("/", 1)
+            name = name.removesuffix(".git")
         elif default_org:
             org, name = default_org, token
         else:
