@@ -1,57 +1,33 @@
 /** @type {import('tailwindcss').Config} */
 
-// ─── Theme tokens ────────────────────────────────────────────────────────────
-// Change colours here. All components reference these names.
-const theme = {
-  // Backgrounds
-  surface:   '#f0ede6',   // main chat area
-  sidebar:   '#e8e2d9',   // sidebar
-  panel:     '#ffffff',   // message bubbles / cards
-  input:     '#ffffff',   // input box
-
-  // Borders
-  border:    '#d6cfc4',
-  borderFaint: '#e5e0d8',
-
-  // Text
-  text:      '#0d1117',   // primary
-  muted:     '#6b7280',   // secondary
-  faint:     '#9ca3af',   // placeholder / timestamps
-
-  // Brand accents (from onkaul.cloud)
-  accent:    '#ff7a59',   // coral — primary CTA, user bubbles
-  accentHover: '#f56a47',
-  accentFaint: '#fff0ed', // light tint for hover states
-  teal:      '#63e6be',   // secondary accent
-  blue:      '#7c9eff',   // tertiary accent
+// ─── Theme tokens ─────────────────────────────────────────────────────────────
+// Edit colours here. Components use the semantic names below (bg-accent, etc).
+// The prose styles in index.css reference the same values — update both if you
+// change a colour.
+const colors = {
+  surface:       '#0b0d12',
+  sidebar:       '#101521',
+  panel:         '#111827',
+  border:        '#1f2937',
+  'border-faint':'#1a2234',
+  text:          '#e6edf7',
+  muted:         '#9aa7b6',
+  faint:         '#5a6a7a',
+  accent:        '#63e6be',
+  'accent-hover':'#4dd4a8',
+  'accent-faint':'rgba(99,230,190,0.12)',
+  teal:          '#63e6be',
+  sky:           '#7c9eff',
 }
 
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
-      colors: {
-        surface:      theme.surface,
-        sidebar:      theme.sidebar,
-        panel:        theme.panel,
-        input:        theme.input,
-        border:       theme.border,
-        'border-faint': theme.borderFaint,
-        text:         theme.text,
-        muted:        theme.muted,
-        faint:        theme.faint,
-        accent:       theme.accent,
-        'accent-hover': theme.accentHover,
-        'accent-faint': theme.accentFaint,
-        teal:         theme.teal,
-        sky:          theme.blue,
-      },
+      colors,
       fontFamily: {
         sans: ['Space Grotesk', 'system-ui', 'sans-serif'],
         mono: ['IBM Plex Mono', 'monospace'],
-      },
-      ringColor: {
-        accent: theme.accent,
       },
     },
   },

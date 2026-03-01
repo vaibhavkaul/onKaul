@@ -25,7 +25,7 @@ export default function Sidebar({ sessions, currentSessionId, onSelectSession, o
       <div className="px-5 py-5">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center flex-shrink-0 shadow-sm">
-            <span className="text-white text-[10px] font-bold tracking-tight">oK</span>
+            <span className="text-panel text-[10px] font-bold tracking-tight">oK</span>
           </div>
           <span className="font-semibold text-text text-sm tracking-tight">onKaul</span>
           <span className="text-[10px] text-sky bg-sky/10 px-1.5 py-0.5 rounded-full font-medium border border-sky/20">AI</span>

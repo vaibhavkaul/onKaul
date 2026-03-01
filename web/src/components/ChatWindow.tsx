@@ -109,7 +109,7 @@ export default function ChatWindow({ sessionId, onSessionChange }: Props) {
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1 text-center mt-20">
             <div className="w-14 h-14 rounded-2xl bg-accent flex items-center justify-center mb-5 shadow-md">
-              <span className="text-white text-xl font-bold tracking-tight">oK</span>
+              <span className="text-panel text-xl font-bold tracking-tight">oK</span>
             </div>
             <p className="text-lg font-semibold text-text mb-1">How can I help?</p>
             <p className="text-sm text-muted max-w-sm leading-relaxed">
@@ -120,13 +120,13 @@ export default function ChatWindow({ sessionId, onSessionChange }: Props) {
           messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {msg.role === 'user' ? (
-                <div className="max-w-xl bg-accent text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed shadow-sm">
+                <div className="max-w-xl bg-panel border border-border rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed text-accent">
                   {msg.content}
                 </div>
               ) : (
                 <div className="flex gap-3 max-w-2xl">
                   <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
-                    <span className="text-white text-[10px] font-bold">oK</span>
+                    <span className="text-panel text-[10px] font-bold">oK</span>
                   </div>
                   <div className={`flex-1 bg-panel border border-border-faint rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-text shadow-sm prose${
                     isStreaming && i === messages.length - 1 ? ' streaming-cursor' : ''
