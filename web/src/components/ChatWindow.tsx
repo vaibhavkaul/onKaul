@@ -38,7 +38,6 @@ export default function ChatWindow({ sessionId, onSessionChange }: Props) {
     abortRef.current = controller
     let buffer = ''
     let accumulated = ''
-    // Track the session ID locally so we don't trigger a key change mid-stream
     let resolvedSessionId = sessionId
 
     try {
@@ -71,8 +70,6 @@ export default function ChatWindow({ sessionId, onSessionChange }: Props) {
                 session_id?: string
               }
               if (event.type === 'session' && event.session_id) {
-                // Store locally — don't call onSessionChange yet or the key
-                // prop changes and React remounts this component mid-stream
                 resolvedSessionId = event.session_id
               } else if (event.type === 'text' && event.content) {
                 accumulated += event.content
@@ -83,7 +80,6 @@ export default function ChatWindow({ sessionId, onSessionChange }: Props) {
                   return updated
                 })
               } else if (event.type === 'done') {
-                // Stream complete — safe to propagate the session ID now
                 if (resolvedSessionId) onSessionChange(resolvedSessionId)
               }
             } catch {
@@ -108,36 +104,41 @@ export default function ChatWindow({ sessionId, onSessionChange }: Props) {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <main className="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-4">
+    <div className="flex-1 flex flex-col overflow-hidden bg-[#f5f4f0]">
+      <main className="flex-1 overflow-y-auto px-6 py-8 flex flex-col gap-6">
         {messages.length === 0 ? (
-          <div className="flex justify-center">
-            <div className="max-w-xl text-center text-slate-400 mt-16">
-              <div className="text-4xl mb-4">🤖</div>
-              <p className="text-lg font-medium text-slate-600">Ask onKaul anything</p>
-              <p className="text-sm mt-1">
-                Investigate errors, search code, query Datadog, look up Jira issues, and more.
-              </p>
+          <div className="flex flex-col items-center justify-center flex-1 text-center mt-20">
+            <div className="w-14 h-14 rounded-2xl bg-[#ff7a59] flex items-center justify-center mb-5 shadow-md">
+              <span className="text-white text-xl font-bold tracking-tight">oK</span>
             </div>
+            <p className="text-lg font-semibold text-[#0d1117] mb-1">How can I help?</p>
+            <p className="text-sm text-[#6b7280] max-w-sm leading-relaxed">
+              Investigate errors, search code, query Datadog, look up Jira issues, and more.
+            </p>
           </div>
         ) : (
           messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {msg.role === 'user' ? (
-                <div className="max-w-xl bg-blue-500 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm whitespace-pre-wrap">
+                <div className="max-w-xl bg-[#ff7a59] text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed shadow-sm">
                   {msg.content}
                 </div>
               ) : (
-                <div
-                  className={`max-w-2xl bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-slate-800 shadow-sm prose${
-                    isStreaming && i === messages.length - 1 ? ' streaming-cursor' : ''
-                  }`}
-                >
-                  {msg.content ? (
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
-                  ) : (
-                    <span className="text-slate-400 text-xs">Thinking…</span>
-                  )}
+                <div className="flex gap-3 max-w-2xl">
+                  <div className="w-7 h-7 rounded-lg bg-[#ff7a59] flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                    <span className="text-white text-[10px] font-bold">oK</span>
+                  </div>
+                  <div
+                    className={`flex-1 bg-white border border-[#e5e7eb] rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-[#0d1117] shadow-sm prose${
+                      isStreaming && i === messages.length - 1 ? ' streaming-cursor' : ''
+                    }`}
+                  >
+                    {msg.content ? (
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    ) : (
+                      <span className="text-[#9ca3af] text-xs">Thinking…</span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

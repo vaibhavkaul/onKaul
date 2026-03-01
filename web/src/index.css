@@ -2,37 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Fonts ─────────────────────────────────────────────────────────────────── */
+body {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f5f4f0;
+  color: #0d1117;
+}
+
+/* ── Prose (markdown) ────────────────────────────────────────────────────── */
 .prose pre {
-  background: #1e1e2e;
-  color: #cdd6f4;
+  background: #0d1117;
+  color: #e6edf7;
   border-radius: 0.5rem;
   padding: 1rem;
   overflow-x: auto;
   margin: 0.75rem 0;
   font-size: 0.85em;
+  font-family: 'IBM Plex Mono', monospace;
 }
 .prose code:not(pre code) {
-  background: #e2e8f0;
+  background: #eef0f5;
   border-radius: 0.25rem;
   padding: 0.1em 0.35em;
   font-size: 0.875em;
+  font-family: 'IBM Plex Mono', monospace;
+  color: #ff7a59;
 }
 .prose p { margin: 0.5rem 0; }
 .prose ul, .prose ol { margin: 0.5rem 0; padding-left: 1.5rem; }
 .prose li { margin: 0.2rem 0; }
-.prose h1, .prose h2, .prose h3, .prose h4 { font-weight: 600; margin: 0.75rem 0 0.25rem; }
+.prose h1, .prose h2, .prose h3, .prose h4 { font-weight: 700; margin: 0.75rem 0 0.25rem; }
 .prose h1 { font-size: 1.25em; }
 .prose h2 { font-size: 1.1em; }
 .prose h3 { font-size: 1em; }
-.prose blockquote { border-left: 3px solid #94a3b8; padding-left: 0.75rem; color: #64748b; margin: 0.5rem 0; }
-.prose a { color: #3b82f6; text-decoration: underline; }
+.prose blockquote { border-left: 3px solid #63e6be; padding-left: 0.75rem; color: #6b7280; margin: 0.5rem 0; }
+.prose a { color: #ff7a59; text-decoration: underline; }
 .prose table { border-collapse: collapse; width: 100%; margin: 0.5rem 0; }
-.prose th, .prose td { border: 1px solid #e2e8f0; padding: 0.4rem 0.75rem; }
-.prose th { background: #f8fafc; font-weight: 600; }
+.prose th, .prose td { border: 1px solid #e5e7eb; padding: 0.4rem 0.75rem; }
+.prose th { background: #f0f0ee; font-weight: 600; }
 
+/* ── Streaming cursor ─────────────────────────────────────────────────────── */
 .streaming-cursor::after {
   content: '▋';
   animation: blink 1s step-start infinite;
   margin-left: 1px;
+  color: #ff7a59;
 }
 @keyframes blink { 50% { opacity: 0; } }
