@@ -64,7 +64,14 @@ class AnthropicAgentProvider:
             full_message = f"{context}\n\n---\n\n{user_message}"
 
         current_turn = {"role": "user", "content": full_message}
-        messages = list(thread_history) + [current_turn] if thread_history else [current_turn]
+        # Exclude the last message from thread history — it's the current @mention
+        # which is already represented in current_turn (with added context).
+        prior_history = thread_history[:-1] if thread_history else None
+        messages = (
+            self._convert_thread_history(prior_history) + [current_turn]
+            if prior_history
+            else [current_turn]
+        )
 
         try:
             for iteration in range(self.max_iterations):
@@ -142,7 +149,12 @@ class AnthropicAgentProvider:
             full_message = f"{context}\n\n---\n\n{user_message}"
 
         current_turn = {"role": "user", "content": full_message}
-        messages = list(thread_history) + [current_turn] if thread_history else [current_turn]
+        prior_history = thread_history[:-1] if thread_history else None
+        messages = (
+            self._convert_thread_history(prior_history) + [current_turn]
+            if prior_history
+            else [current_turn]
+        )
 
         try:
             for iteration in range(self.max_iterations):
@@ -228,6 +240,46 @@ class AnthropicAgentProvider:
             else:
                 parts.append(f"{key}={repr(value)}")
         return ", ".join(parts)
+
+    @staticmethod
+    def _convert_thread_history(thread_history: list) -> list:
+        """Convert raw Slack thread messages to Anthropic API message format.
+
+        Slack messages have 'user'/'text'/'ts' fields; bot messages also have 'bot_id'.
+        The Anthropic API requires 'role' ('user' or 'assistant') and 'content'.
+        """
+        messages = []
+        for msg in thread_history:
+            # Already in correct format (has 'role' key)
+            if "role" in msg:
+                messages.append(msg)
+                continue
+
+            text = msg.get("text", "")
+            if not text:
+                continue
+
+            # Bot messages (onKaul responses) become 'assistant', others become 'user'
+            role = "assistant" if msg.get("bot_id") else "user"
+            messages.append({"role": role, "content": text})
+
+        # Anthropic requires messages to start with 'user' role and alternate.
+        # Merge consecutive same-role messages to satisfy the API constraint.
+        if not messages:
+            return []
+
+        merged = [messages[0]]
+        for msg in messages[1:]:
+            if msg["role"] == merged[-1]["role"]:
+                merged[-1]["content"] += "\n\n" + msg["content"]
+            else:
+                merged.append(msg)
+
+        # Ensure first message is 'user' role
+        if merged and merged[0]["role"] != "user":
+            merged.insert(0, {"role": "user", "content": "(thread started by the bot)"})
+
+        return merged
 
     def _no_api_key_response(self, user_message: str) -> str:
         """Return helpful message when API key not configured."""
