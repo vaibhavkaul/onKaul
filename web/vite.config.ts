@@ -6,6 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/web': { target: 'http://localhost:8000', changeOrigin: true },
+      '/sandbox': { target: 'http://localhost:8000', changeOrigin: true, ws: true },
     },
   },
 })

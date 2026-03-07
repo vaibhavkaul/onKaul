@@ -14,6 +14,23 @@ The repository config tells onKaul what repos you have, what they do, and how to
 - `investigation_strategy`: map common issue categories to a default repo.
 - `additional_context`: pointers to internal docs (playbooks, runbooks, commands).
 
+## Sandbox (Live Preview)
+
+Add `hotReloadSupport` and a `sandbox` block to any repo to enable the live preview + Claude Code terminal in the web UI. See [docs/sandbox.md](./sandbox.md) for full details.
+
+```json
+"my-site": {
+  "name": "my-site",
+  "org": "acme",
+  "hotReloadSupport": true,
+  "sandbox": {
+    "appType": "static",
+    "previewPort": 8080,
+    "startCommand": ""
+  }
+}
+```
+
 ## Example
 
 ```json
