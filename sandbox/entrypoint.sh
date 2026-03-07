@@ -26,7 +26,7 @@ fi
 
 # Auto-launch Claude in bypassPermissions mode when a bash session opens.
 # The user can Ctrl+C back to the shell at any time.
-echo 'claude --permission-mode bypassPermissions' >> /root/.bashrc
+echo 'claude --permission-mode acceptEdits' >> /root/.bashrc
 
 echo "==> Sandbox ready."
 tail -f /dev/null
