@@ -297,20 +297,22 @@ export default function SandboxView({ repo, onClose }: Props) {
               </button>
 
               {/* Push PR / Link repo */}
-              {(repo.org === '' && gitInfo?.has_remote !== true) ? (
-                <button
-                  onClick={() => { setShowLinkForm((v) => !v); setResetConfirm(false); setShowPushForm(false) }}
-                  className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
-                    showLinkForm
-                      ? 'text-accent bg-accent/10 border-accent/30'
-                      : 'text-muted hover:text-text hover:bg-border border-border'
-                  }`}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
-                  Link repo
-                </button>
+              {gitInfo?.has_remote !== true ? (
+                repo.org === '' && (
+                  <button
+                    onClick={() => { setShowLinkForm((v) => !v); setResetConfirm(false); setShowPushForm(false) }}
+                    className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
+                      showLinkForm
+                        ? 'text-accent bg-accent/10 border-accent/30'
+                        : 'text-muted hover:text-text hover:bg-border border-border'
+                    }`}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    Link repo
+                  </button>
+                )
               ) : pushResult ? (
                 <a
                   href={pushResult.pr_url}
