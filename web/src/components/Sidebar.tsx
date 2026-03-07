@@ -87,7 +87,7 @@ export default function Sidebar({
           <div className="px-3 pb-2">
             <button
               onClick={onNewConversation}
-              className="w-full flex items-center gap-2 text-xs font-semibold text-muted hover:text-text bg-transparent hover:bg-border border border-border hover:border-muted/40 px-3 py-2 rounded-lg transition-colors"
+              className="w-full flex items-center gap-2 text-xs font-semibold text-accent bg-accent/10 hover:bg-accent/20 border border-accent/25 hover:border-accent/40 px-3 py-2 rounded-lg transition-colors"
             >
               <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
