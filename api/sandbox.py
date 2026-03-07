@@ -82,7 +82,18 @@ async def start_sandbox(
 
     slot = (user_id, repo)
     if slot in _active:
-        return _active[slot]
+        # Check the container is still alive; if not, clean up and recreate
+        existing = _active[slot]
+        alive = subprocess.run(
+            ["docker", "inspect", "--format", "{{.State.Running}}", existing["container_name"]],
+            capture_output=True,
+            text=True,
+        )
+        if alive.returncode == 0 and alive.stdout.strip() == "true":
+            return existing
+        # Container is dead — remove it and fall through to start a fresh one
+        subprocess.run(["docker", "rm", "-f", existing["container_name"]], capture_output=True)
+        del _active[slot]
 
     repo_cfg = REPOSITORIES.get(repo)
     if not repo_cfg or not repo_cfg.get("hotReloadSupport"):
