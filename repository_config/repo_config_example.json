@@ -30,6 +30,7 @@
     "my-fullstack-app": {
       "name": "my-fullstack-app",
       "org": "acme",
+      "description": "Fullstack web application with Vite frontend and FastAPI backend",
       "hotReloadSupport": true,
       "sandbox": {
         "appType": "fullstack-python-vite",
