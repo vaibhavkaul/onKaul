@@ -60,10 +60,15 @@ def _rebuild_active_from_docker() -> None:
             continue
         user_prefix, repo = parts
         port_out = subprocess.run(
-            ["docker", "inspect", "--format",
-             "{{range $k,$v := .NetworkSettings.Ports}}{{$k}}|{{(index $v 0).HostPort}}{{end}}",
-             name],
-            capture_output=True, text=True,
+            [
+                "docker",
+                "inspect",
+                "--format",
+                "{{range $k,$v := .NetworkSettings.Ports}}{{$k}}|{{(index $v 0).HostPort}}{{end}}",
+                name,
+            ],
+            capture_output=True,
+            text=True,
         )
         host_port = None
         for entry in port_out.stdout.strip().split():
@@ -73,16 +78,16 @@ def _rebuild_active_from_docker() -> None:
         if host_port is None:
             continue
         local_path_out = subprocess.run(
-            ["docker", "inspect", "--format",
-             "{{range .Mounts}}{{.Source}}{{end}}", name],
-            capture_output=True, text=True,
+            ["docker", "inspect", "--format", "{{range .Mounts}}{{.Source}}{{end}}", name],
+            capture_output=True,
+            text=True,
         )
         local_repo_path = local_path_out.stdout.strip()
         # Read APP_TYPE from container env
         env_out = subprocess.run(
-            ["docker", "inspect", "--format",
-             "{{range .Config.Env}}{{.}}\n{{end}}", name],
-            capture_output=True, text=True,
+            ["docker", "inspect", "--format", "{{range .Config.Env}}{{.}}\n{{end}}", name],
+            capture_output=True,
+            text=True,
         )
         app_type = "static"
         for env_line in env_out.stdout.splitlines():
@@ -510,9 +515,7 @@ def health():
     return {"status": "ok"}
 """
     )
-    (path / "requirements.txt").write_text(
-        "fastapi>=0.115.0\nuvicorn[standard]>=0.30.0\n"
-    )
+    (path / "requirements.txt").write_text("fastapi>=0.115.0\nuvicorn[standard]>=0.30.0\n")
     (path / ".gitignore").write_text(
         "# Python\n"
         ".venv/\n"
@@ -601,12 +604,10 @@ async def create_user_project(
         "name": name,
         "project_type": project_type,
         "preview_port": _DEFAULT_VITE_PORT if is_fullstack else _STATIC_PREVIEW_PORT,
-        "start_command": body.get("start_command") or (
-            _DEFAULT_FRONTEND_CMD if is_fullstack else ""
-        ),
-        "backend_start_command": body.get("backend_start_command") or (
-            _DEFAULT_BACKEND_CMD if is_fullstack else ""
-        ),
+        "start_command": body.get("start_command")
+        or (_DEFAULT_FRONTEND_CMD if is_fullstack else ""),
+        "backend_start_command": body.get("backend_start_command")
+        or (_DEFAULT_BACKEND_CMD if is_fullstack else ""),
         "local_path": str(local_path.resolve()),
         "created_at": datetime.utcnow().isoformat(),
     }
@@ -697,12 +698,18 @@ async def start_sandbox(
     container_name = f"onkaul-sb-{user_id[:8]}-{repo}"
 
     env_args: list[str] = [
-        "-e", f"APP_TYPE={sb.get('appType', 'static')}",
-        "-e", f"PREVIEW_PORT={preview_port}",
-        "-e", f"START_COMMAND={sb.get('startCommand', '')}",
-        "-e", f"FRONTEND_START_COMMAND={sb.get('startCommand', '')}",
-        "-e", f"BACKEND_START_COMMAND={sb.get('backendStartCommand', '')}",
-        "-e", f"PREVIEW_BASE=/sandbox/{repo}/preview/",
+        "-e",
+        f"APP_TYPE={sb.get('appType', 'static')}",
+        "-e",
+        f"PREVIEW_PORT={preview_port}",
+        "-e",
+        f"START_COMMAND={sb.get('startCommand', '')}",
+        "-e",
+        f"FRONTEND_START_COMMAND={sb.get('startCommand', '')}",
+        "-e",
+        f"BACKEND_START_COMMAND={sb.get('backendStartCommand', '')}",
+        "-e",
+        f"PREVIEW_BASE=/sandbox/{repo}/preview/",
     ]
     if app_config.ANTHROPIC_API_KEY:
         env_args += ["-e", f"ANTHROPIC_API_KEY={app_config.ANTHROPIC_API_KEY}"]
@@ -1081,7 +1088,9 @@ async def link_repo(
     org, repo_name = parse_github_url(repo_url)
     meta = _load_project_meta(user_id, repo)
     app_type = meta.get("project_type", "static") if meta else "static"
-    preview_port_meta = meta.get("preview_port", _STATIC_PREVIEW_PORT) if meta else _STATIC_PREVIEW_PORT
+    preview_port_meta = (
+        meta.get("preview_port", _STATIC_PREVIEW_PORT) if meta else _STATIC_PREVIEW_PORT
+    )
     start_cmd = meta.get("start_command", "") if meta else ""
     backend_cmd = meta.get("backend_start_command", "") if meta else ""
     entry = {
