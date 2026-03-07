@@ -77,60 +77,6 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* ── Sandboxes section ── */}
-      <div className="flex flex-col flex-shrink-0 border-b border-border pb-3">
-        <div className="px-4 pt-1 pb-2">
-          <p className="text-[10px] font-semibold text-faint uppercase tracking-widest">Sandboxes</p>
-        </div>
-        <div className="px-3 pb-1">
-          <button
-            onClick={onNewProject}
-            className="w-full flex items-center gap-2 text-xs font-semibold text-accent bg-accent/10 hover:bg-accent/20 border border-accent/25 hover:border-accent/40 px-3 py-2 rounded-lg transition-colors"
-          >
-            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-            </svg>
-            New project
-          </button>
-        </div>
-        {(sandboxRepos.length > 0 || userProjects.length > 0) && (
-          <div className="px-2 pt-1 space-y-0.5">
-            {sandboxRepos.map((repo) => (
-              <button
-                key={repo.key}
-                onClick={() => onOpenSandbox(repo.key)}
-                className={`w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-lg transition-colors ${
-                  activeSandboxKey === repo.key
-                    ? 'bg-border text-text'
-                    : 'text-muted hover:text-text hover:bg-border-faint'
-                }`}
-              >
-                <svg className="w-3.5 h-3.5 flex-shrink-0 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span className="text-xs font-medium truncate">{repo.name}</span>
-              </button>
-            ))}
-            {userProjects.map((p) => (
-              <button
-                key={`project:${p.slug}`}
-                onClick={() => onOpenSandbox(p.slug)}
-                className={`w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-lg transition-colors ${
-                  activeSandboxKey === p.slug
-                    ? 'bg-border text-text'
-                    : 'text-muted hover:text-text hover:bg-border-faint'
-                }`}
-              >
-                <svg className="w-3.5 h-3.5 flex-shrink-0 text-sky" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                </svg>
-                <span className="text-xs font-medium truncate">{p.name}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* ── Conversations section ── */}
       <div className="flex flex-col flex-1 min-h-0 pt-3">
         <div className="px-4 pb-2 flex-shrink-0">
@@ -182,6 +128,60 @@ export default function Sidebar({
             ))
           )}
         </div>
+      </div>
+
+      {/* ── Sandboxes section ── */}
+      <div className="flex flex-col flex-shrink-0 border-t border-border pt-3 pb-3">
+        <div className="px-4 pb-2">
+          <p className="text-[10px] font-semibold text-faint uppercase tracking-widest">Sandboxes</p>
+        </div>
+        <div className="px-3 pb-1">
+          <button
+            onClick={onNewProject}
+            className="w-full flex items-center gap-2 text-xs font-semibold text-accent bg-accent/10 hover:bg-accent/20 border border-accent/25 hover:border-accent/40 px-3 py-2 rounded-lg transition-colors"
+          >
+            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            New project
+          </button>
+        </div>
+        {(sandboxRepos.length > 0 || userProjects.length > 0) && (
+          <div className="px-2 pt-1 space-y-0.5">
+            {sandboxRepos.map((repo) => (
+              <button
+                key={repo.key}
+                onClick={() => onOpenSandbox(repo.key)}
+                className={`w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-lg transition-colors ${
+                  activeSandboxKey === repo.key
+                    ? 'bg-border text-text'
+                    : 'text-muted hover:text-text hover:bg-border-faint'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5 flex-shrink-0 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-xs font-medium truncate">{repo.name}</span>
+              </button>
+            ))}
+            {userProjects.map((p) => (
+              <button
+                key={`project:${p.slug}`}
+                onClick={() => onOpenSandbox(p.slug)}
+                className={`w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-lg transition-colors ${
+                  activeSandboxKey === p.slug
+                    ? 'bg-border text-text'
+                    : 'text-muted hover:text-text hover:bg-border-faint'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5 flex-shrink-0 text-sky" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                <span className="text-xs font-medium truncate">{p.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </aside>
   )
