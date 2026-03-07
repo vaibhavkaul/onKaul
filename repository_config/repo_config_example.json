@@ -27,6 +27,17 @@
       "handles": ["API errors", "DB issues", "Latency spikes"],
       "context_files": []
     },
+    "my-fullstack-app": {
+      "name": "my-fullstack-app",
+      "org": "acme",
+      "hotReloadSupport": true,
+      "sandbox": {
+        "appType": "fullstack-python-vite",
+        "previewPort": 5173,
+        "startCommand": "npm install && npm run dev -- --host 0.0.0.0 --port ${PREVIEW_PORT}",
+        "backendStartCommand": "python3 -m venv .venv && .venv/bin/pip install --quiet -r requirements.txt && .venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+      }
+    },
     "mobile-app": {
       "name": "mobile-app",
       "org": "acme",

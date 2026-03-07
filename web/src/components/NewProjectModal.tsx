@@ -13,12 +13,22 @@ const PROJECT_TYPES: { value: ProjectType; label: string; description: string }[
     label: 'Static site',
     description: 'HTML, CSS, JS — served instantly with live reload',
   },
+  {
+    value: 'fullstack-python-vite',
+    label: 'Fullstack app',
+    description: 'Vite frontend + FastAPI backend — /api/* proxied automatically',
+  },
 ]
+
+const DEFAULT_FRONTEND_CMD = 'npm install && npm run dev -- --host 0.0.0.0 --port ${PREVIEW_PORT:-5173}'
+const DEFAULT_BACKEND_CMD = 'python3 -m venv .venv && .venv/bin/pip install --quiet -r requirements.txt && .venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000'
 
 export default function NewProjectModal({ onCreated, onClose }: Props) {
   const [name, setName] = useState('')
   const [repoUrl, setRepoUrl] = useState('')
   const [projectType, setProjectType] = useState<ProjectType>('static')
+  const [frontendCmd, setFrontendCmd] = useState(DEFAULT_FRONTEND_CMD)
+  const [backendCmd, setBackendCmd] = useState(DEFAULT_BACKEND_CMD)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -32,13 +42,17 @@ export default function NewProjectModal({ onCreated, onClose }: Props) {
         name: trimmedName,
         project_type: projectType,
         repo_url: repoUrl.trim() || undefined,
+        ...(projectType === 'fullstack-python-vite' && {
+          start_command: frontendCmd,
+          backend_start_command: backendCmd,
+        }),
       })
       onCreated(project)
     } catch (e) {
       setError((e as Error).message)
       setLoading(false)
     }
-  }, [name, repoUrl, projectType, onCreated])
+  }, [name, repoUrl, projectType, frontendCmd, backendCmd, onCreated])
 
   return (
     <div
@@ -122,6 +136,30 @@ export default function NewProjectModal({ onCreated, onClose }: Props) {
               ))}
             </div>
           </div>
+
+          {/* Fullstack command fields */}
+          {projectType === 'fullstack-python-vite' && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-muted mb-1.5">Frontend start command</label>
+                <input
+                  type="text"
+                  value={frontendCmd}
+                  onChange={(e) => setFrontendCmd(e.target.value)}
+                  className="w-full text-xs bg-surface border border-border rounded-xl px-3.5 py-2.5 text-text placeholder-faint focus:outline-none focus:border-accent transition-colors font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted mb-1.5">Backend start command</label>
+                <input
+                  type="text"
+                  value={backendCmd}
+                  onChange={(e) => setBackendCmd(e.target.value)}
+                  className="w-full text-xs bg-surface border border-border rounded-xl px-3.5 py-2.5 text-text placeholder-faint focus:outline-none focus:border-accent transition-colors font-mono"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Error */}
           {error && (

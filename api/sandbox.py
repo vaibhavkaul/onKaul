@@ -42,7 +42,75 @@ SANDBOX_IMAGE = "onkaul-sandbox:latest"
 SANDBOX_DOCKERFILE_DIR = str(Path(__file__).resolve().parents[1] / "sandbox")
 
 # Active sandboxes: (user_id, repo_key) -> {container_name, preview_port}
+# Rebuilt from Docker on startup so server restarts don't lose running containers.
 _active: dict[tuple[str, str], dict] = {}
+
+
+def _rebuild_active_from_docker() -> None:
+    """Scan running containers and repopulate _active so server restarts are transparent."""
+    result = subprocess.run(
+        ["docker", "ps", "--filter", "name=onkaul-sb-", "--format", "{{.Names}}"],
+        capture_output=True,
+        text=True,
+    )
+    for name in result.stdout.strip().splitlines():
+        # name format: onkaul-sb-{user_id[:8]}-{repo}
+        parts = name.removeprefix("onkaul-sb-").split("-", 1)
+        if len(parts) != 2:
+            continue
+        user_prefix, repo = parts
+        port_out = subprocess.run(
+            ["docker", "inspect", "--format",
+             "{{range $k,$v := .NetworkSettings.Ports}}{{$k}}|{{(index $v 0).HostPort}}{{end}}",
+             name],
+            capture_output=True, text=True,
+        )
+        host_port = None
+        for entry in port_out.stdout.strip().split():
+            if "/tcp|" in entry:
+                host_port = int(entry.split("|")[1])
+                break
+        if host_port is None:
+            continue
+        local_path_out = subprocess.run(
+            ["docker", "inspect", "--format",
+             "{{range .Mounts}}{{.Source}}{{end}}", name],
+            capture_output=True, text=True,
+        )
+        local_repo_path = local_path_out.stdout.strip()
+        # Read APP_TYPE from container env
+        env_out = subprocess.run(
+            ["docker", "inspect", "--format",
+             "{{range .Config.Env}}{{.}}\n{{end}}", name],
+            capture_output=True, text=True,
+        )
+        app_type = "static"
+        for env_line in env_out.stdout.splitlines():
+            if env_line.startswith("APP_TYPE="):
+                app_type = env_line.removeprefix("APP_TYPE=")
+                break
+        # Find the matching user_id by scanning project dirs for this prefix
+        projects_root = Path(app_config.WORKSPACE_DIR) / "projects"
+        matched_user_id = None
+        if projects_root.exists():
+            for uid_dir in projects_root.iterdir():
+                if uid_dir.name.startswith(user_prefix):
+                    matched_user_id = uid_dir.name
+                    break
+        if matched_user_id is None:
+            matched_user_id = user_prefix  # best effort
+        slot = (matched_user_id, repo)
+        _active[slot] = {
+            "container_name": name,
+            "preview_port": host_port,
+            "local_repo_path": local_repo_path,
+            "app_type": app_type,
+            "status": "running",
+        }
+
+
+# Rebuild on module load (i.e. server startup)
+_rebuild_active_from_docker()
 
 
 def _ensure_image() -> None:
@@ -78,6 +146,13 @@ def _sandbox_repos() -> list[dict]:
 
 PROJECT_META_FILE = ".onkaul-project.json"
 _STATIC_PREVIEW_PORT = 8080
+_DEFAULT_VITE_PORT = 5173
+_DEFAULT_FRONTEND_CMD = "npm install && npm run dev -- --host 0.0.0.0 --port ${PREVIEW_PORT:-5173}"
+_DEFAULT_BACKEND_CMD = (
+    "python3 -m venv .venv && "
+    ".venv/bin/pip install --quiet -r requirements.txt && "
+    ".venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+)
 
 
 def _slugify(name: str) -> str:
@@ -220,6 +295,244 @@ code {
     (path / "app.js").write_text("// Your app starts here\nconsole.log('Project ready!');\n")
 
 
+def _generate_fullstack_python_vite_starter(path: Path, name: str) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    (path / "package.json").write_text(
+        json.dumps(
+            {
+                "name": name.lower().replace(" ", "-"),
+                "private": True,
+                "scripts": {"dev": "vite"},
+                "dependencies": {
+                    "react": "^18.3.1",
+                    "react-dom": "^18.3.1",
+                },
+                "devDependencies": {
+                    "@vitejs/plugin-react": "^4.3.1",
+                    "typescript": "^5.5.3",
+                    "vite": "^5.4.0",
+                },
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    (path / "vite.config.ts").write_text(
+        """import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
+
+// PREVIEW_BASE is injected by the sandbox so that Vite's asset URLs route
+// correctly through the /sandbox/{repo}/preview/ proxy layer.
+// API calls use a relative path (./api/...) so they resolve to
+// {PREVIEW_BASE}api/... and Vite's proxy rewrites them to /api/... before
+// forwarding to the FastAPI backend on port 8000.
+const base = process.env.PREVIEW_BASE || '/'
+
+export default defineConfig({
+  base,
+  plugins: [react()],
+  server: {
+    proxy: {
+      [`${base}api`]: {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (p: string) => p.replace(`${base}api`, '/api'),
+      },
+    },
+  },
+})
+"""
+    )
+    (path / "tsconfig.json").write_text(
+        json.dumps(
+            {
+                "compilerOptions": {
+                    "target": "ES2020",
+                    "useDefineForClassFields": True,
+                    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+                    "module": "ESNext",
+                    "skipLibCheck": True,
+                    "moduleResolution": "bundler",
+                    "allowImportingTsExtensions": True,
+                    "isolatedModules": True,
+                    "moduleDetection": "force",
+                    "noEmit": True,
+                    "jsx": "react-jsx",
+                    "strict": True,
+                },
+                "include": ["src"],
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    (path / "index.html").write_text(
+        f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{name}</title>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
+"""
+    )
+    src = path / "src"
+    src.mkdir(exist_ok=True)
+    (src / "main.tsx").write_text(
+        """import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import App from './App'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+"""
+    )
+    (src / "App.tsx").write_text(
+        f"""import {{ useState }} from 'react'
+
+const steps = [
+  {{
+    num: 1,
+    title: 'Open the terminal',
+    body: (
+      <>
+        on the right and type <Code>claude</Code> to start a coding session.
+      </>
+    ),
+  }},
+  {{
+    num: 2,
+    title: 'Upload assets',
+    body: (
+      <>
+        (images, SVGs, fonts) via the <em>Assets</em> button in the toolbar.
+        Files are saved to <Code>tmp-assets/</Code> and are never committed.
+      </>
+    ),
+  }},
+  {{
+    num: 3,
+    title: 'Call your API',
+    body: (
+      <>
+        FastAPI runs on <Code>/api/*</Code> — try the button below, then ask
+        Claude to add more endpoints.
+      </>
+    ),
+  }},
+]
+
+function Code({{ children }}: {{ children: React.ReactNode }}) {{
+  return (
+    <code style={{{{ background: '#2a2a2e', color: '#7dd3fc', padding: '0.1em 0.4em', borderRadius: 4, fontFamily: "'SF Mono','Fira Code',monospace", fontSize: '0.8em' }}}}>
+      {{children}}
+    </code>
+  )
+}}
+
+export default function App() {{
+  const [result, setResult] = useState<string>('')
+  const [loading, setLoading] = useState(false)
+
+  const callApi = async () => {{
+    setLoading(true)
+    try {{
+      const res = await fetch('./api/hello')
+      setResult(JSON.stringify(await res.json(), null, 2))
+    }} catch (e) {{
+      setResult('Error: ' + (e as Error).message)
+    }} finally {{
+      setLoading(false)
+    }}
+  }}
+
+  return (
+    <div style={{{{ fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', background: '#0f0f10', color: '#e8e8e8', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}}}>
+      <div style={{{{ background: '#1a1a1c', border: '1px solid #2a2a2e', borderRadius: 16, padding: '3rem 4rem', maxWidth: 560, width: '100%' }}}}>
+        <div style={{{{ fontSize: '3rem', marginBottom: '1.5rem' }}}}>⚡</div>
+        <h1 style={{{{ fontSize: '2rem', fontWeight: 700, margin: '0 0 0.5rem' }}}}>{name}</h1>
+        <p style={{{{ color: '#888', margin: '0 0 2rem' }}}}>Your project is ready. Start building with Claude.</p>
+
+        <div style={{{{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '2rem' }}}}>
+          {{steps.map((s) => (
+            <div key={{s.num}} style={{{{ display: 'flex', gap: '1rem', alignItems: 'flex-start', fontSize: '0.875rem', color: '#aaa', lineHeight: 1.6 }}}}>
+              <div style={{{{ flexShrink: 0, width: '1.5rem', height: '1.5rem', borderRadius: '50%', background: '#2a2a2e', color: '#7dd3fc', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '0.1rem' }}}}>
+                {{s.num}}
+              </div>
+              <div><strong style={{{{ color: '#e8e8e8' }}}}>{{s.title}}</strong> {{s.body}}</div>
+            </div>
+          ))}}
+        </div>
+
+        <button
+          onClick={{callApi}}
+          disabled={{loading}}
+          style={{{{ background: '#3b82f6', color: '#fff', border: 'none', padding: '0.6rem 1.2rem', borderRadius: 8, cursor: loading ? 'default' : 'pointer', fontSize: '0.875rem', opacity: loading ? 0.7 : 1 }}}}
+        >
+          {{loading ? 'Calling…' : 'Call /api/hello'}}
+        </button>
+
+        {{result && (
+          <pre style={{{{ marginTop: '1rem', padding: '0.75rem', background: '#0f0f10', borderRadius: 6, fontSize: '0.8rem', color: '#7dd3fc', whiteSpace: 'pre-wrap' }}}}>
+            {{result}}
+          </pre>
+        )}}
+      </div>
+    </div>
+  )
+}}
+"""
+    )
+    app_pkg = path / "app"
+    app_pkg.mkdir(exist_ok=True)
+    (app_pkg / "__init__.py").write_text("")
+    (app_pkg / "main.py").write_text(
+        """from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/api/hello")
+def hello():
+    return {"message": "Hello from FastAPI!"}
+
+
+@app.get("/api/health")
+def health():
+    return {"status": "ok"}
+"""
+    )
+    (path / "requirements.txt").write_text(
+        "fastapi>=0.115.0\nuvicorn[standard]>=0.30.0\n"
+    )
+    (path / ".gitignore").write_text(
+        "# Python\n"
+        ".venv/\n"
+        "__pycache__/\n"
+        "*.pyc\n"
+        "*.pyo\n"
+        ".pytest_cache/\n"
+        ".mypy_cache/\n"
+        ".ruff_cache/\n"
+        "\n"
+        "# Vite / Node\n"
+        "node_modules/\n"
+        "dist/\n"
+        ".vite/\n"
+        "\n"
+        "# Uploaded assets (never committed)\n"
+        "tmp-assets/\n"
+    )
+
+
 @router.get("/repos")
 async def list_sandbox_repos():
     """List all repos that have hotReloadSupport enabled."""
@@ -277,15 +590,23 @@ async def create_user_project(
             raise HTTPException(status_code=500, detail=f"Clone failed: {r.stderr.strip()}")
     elif project_type == "static":
         _generate_static_starter(local_path, name)
+    elif project_type == "fullstack-python-vite":
+        _generate_fullstack_python_vite_starter(local_path, name)
     else:
         local_path.mkdir(parents=True, exist_ok=True)
 
+    is_fullstack = project_type == "fullstack-python-vite"
     meta = {
         "slug": slug,
         "name": name,
         "project_type": project_type,
-        "preview_port": _STATIC_PREVIEW_PORT,
-        "start_command": body.get("start_command") or "",
+        "preview_port": _DEFAULT_VITE_PORT if is_fullstack else _STATIC_PREVIEW_PORT,
+        "start_command": body.get("start_command") or (
+            _DEFAULT_FRONTEND_CMD if is_fullstack else ""
+        ),
+        "backend_start_command": body.get("backend_start_command") or (
+            _DEFAULT_BACKEND_CMD if is_fullstack else ""
+        ),
         "local_path": str(local_path.resolve()),
         "created_at": datetime.utcnow().isoformat(),
     }
@@ -370,17 +691,18 @@ async def start_sandbox(
             "appType": meta["project_type"],
             "previewPort": meta.get("preview_port", _STATIC_PREVIEW_PORT),
             "startCommand": meta.get("start_command", ""),
+            "backendStartCommand": meta.get("backend_start_command", ""),
         }
     preview_port = sb.get("previewPort", 8080)
     container_name = f"onkaul-sb-{user_id[:8]}-{repo}"
 
     env_args: list[str] = [
-        "-e",
-        f"APP_TYPE={sb.get('appType', 'static')}",
-        "-e",
-        f"PREVIEW_PORT={preview_port}",
-        "-e",
-        f"START_COMMAND={sb.get('startCommand', '')}",
+        "-e", f"APP_TYPE={sb.get('appType', 'static')}",
+        "-e", f"PREVIEW_PORT={preview_port}",
+        "-e", f"START_COMMAND={sb.get('startCommand', '')}",
+        "-e", f"FRONTEND_START_COMMAND={sb.get('startCommand', '')}",
+        "-e", f"BACKEND_START_COMMAND={sb.get('backendStartCommand', '')}",
+        "-e", f"PREVIEW_BASE=/sandbox/{repo}/preview/",
     ]
     if app_config.ANTHROPIC_API_KEY:
         env_args += ["-e", f"ANTHROPIC_API_KEY={app_config.ANTHROPIC_API_KEY}"]
@@ -422,12 +744,17 @@ async def start_sandbox(
         "container_name": container_name,
         "preview_port": assigned,
         "local_repo_path": local_repo_path,
+        "app_type": sb.get("appType", "static"),
         "status": "running",
     }
     _active[slot] = info
 
-    # Wait for the preview server inside the container to be ready (up to 15s)
-    await _wait_for_preview(assigned)
+    # Wait for the preview server inside the container to be ready
+    # fullstack-python-vite needs longer due to npm install
+    app_type = sb.get("appType", "static")
+    wait_timeout = 120.0 if app_type == "fullstack-python-vite" else 15.0
+    wait_path = f"/sandbox/{repo}/preview/" if app_type == "fullstack-python-vite" else "/"
+    await _wait_for_preview(assigned, timeout=wait_timeout, path=wait_path)
 
     response = JSONResponse(content=info)
     if is_new_user:
@@ -524,6 +851,10 @@ async def terminal_ws(
                 await websocket.send_bytes(chunk)
             except Exception:
                 break
+        try:
+            await websocket.close()
+        except Exception:
+            pass
 
     async def _relay_input() -> None:
         try:
@@ -615,13 +946,13 @@ async def watch_sandbox(
     )
 
 
-async def _wait_for_preview(port: int, timeout: float = 15.0) -> None:
+async def _wait_for_preview(port: int, timeout: float = 15.0, path: str = "/") -> None:
     """Poll until the preview server on the given port accepts connections."""
     deadline = asyncio.get_running_loop().time() + timeout
     async with httpx.AsyncClient() as client:
         while asyncio.get_running_loop().time() < deadline:
             try:
-                await client.get(f"http://127.0.0.1:{port}/", timeout=1.0)
+                await client.get(f"http://127.0.0.1:{port}{path}", timeout=1.0)
                 return  # server is up
             except httpx.RequestError:
                 await asyncio.sleep(0.5)
@@ -646,7 +977,13 @@ async def preview_proxy(
         raise HTTPException(status_code=503, detail="Sandbox not running — start it first")
 
     qs = request.url.query
-    url = f"http://127.0.0.1:{info['preview_port']}/{path}"
+    # Vite-based types use base=PREVIEW_BASE so they expect the full proxy prefix
+    # in the request path; static/dev-server types serve at / so we strip it.
+    if info.get("app_type") in ("fullstack-python-vite", "dev-server"):
+        vite_path = f"sandbox/{repo}/preview/{path}"
+    else:
+        vite_path = path
+    url = f"http://127.0.0.1:{info['preview_port']}/{vite_path}"
     if qs:
         url += f"?{qs}"
 
@@ -742,6 +1079,11 @@ async def link_repo(
     # Persist to repo_config.json and hot-reload REPOSITORIES so it
     # shows up in the sidebar for all users without a server restart
     org, repo_name = parse_github_url(repo_url)
+    meta = _load_project_meta(user_id, repo)
+    app_type = meta.get("project_type", "static") if meta else "static"
+    preview_port_meta = meta.get("preview_port", _STATIC_PREVIEW_PORT) if meta else _STATIC_PREVIEW_PORT
+    start_cmd = meta.get("start_command", "") if meta else ""
+    backend_cmd = meta.get("backend_start_command", "") if meta else ""
     entry = {
         "name": repo_name,
         "org": org,
@@ -752,9 +1094,10 @@ async def link_repo(
         "context_files": [],
         "hotReloadSupport": True,
         "sandbox": {
-            "appType": "static",
-            "previewPort": _STATIC_PREVIEW_PORT,
-            "startCommand": "",
+            "appType": app_type,
+            "previewPort": preview_port_meta,
+            "startCommand": start_cmd,
+            "backendStartCommand": backend_cmd,
         },
     }
     try:

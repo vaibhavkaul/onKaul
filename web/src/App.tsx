@@ -18,6 +18,7 @@ function projectToSandboxRepo(p: UserProject): SandboxRepo {
       appType: p.project_type,
       previewPort: p.preview_port,
       startCommand: p.start_command,
+      backendStartCommand: p.backend_start_command,
     },
   }
 }

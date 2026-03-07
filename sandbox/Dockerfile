@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -15,8 +15,15 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 # Install serve globally
 RUN npm install -g serve
 
-# Create non-root user — required for Claude Code's --dangerously-skip-permissions flag
-RUN useradd -m -u 1000 -s /bin/bash sandbox-user
+# Python 3.12 (default on Ubuntu 24.04) + pre-installed FastAPI deps for fullstack-python-vite sandboxes
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-venv python3-pip \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip3 install --no-cache-dir --break-system-packages fastapi "uvicorn[standard]"
+
+# Ubuntu 24.04 ships with an 'ubuntu' user at UID 1000 — rename it to sandbox-user
+RUN usermod -l sandbox-user -d /home/sandbox-user -m ubuntu && \
+    groupmod -n sandbox-user ubuntu
 
 # Install Claude Code as sandbox-user so it lands in their home dir
 USER sandbox-user
