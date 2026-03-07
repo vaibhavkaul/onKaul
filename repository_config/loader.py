@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 
 
@@ -84,3 +85,40 @@ def load_repo_config() -> dict:
         if repositories
         else "Repo config is empty. Add repositories or point to a valid config file.",
     }
+
+
+def repo_config_path() -> Path | None:
+    """Return the resolved path to the active repo config file, or None if it doesn't exist."""
+    path_str = os.getenv("REPO_CONFIG_PATH", "").strip()
+    if not path_str:
+        return None  # only the example file — don't write to it
+    path = Path(path_str)
+    if not path.is_absolute():
+        path = Path(__file__).resolve().parents[1] / path
+    return path
+
+
+def parse_github_url(url: str) -> tuple[str, str]:
+    """Return (org, repo_name) parsed from a GitHub URL."""
+    url = url.strip().rstrip("/")
+    m = re.match(r"https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?$", url)
+    if m:
+        return m.group(1), m.group(2)
+    m = re.match(r"git@github\.com:([^/]+)/([^/]+?)(?:\.git)?$", url)
+    if m:
+        return m.group(1), m.group(2)
+    parts = url.split("/")
+    return (parts[-2] if len(parts) >= 2 else ""), parts[-1].replace(".git", "")
+
+
+def add_repo_to_config(key: str, entry: dict) -> None:
+    """Persist a new repository entry to the active repo config JSON file."""
+    path = repo_config_path()
+    if path is None or not path.exists():
+        raise RuntimeError("REPO_CONFIG_PATH is not set or does not exist — cannot persist repo.")
+    with path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    data.setdefault("repositories", {})[key] = entry
+    with path.open("w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")

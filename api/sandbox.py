@@ -16,11 +16,22 @@ from pathlib import Path
 from typing import Any, Optional
 
 import httpx
-from fastapi import APIRouter, Cookie, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    APIRouter,
+    Cookie,
+    File,
+    HTTPException,
+    Request,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
+import repository_config.repositories as _repo_module
 from api.conversation_store import new_user_id
 from config import config as app_config
+from repository_config.loader import add_repo_to_config, parse_github_url
 from repository_config.repositories import REPOSITORIES
 from tools.local_code import ensure_repo
 
@@ -77,6 +88,23 @@ def _user_project_dir(user_id: str, slug: str) -> Path:
     return Path(app_config.WORKSPACE_DIR) / "projects" / user_id / slug
 
 
+def _assets_dir(local_repo_path: str) -> Path:
+    return Path(local_repo_path) / "tmp-assets"
+
+
+def _ensure_assets_gitignore(local_repo_path: str) -> None:
+    """Add tmp-assets/ to .gitignore so uploads are never committed."""
+    gitignore = Path(local_repo_path) / ".gitignore"
+    entry = "tmp-assets/"
+    if gitignore.exists():
+        content = gitignore.read_text()
+        if entry in content.splitlines():
+            return
+        gitignore.write_text(content.rstrip("\n") + f"\n{entry}\n")
+    else:
+        gitignore.write_text(f"{entry}\n")
+
+
 def _load_project_meta(user_id: str, slug: str) -> dict | None:
     meta_file = _user_project_dir(user_id, slug) / PROJECT_META_FILE
     if not meta_file.exists():
@@ -100,8 +128,32 @@ def _generate_static_starter(path: Path, name: str) -> None:
     <div class="card">
       <div class="icon">⚡</div>
       <h1>{name}</h1>
-      <p class="subtitle">Your project is ready.</p>
-      <p class="hint">Open the terminal on the right and type <code>claude</code> to start building.</p>
+      <p class="subtitle">Your project is ready. Start building with Claude.</p>
+      <div class="steps">
+        <div class="step">
+          <span class="step-num">1</span>
+          <div>
+            <strong>Open the terminal</strong> on the right and type
+            <code>claude</code> to start a coding session.
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-num">2</span>
+          <div>
+            <strong>Upload assets</strong> (images, SVGs, fonts) via the
+            <em>Assets</em> button in the toolbar. Files are saved to
+            <code>tmp-assets/</code> inside the project and are instantly
+            available — they are never committed to your repo.
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-num">3</span>
+          <div>
+            <strong>Tell Claude</strong> to use them by path, e.g.
+            <code>use the logo at tmp-assets/logo.svg</code>.
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <script src="app.js"></script>
@@ -120,24 +172,48 @@ body {
   align-items: center;
   justify-content: center;
 }
-.hero { padding: 2rem; text-align: center; }
+.hero { padding: 2rem; }
 .card {
   background: #1a1a1c;
   border: 1px solid #2a2a2e;
   border-radius: 16px;
   padding: 3rem 4rem;
-  max-width: 480px;
+  max-width: 560px;
 }
 .icon { font-size: 3rem; margin-bottom: 1.5rem; }
-h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.75rem; }
-.subtitle { color: #888; margin-bottom: 1.5rem; }
-.hint { color: #666; font-size: 0.875rem; line-height: 1.6; }
+h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+.subtitle { color: #888; margin-bottom: 2rem; }
+.steps { display: flex; flex-direction: column; gap: 1.25rem; text-align: left; }
+.step {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  font-size: 0.875rem;
+  color: #aaa;
+  line-height: 1.6;
+}
+.step-num {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: #2a2a2e;
+  color: #7dd3fc;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.1rem;
+}
+strong { color: #e8e8e8; }
 code {
   background: #2a2a2e;
   color: #7dd3fc;
   padding: 0.1em 0.4em;
   border-radius: 4px;
   font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8em;
 }
 """
     )
@@ -625,7 +701,70 @@ async def git_info(
     branch = _git(["rev-parse", "--abbrev-ref", "HEAD"], local_path).stdout.strip()
     status = _git(["status", "--porcelain"], local_path).stdout.strip()
     changed = [line for line in status.splitlines() if line]
-    return {"branch": branch, "has_changes": len(changed) > 0, "changed_count": len(changed)}
+    remote = _git(["remote", "get-url", "origin"], local_path).stdout.strip()
+    return {
+        "branch": branch,
+        "has_changes": len(changed) > 0,
+        "changed_count": len(changed),
+        "has_remote": bool(remote),
+    }
+
+
+@router.post("/{repo}/link-repo")
+async def link_repo(
+    repo: str,
+    body: dict[str, Any],
+    user_id: Optional[str] = Cookie(default=None, alias=USER_COOKIE),
+):
+    """Set or update the git remote origin for a user project."""
+    info = _require_sandbox(user_id, repo)
+    local_path = info["local_repo_path"]
+    repo_url = (body.get("repo_url") or "").strip()
+    if not repo_url:
+        raise HTTPException(status_code=400, detail="repo_url is required")
+
+    # Init git repo if needed (user projects created from scratch have no git history)
+    if not (Path(local_path) / ".git").exists():
+        r = _git(["init"], local_path)
+        if r.returncode != 0:
+            raise HTTPException(status_code=500, detail=f"git init failed: {r.stderr.strip()}")
+        _git(["add", "-A"], local_path)
+        _git(["commit", "-m", "Initial commit"], local_path)
+
+    existing = _git(["remote", "get-url", "origin"], local_path)
+    if existing.returncode == 0:
+        r = _git(["remote", "set-url", "origin", repo_url], local_path)
+    else:
+        r = _git(["remote", "add", "origin", repo_url], local_path)
+    if r.returncode != 0:
+        raise HTTPException(status_code=500, detail=f"Failed to set remote: {r.stderr.strip()}")
+
+    # Persist to repo_config.json and hot-reload REPOSITORIES so it
+    # shows up in the sidebar for all users without a server restart
+    org, repo_name = parse_github_url(repo_url)
+    entry = {
+        "name": repo_name,
+        "org": org,
+        "description": f"{repo_name} sandbox project",
+        "tech_stack": [],
+        "key_systems": [],
+        "handles": [],
+        "context_files": [],
+        "hotReloadSupport": True,
+        "sandbox": {
+            "appType": "static",
+            "previewPort": _STATIC_PREVIEW_PORT,
+            "startCommand": "",
+        },
+    }
+    try:
+        add_repo_to_config(repo, entry)
+        _repo_module.REPOSITORIES[repo] = entry
+    except RuntimeError:
+        # REPO_CONFIG_PATH not set — skip persistence, still linked in git
+        pass
+
+    return {"status": "linked", "repo_url": repo_url, "key": repo}
 
 
 @router.post("/{repo}/reset")
@@ -692,3 +831,81 @@ async def git_push(
 
     pr_url = r.stdout.strip()
     return {"branch": branch, "pr_url": pr_url}
+
+
+# ---------------------------------------------------------------------------
+# Asset upload
+# ---------------------------------------------------------------------------
+
+_SAFE_FILENAME_RE = re.compile(r"[^\w.\-]")
+_MAX_ASSET_BYTES = 20 * 1024 * 1024  # 20 MB
+
+
+@router.get("/{repo}/assets")
+async def list_assets(
+    repo: str,
+    user_id: Optional[str] = Cookie(default=None, alias=USER_COOKIE),
+):
+    """List files in the tmp-assets folder for this sandbox."""
+    info = _require_sandbox(user_id, repo)
+    adir = _assets_dir(info["local_repo_path"])
+    if not adir.exists():
+        return []
+    return [
+        {
+            "name": f.name,
+            "size": f.stat().st_size,
+            "container_path": f"tmp-assets/{f.name}",
+        }
+        for f in sorted(adir.iterdir())
+        if f.is_file()
+    ]
+
+
+@router.post("/{repo}/assets")
+async def upload_asset(
+    repo: str,
+    file: UploadFile = File(...),
+    user_id: Optional[str] = Cookie(default=None, alias=USER_COOKIE),
+):
+    """Upload a file into tmp-assets/ inside the sandbox repo.
+
+    The folder is gitignored so assets are never committed to the repo.
+    """
+    info = _require_sandbox(user_id, repo)
+    local_repo_path = info["local_repo_path"]
+
+    content = await file.read()
+    if len(content) > _MAX_ASSET_BYTES:
+        raise HTTPException(status_code=413, detail="File exceeds 20 MB limit")
+
+    safe_name = _SAFE_FILENAME_RE.sub("_", file.filename or "upload")
+    adir = _assets_dir(local_repo_path)
+    adir.mkdir(exist_ok=True)
+
+    # Ensure .gitignore excludes this folder
+    _ensure_assets_gitignore(local_repo_path)
+
+    dest = adir / safe_name
+    dest.write_bytes(content)
+
+    return {
+        "name": safe_name,
+        "size": len(content),
+        "container_path": f"tmp-assets/{safe_name}",
+    }
+
+
+@router.delete("/{repo}/assets/{filename}")
+async def delete_asset(
+    repo: str,
+    filename: str,
+    user_id: Optional[str] = Cookie(default=None, alias=USER_COOKIE),
+):
+    """Delete an uploaded asset."""
+    info = _require_sandbox(user_id, repo)
+    safe_name = _SAFE_FILENAME_RE.sub("_", filename)
+    f = _assets_dir(info["local_repo_path"]) / safe_name
+    if f.exists():
+        f.unlink()
+    return {"status": "deleted"}

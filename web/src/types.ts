@@ -36,6 +36,7 @@ export interface GitInfo {
   branch: string
   has_changes: boolean
   changed_count: number
+  has_remote: boolean
 }
 
 export interface PushResult {
@@ -59,4 +60,10 @@ export interface CreateProjectRequest {
   name: string
   project_type: ProjectType
   repo_url?: string
+}
+
+export interface SandboxAsset {
+  name: string
+  size: number
+  container_path: string
 }
