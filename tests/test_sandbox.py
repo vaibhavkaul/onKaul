@@ -2,15 +2,12 @@ from __future__ import annotations
 
 import os
 import subprocess
-import time
-from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
 
 import api.sandbox as sandbox_module
 from api.sandbox import _git, _repo_snapshot, _require_sandbox, _sandbox_repos
-
 
 # ---------------------------------------------------------------------------
 # _sandbox_repos

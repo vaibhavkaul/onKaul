@@ -431,7 +431,7 @@ async def git_info(
     local_path = info["local_repo_path"]
     branch = _git(["rev-parse", "--abbrev-ref", "HEAD"], local_path).stdout.strip()
     status = _git(["status", "--porcelain"], local_path).stdout.strip()
-    changed = [l for l in status.splitlines() if l]
+    changed = [line for line in status.splitlines() if line]
     return {"branch": branch, "has_changes": len(changed) > 0, "changed_count": len(changed)}
 
 
