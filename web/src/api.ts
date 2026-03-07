@@ -1,4 +1,4 @@
-import type { GitInfo, PushResult, SandboxRepo, SandboxStatus, SessionDetail, SessionSummary } from './types'
+import type { CreateProjectRequest, GitInfo, PushResult, SandboxRepo, SandboxStatus, SessionDetail, SessionSummary, UserProject } from './types'
 
 export async function fetchSessions(): Promise<SessionSummary[]> {
   try {
@@ -78,6 +78,29 @@ export async function resetSandbox(repo: string): Promise<void> {
     const err = await res.json().catch(() => ({ detail: 'Reset failed' }))
     throw new Error(err.detail ?? 'Reset failed')
   }
+}
+
+export async function listUserProjects(): Promise<UserProject[]> {
+  try {
+    const res = await fetch('/sandbox/user-projects')
+    if (!res.ok) return []
+    return res.json()
+  } catch {
+    return []
+  }
+}
+
+export async function createUserProject(req: CreateProjectRequest): Promise<UserProject> {
+  const res = await fetch('/sandbox/user-projects', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Failed to create project' }))
+    throw new Error(err.detail ?? 'Failed to create project')
+  }
+  return res.json()
 }
 
 export async function pushSandboxPR(repo: string, prTitle: string, commitMessage: string): Promise<PushResult> {
