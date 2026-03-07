@@ -95,17 +95,18 @@ export default function Sidebar({
 
       {/* Sandboxes section */}
       <>
-        <div className="px-4 pb-1 flex items-center justify-between">
+        <div className="px-4 pb-1">
           <p className="text-[10px] font-semibold text-faint uppercase tracking-widest">Sandboxes</p>
+        </div>
+        <div className="px-3 pb-2">
           <button
             onClick={onNewProject}
-            className="flex items-center gap-1 text-[10px] text-muted hover:text-accent transition-colors"
-            title="New project"
+            className="w-full flex items-center gap-2 text-xs font-semibold text-accent bg-accent/10 hover:bg-accent/20 border border-accent/25 hover:border-accent/40 px-3 py-2 rounded-lg transition-colors"
           >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
             </svg>
-            New
+            New project
           </button>
         </div>
         <div className="px-2 pb-2 space-y-0.5">
@@ -141,12 +142,6 @@ export default function Sidebar({
               <span className="text-xs font-medium truncate">{p.name}</span>
             </button>
           ))}
-          {sandboxRepos.length === 0 && userProjects.length === 0 && (
-            <p className="text-[11px] text-faint px-3 py-2">
-              No sandboxes yet —{' '}
-              <button onClick={onNewProject} className="text-accent hover:underline">create one</button>
-            </p>
-          )}
         </div>
         <div className="mx-4 border-t border-border mb-2" />
       </>
