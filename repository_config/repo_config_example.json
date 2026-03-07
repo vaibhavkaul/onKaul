@@ -31,6 +31,10 @@
       "name": "my-fullstack-app",
       "org": "acme",
       "description": "Fullstack web application with Vite frontend and FastAPI backend",
+      "tech_stack": ["React + TypeScript", "Vite", "Python/FastAPI"],
+      "key_systems": ["Frontend", "API"],
+      "handles": ["UI bugs", "API errors"],
+      "context_files": [],
       "hotReloadSupport": true,
       "sandbox": {
         "appType": "fullstack-python-vite",
