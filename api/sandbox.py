@@ -96,7 +96,9 @@ async def start_sandbox(
     # Clone/pull the repo on the host (FastAPI has git/gh auth; container does not)
     checkout = ensure_repo(repo)
     if "error" in checkout:
-        raise HTTPException(status_code=500, detail=f"Could not check out repo: {checkout['error']}")
+        raise HTTPException(
+            status_code=500, detail=f"Could not check out repo: {checkout['error']}"
+        )
     local_repo_path = str(Path(checkout["path"]).resolve())
 
     sb = repo_cfg["sandbox"]
@@ -104,21 +106,29 @@ async def start_sandbox(
     container_name = f"onkaul-sb-{user_id[:8]}-{repo}"
 
     env_args: list[str] = [
-        "-e", f"APP_TYPE={sb.get('appType', 'static')}",
-        "-e", f"PREVIEW_PORT={preview_port}",
-        "-e", f"START_COMMAND={sb.get('startCommand', '')}",
+        "-e",
+        f"APP_TYPE={sb.get('appType', 'static')}",
+        "-e",
+        f"PREVIEW_PORT={preview_port}",
+        "-e",
+        f"START_COMMAND={sb.get('startCommand', '')}",
     ]
     if app_config.ANTHROPIC_API_KEY:
         env_args += ["-e", f"ANTHROPIC_API_KEY={app_config.ANTHROPIC_API_KEY}"]
 
     result = subprocess.run(
         [
-            "docker", "run", "-d",
-            "--name", container_name,
-            "-p", f"0:{preview_port}",
+            "docker",
+            "run",
+            "-d",
+            "--name",
+            container_name,
+            "-p",
+            f"0:{preview_port}",
             # Mount the host checkout read-write so Claude Code edits are live,
             # but the container has no git credentials to push/pull
-            "-v", f"{local_repo_path}:/workspace/repo",
+            "-v",
+            f"{local_repo_path}:/workspace/repo",
             *env_args,
             SANDBOX_IMAGE,
         ],
@@ -348,7 +358,9 @@ async def _wait_for_preview(port: int, timeout: float = 15.0) -> None:
                 await asyncio.sleep(0.5)
 
 
-@router.api_route("/{repo}/preview/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"])
+@router.api_route(
+    "/{repo}/preview/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"]
+)
 async def preview_proxy(
     request: Request,
     repo: str,
@@ -376,7 +388,11 @@ async def preview_proxy(
                 method=request.method,
                 url=url,
                 content=body,
-                headers={k: v for k, v in request.headers.items() if k.lower() not in ("host", "cookie", "accept-encoding")},
+                headers={
+                    k: v
+                    for k, v in request.headers.items()
+                    if k.lower() not in ("host", "cookie", "accept-encoding")
+                },
                 timeout=10.0,
             )
             return Response(
@@ -391,6 +407,7 @@ async def preview_proxy(
 # ---------------------------------------------------------------------------
 # Git helpers
 # ---------------------------------------------------------------------------
+
 
 def _git(args: list[str], cwd: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
@@ -462,8 +479,20 @@ async def git_push(
         raise HTTPException(status_code=500, detail=f"Push failed: {r.stderr.strip()}")
 
     r = subprocess.run(
-        ["gh", "pr", "create", "--title", pr_title, "--body", "Created from onKaul sandbox", "--head", branch],
-        cwd=local_path, capture_output=True, text=True,
+        [
+            "gh",
+            "pr",
+            "create",
+            "--title",
+            pr_title,
+            "--body",
+            "Created from onKaul sandbox",
+            "--head",
+            branch,
+        ],
+        cwd=local_path,
+        capture_output=True,
+        text=True,
     )
     if r.returncode != 0:
         raise HTTPException(status_code=500, detail=f"PR creation failed: {r.stderr.strip()}")

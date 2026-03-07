@@ -16,6 +16,7 @@ from api.sandbox import _git, _repo_snapshot, _require_sandbox, _sandbox_repos
 # _sandbox_repos
 # ---------------------------------------------------------------------------
 
+
 def test_sandbox_repos_returns_only_hot_reload_repos(monkeypatch):
     fake = {
         "static-site": {
@@ -67,6 +68,7 @@ def test_sandbox_repos_empty_when_no_repos(monkeypatch):
 # ---------------------------------------------------------------------------
 # _repo_snapshot
 # ---------------------------------------------------------------------------
+
 
 def test_repo_snapshot_returns_mtimes(tmp_path):
     (tmp_path / "index.html").write_text("<h1>Hello</h1>")
@@ -123,6 +125,7 @@ def test_repo_snapshot_recurses_subdirectories(tmp_path):
 # _require_sandbox
 # ---------------------------------------------------------------------------
 
+
 def test_require_sandbox_raises_401_without_user(monkeypatch):
     monkeypatch.setattr(sandbox_module, "_active", {})
     with pytest.raises(HTTPException) as exc:
@@ -157,6 +160,7 @@ def test_require_sandbox_matches_exact_slot(monkeypatch):
 # _git
 # ---------------------------------------------------------------------------
 
+
 def test_git_returns_completed_process(tmp_path):
     result = _git(["--version"], str(tmp_path))
     assert isinstance(result, subprocess.CompletedProcess)
@@ -171,7 +175,9 @@ def test_git_fails_on_non_repo(tmp_path):
 def test_git_rev_parse_returns_branch(tmp_path):
     """Full round-trip: init, commit, check branch name."""
     subprocess.run(["git", "init", tmp_path], capture_output=True)
-    subprocess.run(["git", "-C", str(tmp_path), "config", "user.email", "t@t.com"], capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_path), "config", "user.email", "t@t.com"], capture_output=True
+    )
     subprocess.run(["git", "-C", str(tmp_path), "config", "user.name", "T"], capture_output=True)
     (tmp_path / "f.txt").write_text("hi")
     subprocess.run(["git", "-C", str(tmp_path), "add", "."], capture_output=True)
@@ -183,7 +189,9 @@ def test_git_rev_parse_returns_branch(tmp_path):
 
 def test_git_status_porcelain_shows_changes(tmp_path):
     subprocess.run(["git", "init", tmp_path], capture_output=True)
-    subprocess.run(["git", "-C", str(tmp_path), "config", "user.email", "t@t.com"], capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_path), "config", "user.email", "t@t.com"], capture_output=True
+    )
     subprocess.run(["git", "-C", str(tmp_path), "config", "user.name", "T"], capture_output=True)
     f = tmp_path / "f.txt"
     f.write_text("original")
