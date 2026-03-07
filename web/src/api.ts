@@ -90,6 +90,10 @@ export async function listUserProjects(): Promise<UserProject[]> {
   }
 }
 
+export async function deleteUserProject(slug: string): Promise<void> {
+  await fetch(`/sandbox/user-projects/${slug}`, { method: 'DELETE' })
+}
+
 export async function createUserProject(req: CreateProjectRequest): Promise<UserProject> {
   const res = await fetch('/sandbox/user-projects', {
     method: 'POST',

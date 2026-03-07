@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { deleteSession, fetchSessions, listSandboxRepos, listUserProjects } from './api'
+import { deleteSession, deleteUserProject, fetchSessions, listSandboxRepos, listUserProjects } from './api'
 import ChatWindow from './components/ChatWindow'
 import NewProjectModal from './components/NewProjectModal'
 import SandboxView from './components/SandboxView'
@@ -86,6 +86,15 @@ export default function App() {
     setActiveSandboxKey(null)
   }, [])
 
+  const handleDeleteProject = useCallback(
+    async (slug: string) => {
+      await deleteUserProject(slug)
+      setUserProjects((prev) => prev.filter((p) => p.slug !== slug))
+      if (activeSandboxKey === slug) setActiveSandboxKey(null)
+    },
+    [activeSandboxKey],
+  )
+
   const handleProjectCreated = useCallback(
     (project: UserProject) => {
       setUserProjects((prev) => [project, ...prev])
@@ -115,6 +124,7 @@ export default function App() {
         activeSandboxKey={activeSandboxKey}
         onOpenSandbox={handleOpenSandbox}
         onNewProject={() => setShowNewProject(true)}
+        onDeleteProject={handleDeleteProject}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
       />

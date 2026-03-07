@@ -221,6 +221,29 @@ async def create_user_project(
     return response
 
 
+@router.delete("/user-projects/{slug}")
+async def delete_user_project(
+    slug: str,
+    user_id: Optional[str] = Cookie(default=None, alias=USER_COOKIE),
+):
+    """Delete a user-created project and stop its container if running."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="No user session")
+
+    import shutil
+
+    # Stop container if tracked (best-effort — container may already be gone)
+    slot = (user_id, slug)
+    info = _active.pop(slot, None)
+    if info:
+        subprocess.run(["docker", "rm", "-f", info["container_name"]], capture_output=True)
+
+    # Remove project directory (best-effort — may already be gone)
+    local_path = _user_project_dir(user_id, slug)
+    shutil.rmtree(local_path, ignore_errors=True)
+    return {"status": "deleted"}
+
+
 @router.post("/{repo}/start")
 async def start_sandbox(
     repo: str,
