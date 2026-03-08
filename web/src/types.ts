@@ -42,3 +42,21 @@ export interface PushResult {
   branch: string
   pr_url: string
 }
+
+export type ProjectType = 'static'
+
+export interface UserProject {
+  slug: string
+  name: string
+  project_type: ProjectType
+  preview_port: number
+  start_command: string
+  local_path: string
+  created_at: string
+}
+
+export interface CreateProjectRequest {
+  name: string
+  project_type: ProjectType
+  repo_url?: string
+}
