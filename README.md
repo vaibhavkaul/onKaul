@@ -141,6 +141,8 @@ Notes:
    - [docs/integrations-confluence.md](./docs/integrations-confluence.md)
 8. **Troubleshooting** — common errors and fixes
    - [docs/troubleshooting.md](./docs/troubleshooting.md)
+9. **Sandbox** — live preview + Claude Code terminal for repos
+   - [docs/sandbox.md](./docs/sandbox.md)
 
 ## Features
 
@@ -154,6 +156,7 @@ Notes:
 - 📊 Datadog investigations (logs, monitors, metrics, incidents, events)
 - 📎 Attachments: OCR, PDF, and text extraction
 - 🧾 Structured logs for responses and tool usage
+- 🖥️ Sandbox: live preview iframe + Claude Code terminal per repo (hot reload, reset, push PR)
 
 ## Project Policies
 
