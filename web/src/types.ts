@@ -34,7 +34,7 @@ export interface SandboxStatus {
 }
 
 export interface GitInfo {
-  branch: string
+  branch: string | null
   has_changes: boolean
   changed_count: number
   has_remote: boolean

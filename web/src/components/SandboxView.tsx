@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { deleteAsset, getGitInfo, getSandboxStatus, linkSandboxRepo, listAssets, pushSandboxPR, resetSandbox, shareSandbox, startSandbox, stopSandbox, uploadAsset } from '../api'
 import type { GitInfo, PushResult, SandboxAsset, SandboxRepo, SandboxStatus } from '../types'
+import { DEFAULT_DEVICE_IDX, DEVICES } from './devices'
 import Terminal from './Terminal'
-
-const PREVIEW_NATURAL_WIDTH = 1280
 
 interface Props {
   repo: SandboxRepo
@@ -16,7 +15,8 @@ export default function SandboxView({ repo, onClose }: Props) {
   const [error, setError] = useState<string | null>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const previewWrapRef = useRef<HTMLDivElement>(null)
-  const [previewScale, setPreviewScale] = useState(1)
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 })
+  const [deviceIdx, setDeviceIdx] = useState(DEFAULT_DEVICE_IDX)
 
   // Assets state
   const [showAssets, setShowAssets] = useState(false)
@@ -71,11 +71,16 @@ export default function SandboxView({ repo, onClose }: Props) {
     const el = previewWrapRef.current
     if (!el) return
     const ro = new ResizeObserver(() => {
-      setPreviewScale(el.clientWidth / PREVIEW_NATURAL_WIDTH)
+      setContainerSize({ w: el.clientWidth, h: el.clientHeight })
     })
     ro.observe(el)
     return () => ro.disconnect()
   }, [isRunning])
+
+  const device = DEVICES[deviceIdx]
+  const previewScale = containerSize.w > 0 && containerSize.h > 0
+    ? Math.min(containerSize.w / device.width, containerSize.h / device.height) * 0.97
+    : 1
 
   // Hot reload: watch for file changes via SSE and reload the preview iframe
   useEffect(() => {
@@ -272,7 +277,7 @@ export default function SandboxView({ repo, onClose }: Props) {
           <span className="text-sm font-semibold text-text truncate">{repo.name}</span>
           <span className="text-[10px] text-muted font-mono">({repo.org})</span>
 
-          {gitInfo && (
+          {gitInfo?.branch && (
             <span className="flex items-center gap-1 text-[10px] text-sky font-mono bg-sky/10 px-1.5 py-0.5 rounded-full border border-sky/20 flex-shrink-0">
               <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -601,6 +606,18 @@ export default function SandboxView({ repo, onClose }: Props) {
             <div className="px-3 py-1.5 text-[11px] text-faint font-mono bg-panel border-b border-border flex items-center justify-between flex-shrink-0">
               <span>preview — {repo.name}</span>
               <div className="flex items-center gap-2">
+                {/* Device picker */}
+                <select
+                  value={deviceIdx}
+                  onChange={(e) => setDeviceIdx(Number(e.target.value))}
+                  className="text-[11px] bg-surface border border-border text-muted rounded px-1.5 py-0.5 cursor-pointer hover:border-accent/40 focus:outline-none focus:border-accent transition-colors"
+                >
+                  {DEVICES.map((d, i) => (
+                    <option key={d.name} value={i}>
+                      {d.type === 'mobile' ? '📱' : d.type === 'tablet' ? '📟' : d.width >= 1280 ? '🖥' : '💻'} {d.name} ({d.width}×{d.height})
+                    </option>
+                  ))}
+                </select>
                 <span className="text-faint/60">
                   {repo.sandbox.appType === 'fullstack-python-vite'
                     ? 'Vite + FastAPI'
@@ -623,20 +640,31 @@ export default function SandboxView({ repo, onClose }: Props) {
                 </button>
               </div>
             </div>
-            <div ref={previewWrapRef} className="flex-1 overflow-hidden relative bg-white">
-              <iframe
-                ref={iframeRef}
-                src={`/sandbox/${repo.key}/preview/`}
-                style={{
-                  width: `${PREVIEW_NATURAL_WIDTH}px`,
-                  height: previewScale > 0 ? `${100 / previewScale}%` : '100%',
-                  transform: `scale(${previewScale})`,
-                  transformOrigin: 'top left',
-                  border: 'none',
-                }}
-                title={`${repo.name} preview`}
-                sandbox="allow-scripts allow-same-origin allow-forms"
-              />
+            <div ref={previewWrapRef} className="flex-1 overflow-hidden relative flex items-center justify-center" style={{ background: device.type === 'desktop' ? 'white' : 'repeating-conic-gradient(#1a2234 0% 25%, #111827 0% 50%) 0 0 / 16px 16px' }}>
+              <div style={{
+                width: device.width * previewScale,
+                height: device.height * previewScale,
+                flexShrink: 0,
+                position: 'relative',
+                overflow: 'hidden',
+                borderRadius: device.type === 'mobile' ? 12 : device.type === 'tablet' ? 8 : 0,
+                boxShadow: device.type !== 'desktop' ? '0 4px 24px rgba(0,0,0,0.25)' : 'none',
+                background: 'white',
+              }}>
+                <iframe
+                  ref={iframeRef}
+                  src={`/sandbox/${repo.key}/preview/`}
+                  style={{
+                    width: device.width,
+                    height: device.height,
+                    transform: `scale(${previewScale})`,
+                    transformOrigin: 'top left',
+                    border: 'none',
+                  }}
+                  title={`${repo.name} preview`}
+                  sandbox="allow-scripts allow-same-origin allow-forms"
+                />
+              </div>
               {/* Transparent cover prevents iframe from swallowing mouse events during divider drag */}
               {isDraggingDivider && (
                 <div className="absolute inset-0 z-10 cursor-col-resize" />

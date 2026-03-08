@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getSharedSandboxInfo } from '../api'
+import { DEFAULT_DEVICE_IDX, DEVICES } from './devices'
 import Terminal from './Terminal'
-
-const PREVIEW_NATURAL_WIDTH = 1280
 
 interface Props {
   token: string
@@ -13,7 +12,8 @@ export default function SharedSandboxView({ token }: Props) {
   const [error, setError] = useState<string | null>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const previewWrapRef = useRef<HTMLDivElement>(null)
-  const [previewScale, setPreviewScale] = useState(1)
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 })
+  const [deviceIdx, setDeviceIdx] = useState(DEFAULT_DEVICE_IDX)
   const [terminalVisible, setTerminalVisible] = useState(true)
   const [splitPercent, setSplitPercent] = useState(50)
   const isDragging = useRef(false)
@@ -53,11 +53,16 @@ export default function SharedSandboxView({ token }: Props) {
     const el = previewWrapRef.current
     if (!el) return
     const ro = new ResizeObserver(() => {
-      setPreviewScale(el.clientWidth / PREVIEW_NATURAL_WIDTH)
+      setContainerSize({ w: el.clientWidth, h: el.clientHeight })
     })
     ro.observe(el)
     return () => ro.disconnect()
   }, [repoName])
+
+  const device = DEVICES[deviceIdx]
+  const previewScale = containerSize.w > 0 && containerSize.h > 0
+    ? Math.min(containerSize.w / device.width, containerSize.h / device.height) * 0.97
+    : 1
 
   const onDividerMouseDown = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -97,8 +102,19 @@ export default function SharedSandboxView({ token }: Props) {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border bg-panel flex-shrink-0">
         <span className="text-xs font-semibold text-text">{repoName}</span>
-        <span className="text-xs text-muted bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">shared</span>
+        <span className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">shared</span>
         <div className="flex-1" />
+        <select
+          value={deviceIdx}
+          onChange={(e) => setDeviceIdx(Number(e.target.value))}
+          className="text-[11px] bg-surface border border-border text-muted rounded px-1.5 py-0.5 cursor-pointer hover:border-accent/40 focus:outline-none focus:border-accent transition-colors"
+        >
+          {DEVICES.map((d, i) => (
+            <option key={d.name} value={i}>
+              {d.type === 'mobile' ? '📱' : d.type === 'tablet' ? '📟' : d.width >= 1280 ? '🖥' : '💻'} {d.name} ({d.width}×{d.height})
+            </option>
+          ))}
+        </select>
         <button
           onClick={() => setTerminalVisible((v) => !v)}
           className="text-xs text-muted hover:text-text px-2.5 py-1.5 rounded-lg hover:bg-border border border-border transition-colors"
@@ -110,19 +126,37 @@ export default function SharedSandboxView({ token }: Props) {
       {/* Split panes */}
       <div ref={splitContainerRef} className="flex flex-1 overflow-hidden">
         {/* Preview */}
-        <div ref={previewWrapRef} className="relative overflow-hidden flex-shrink-0 h-full bg-white" style={{ width: terminalVisible ? `${splitPercent}%` : '100%' }}>
-          <iframe
-            ref={iframeRef}
-            src={`/sandbox/shared/${token}/preview/`}
-            title="Preview"
-            style={{
-              width: PREVIEW_NATURAL_WIDTH,
-              height: previewScale > 0 ? `${100 / previewScale}%` : '100%',
-              border: 'none',
-              transformOrigin: 'top left',
-              transform: `scale(${previewScale})`,
-            }}
-          />
+        <div
+          ref={previewWrapRef}
+          className="relative overflow-hidden flex-shrink-0 h-full flex items-center justify-center"
+          style={{
+            width: terminalVisible ? `${splitPercent}%` : '100%',
+            background: device.type === 'desktop' ? 'white' : 'repeating-conic-gradient(#1a2234 0% 25%, #111827 0% 50%) 0 0 / 16px 16px',
+          }}
+        >
+          <div style={{
+            width: device.width * previewScale,
+            height: device.height * previewScale,
+            flexShrink: 0,
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: device.type === 'mobile' ? 12 : device.type === 'tablet' ? 8 : 0,
+            boxShadow: device.type !== 'desktop' ? '0 4px 24px rgba(0,0,0,0.25)' : 'none',
+            background: 'white',
+          }}>
+            <iframe
+              ref={iframeRef}
+              src={`/sandbox/shared/${token}/preview/`}
+              title="Preview"
+              style={{
+                width: device.width,
+                height: device.height,
+                border: 'none',
+                transformOrigin: 'top left',
+                transform: `scale(${previewScale})`,
+              }}
+            />
+          </div>
         </div>
 
         {/* Divider */}

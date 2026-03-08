@@ -1190,6 +1190,23 @@ async def git_info(
 ):
     info = _require_sandbox(user_id, repo)
     local_path = info["local_repo_path"]
+
+    # Configured repos (from repo_config) always have a known remote.
+    # User-created projects start with no git until they link one.
+    repo_cfg = _repo_module.REPOSITORIES.get(repo)
+    is_configured = bool(repo_cfg and repo_cfg.get("hotReloadSupport"))
+
+    # Only run git inside the exact directory — never let git traverse up to a
+    # parent repo (which would pick up the onKaul host repo by accident).
+    has_git = (Path(local_path) / ".git").exists()
+    if not has_git:
+        return {
+            "branch": None,
+            "has_changes": False,
+            "changed_count": 0,
+            "has_remote": is_configured,
+        }
+
     branch = _git(["rev-parse", "--abbrev-ref", "HEAD"], local_path).stdout.strip()
     status = _git(["status", "--porcelain"], local_path).stdout.strip()
     changed = [line for line in status.splitlines() if line]
@@ -1198,7 +1215,7 @@ async def git_info(
         "branch": branch,
         "has_changes": len(changed) > 0,
         "changed_count": len(changed),
-        "has_remote": bool(remote),
+        "has_remote": bool(remote) or is_configured,
     }
 
 
@@ -1274,6 +1291,8 @@ async def git_reset(
 ):
     info = _require_sandbox(user_id, repo)
     local_path = info["local_repo_path"]
+    if not (Path(local_path) / ".git").exists():
+        raise HTTPException(status_code=400, detail="No git repo — nothing to reset")
     _git(["reset", "--hard", "HEAD"], local_path)
     _git(["clean", "-fd"], local_path)
     return {"status": "reset"}
