@@ -1,6 +1,6 @@
 # onKaul
 
-onKaul is an open-source developer assistant that can investigate issues, analyze code, and provide actionable guidance via Slack, Jira, or a local CLI.
+onKaul is an open-source developer assistant with two modes: an **AI investigation & fix agent** that connects to your tooling (Slack, Jira, Sentry, Datadog, GitHub), and a **cloud sandbox** that gives every repo a live preview + Claude Code terminal in the browser — with multiplayer support so two people can code together in the same session.
 
 ## Status
 
@@ -8,10 +8,20 @@ onKaul is an open-source developer assistant that can investigate issues, analyz
 
 ## What You Can Do
 
-- Investigate incidents using Sentry/Datadog
+### AI Investigation & Fix Agent
+- Investigate incidents using Sentry/Datadog — pull stacktraces, correlate logs, find root causes
 - Search and read code across your repositories
-- Ask questions in Slack/Jira and get formatted responses
+- Ask questions in Slack/Jira and get formatted, cited responses
 - Plan fixes and open PRs automatically
+
+### Cloud Sandbox (Web UI)
+- Spin up a live preview + Claude Code terminal for any repo in one click
+- Create new projects from scratch (Static, Vite/React, or Fullstack Vite + FastAPI)
+- Claude auto-launches inside the sandbox with full permissions — just start coding
+- Upload assets (images, files up to 20MB) directly into the sandbox
+- Push changes to a new GitHub branch and open a PR from the UI
+- **Share a session** — generate a URL and anyone with the link gets the same live preview + a shared terminal (real-time multiplayer coding via tmux)
+- Preview how your app looks on 9 device presets: 4K, 2K, FHD, Desktop, Laptop, iPad, iPhone 15, Pixel 8, Galaxy S24
 
 ## Start Here
 
@@ -146,6 +156,7 @@ Notes:
 
 ## Features
 
+### AI Agent
 - 🤖 Anthropic or OpenAI for core investigations (configurable)
 - 🧠 Codex/Claude headless execution for planning and code edits
 - 🧵 Slack and Jira integrations with structured, formatted responses
@@ -156,7 +167,20 @@ Notes:
 - 📊 Datadog investigations (logs, monitors, metrics, incidents, events)
 - 📎 Attachments: OCR, PDF, and text extraction
 - 🧾 Structured logs for responses and tool usage
-- 🖥️ Sandbox: live preview iframe + Claude Code terminal per repo (hot reload, reset, push PR)
+
+### Sandbox (Web UI)
+- 🖥️ Live preview iframe with hot reload (SSE file watching) + resizable split pane
+- 🤖 Claude Code terminal — auto-launches with `bypassPermissions` so Claude can code immediately
+- 📁 Three project types: Static HTML, Vite/React, Fullstack (Vite + FastAPI)
+- ✨ New project creation from scratch — no repo required to start
+- 🔗 Link an existing GitHub repo to any project and push PRs from the UI
+- 🗑️ Delete projects directly from the sidebar
+- 📤 Asset upload — drag-and-drop files (images, etc.) up to 20 MB, 20 files per sandbox
+- 🔄 Reset sandbox to last commit with one click
+- 🚀 Push to PR — creates a new branch, commits all changes, pushes, and opens a GitHub PR
+- 🔗 Shareable URLs — generate a token link; anyone with it gets the live preview + terminal
+- 👥 Multiplayer coding — shared tmux session means both users type and see the same Claude Code terminal in real time
+- 📱 Device preview — 9 presets (4K → Galaxy S24); each viewer picks independently
 
 ## Project Policies
 
