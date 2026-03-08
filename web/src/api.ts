@@ -1,4 +1,4 @@
-import type { CreateProjectRequest, GitInfo, PushResult, SandboxAsset, SandboxRepo, SandboxStatus, SessionDetail, SessionSummary, UserProject } from './types'
+import type { CreateProjectRequest, GitInfo, PushResult, SandboxAsset, SandboxRepo, SandboxStatus, SessionDetail, SessionSummary, ShareInfo, SharedSandboxInfo, UserProject } from './types'
 
 export async function fetchSessions(): Promise<SessionSummary[]> {
   try {
@@ -141,6 +141,27 @@ export async function linkSandboxRepo(repo: string, repoUrl: string): Promise<vo
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Failed to link repo' }))
     throw new Error(err.detail ?? 'Failed to link repo')
+  }
+}
+
+export async function shareSandbox(repo: string): Promise<ShareInfo> {
+  const res = await fetch(`/sandbox/${repo}/share`, { method: 'POST' })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Failed to create share link' }))
+    throw new Error(err.detail ?? 'Failed to create share link')
+  }
+  const { token } = await res.json()
+  const url = `${window.location.origin}/shared/${token}`
+  return { token, url }
+}
+
+export async function getSharedSandboxInfo(token: string): Promise<SharedSandboxInfo | null> {
+  try {
+    const res = await fetch(`/sandbox/shared/${token}/info`)
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
   }
 }
 

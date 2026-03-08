@@ -11,6 +11,7 @@ import re
 import struct
 import subprocess
 import termios
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -44,6 +45,9 @@ SANDBOX_DOCKERFILE_DIR = str(Path(__file__).resolve().parents[1] / "sandbox")
 # Active sandboxes: (user_id, repo_key) -> {container_name, preview_port}
 # Rebuilt from Docker on startup so server restarts don't lose running containers.
 _active: dict[tuple[str, str], dict] = {}
+
+# Share tokens: token -> (user_id, repo_key). In-memory; reset on server restart.
+_share_tokens: dict[str, tuple[str, str]] = {}
 
 
 def _rebuild_active_from_docker() -> None:
@@ -800,36 +804,35 @@ async def sandbox_status(
     return {"status": "running", **info}
 
 
-@router.websocket("/{repo}/terminal")
-async def terminal_ws(
-    websocket: WebSocket,
-    repo: str,
-    user_id: Optional[str] = Cookie(default=None, alias=USER_COOKIE),
-):
+async def _run_terminal_session(websocket: WebSocket, container_name: str) -> None:
     """
-    WebSocket terminal relay. Opens a PTY via `docker exec` into the sandbox
-    container and relays bytes bidirectionally. Accepts a JSON resize message:
+    Core PTY relay: attaches to the container's shared tmux session and relays
+    bytes bidirectionally over the WebSocket. Accepts a JSON resize message:
 
         {"type": "resize", "cols": 120, "rows": 40}
+
+    All callers (owner and share-link guests) attach to the same tmux session
+    named "main", enabling real-time collaborative terminals.
     """
-    await websocket.accept()
+    # Ensure the tmux session exists (idempotent if already running)
+    subprocess.run(
+        ["docker", "exec", container_name, "tmux", "new-session", "-d", "-s", "main"],
+        capture_output=True,
+    )
+    # Hide tmux chrome so the terminal looks like a plain shell
+    for tmux_opt in [
+        ["set", "-g", "status", "off"],
+        ["set", "-g", "pane-border-style", "fg=black"],
+        ["set", "-g", "pane-active-border-style", "fg=black"],
+    ]:
+        subprocess.run(
+            ["docker", "exec", container_name, "tmux", *tmux_opt],
+            capture_output=True,
+        )
 
-    if not user_id:
-        await websocket.close(code=1008, reason="No user session")
-        return
-
-    slot = (user_id, repo)
-    info = _active.get(slot)
-    if not info:
-        await websocket.close(code=1008, reason="No active sandbox")
-        return
-
-    container_name = info["container_name"]
-
-    # Open a pseudo-terminal pair
     master_fd, slave_fd = pty.openpty()
     proc = subprocess.Popen(
-        ["docker", "exec", "-it", container_name, "bash"],
+        ["docker", "exec", "-it", container_name, "tmux", "attach-session", "-t", "main"],
         stdin=slave_fd,
         stdout=slave_fd,
         stderr=slave_fd,
@@ -872,7 +875,6 @@ async def terminal_ws(
                 raw: bytes = msg.get("bytes") or (msg.get("text") or "").encode()
                 if not raw:
                     continue
-                # Check for a resize control message
                 try:
                     parsed = json.loads(raw)
                     if parsed.get("type") == "resize":
@@ -902,6 +904,27 @@ async def terminal_ws(
             proc.terminate()
         except Exception:
             pass
+
+
+@router.websocket("/{repo}/terminal")
+async def terminal_ws(
+    websocket: WebSocket,
+    repo: str,
+    user_id: Optional[str] = Cookie(default=None, alias=USER_COOKIE),
+):
+    await websocket.accept()
+
+    if not user_id:
+        await websocket.close(code=1008, reason="No user session")
+        return
+
+    slot = (user_id, repo)
+    info = _active.get(slot)
+    if not info:
+        await websocket.close(code=1008, reason="No active sandbox")
+        return
+
+    await _run_terminal_session(websocket, info["container_name"])
 
 
 def _repo_snapshot(path: str) -> dict[str, float]:
@@ -951,6 +974,131 @@ async def watch_sandbox(
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+# ---------------------------------------------------------------------------
+# Multiplayer: share tokens
+# ---------------------------------------------------------------------------
+
+
+@router.post("/{repo}/share")
+async def share_sandbox(
+    repo: str,
+    user_id: Optional[str] = Cookie(default=None, alias=USER_COOKIE),
+):
+    """Generate a share token for the running sandbox. Anyone with the token
+    gets access to the same preview and shared tmux terminal session."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="No user session")
+    if not _active.get((user_id, repo)):
+        raise HTTPException(status_code=503, detail="Sandbox not running")
+    token = str(uuid.uuid4())
+    _share_tokens[token] = (user_id, repo)
+    return {"token": token}
+
+
+@router.get("/shared/{token}/info")
+async def shared_sandbox_info(token: str):
+    """Resolve a share token to basic sandbox metadata for the guest UI."""
+    slot = _share_tokens.get(token)
+    if not slot:
+        raise HTTPException(status_code=404, detail="Share link not found or expired")
+    user_id, repo = slot
+    info = _active.get((user_id, repo))
+    if not info:
+        raise HTTPException(status_code=503, detail="Sandbox is not currently running")
+    return {"repo": repo, "app_type": info.get("app_type", "static")}
+
+
+@router.get("/shared/{token}/watch")
+async def shared_watch(token: str):
+    """SSE hot-reload stream for a shared sandbox."""
+    slot = _share_tokens.get(token)
+    if not slot:
+        raise HTTPException(status_code=404, detail="Share link not found")
+    user_id, repo = slot
+    info = _active.get((user_id, repo))
+    if not info:
+        raise HTTPException(status_code=503, detail="Sandbox not running")
+    local_path = info["local_repo_path"]
+
+    async def event_stream():
+        yield "data: connected\n\n"
+        prev = await asyncio.to_thread(_repo_snapshot, local_path)
+        while True:
+            await asyncio.sleep(1.0)
+            if _active.get((user_id, repo)) is None:
+                break
+            curr = await asyncio.to_thread(_repo_snapshot, local_path)
+            if curr != prev:
+                prev = curr
+                yield "data: reload\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.api_route(
+    "/shared/{token}/preview/{path:path}",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+)
+async def shared_preview_proxy(request: Request, token: str, path: str = ""):
+    """HTTP proxy to the preview server for a shared sandbox."""
+    slot = _share_tokens.get(token)
+    if not slot:
+        raise HTTPException(status_code=404, detail="Share link not found")
+    user_id, repo = slot
+    info = _active.get((user_id, repo))
+    if not info:
+        raise HTTPException(status_code=503, detail="Sandbox not running")
+    qs = request.url.query
+    if info.get("app_type") in ("fullstack-python-vite", "dev-server"):
+        vite_path = f"sandbox/shared/{token}/preview/{path}"
+    else:
+        vite_path = path
+    url = f"http://127.0.0.1:{info['preview_port']}/{vite_path}"
+    if qs:
+        url += f"?{qs}"
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        try:
+            body = await request.body()
+            resp = await client.request(
+                method=request.method,
+                url=url,
+                content=body,
+                headers={
+                    k: v
+                    for k, v in request.headers.items()
+                    if k.lower() not in ("host", "cookie", "accept-encoding")
+                },
+                timeout=10.0,
+            )
+            return Response(
+                content=resp.content,
+                status_code=resp.status_code,
+                media_type=resp.headers.get("content-type"),
+            )
+        except httpx.RequestError as exc:
+            raise HTTPException(status_code=502, detail=f"Preview server unreachable: {exc}")
+
+
+@router.websocket("/shared/{token}/terminal")
+async def shared_terminal_ws(websocket: WebSocket, token: str):
+    """WebSocket terminal relay for guests. Attaches to the same tmux session as the owner."""
+    await websocket.accept()
+    slot = _share_tokens.get(token)
+    if not slot:
+        await websocket.close(code=1008, reason="Share link not found")
+        return
+    user_id, repo = slot
+    info = _active.get((user_id, repo))
+    if not info:
+        await websocket.close(code=1008, reason="Sandbox not running")
+        return
+    await _run_terminal_session(websocket, info["container_name"])
 
 
 async def _wait_for_preview(port: int, timeout: float = 15.0, path: str = "/") -> None:

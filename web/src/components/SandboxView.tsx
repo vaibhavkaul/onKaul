@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { deleteAsset, getGitInfo, getSandboxStatus, linkSandboxRepo, listAssets, pushSandboxPR, resetSandbox, startSandbox, stopSandbox, uploadAsset } from '../api'
+import { deleteAsset, getGitInfo, getSandboxStatus, linkSandboxRepo, listAssets, pushSandboxPR, resetSandbox, shareSandbox, startSandbox, stopSandbox, uploadAsset } from '../api'
 import type { GitInfo, PushResult, SandboxAsset, SandboxRepo, SandboxStatus } from '../types'
 import Terminal from './Terminal'
 
@@ -31,6 +31,11 @@ export default function SandboxView({ repo, onClose }: Props) {
   const [isDraggingDivider, setIsDraggingDivider] = useState(false)
   const splitContainerRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
+
+  // Share state
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [sharing, setSharing] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
 
   // Git state
   const [gitInfo, setGitInfo] = useState<GitInfo | null>(null)
@@ -114,6 +119,22 @@ export default function SandboxView({ repo, onClose }: Props) {
     setPushResult(null)
     setShowPushForm(false)
     setResetConfirm(false)
+    setShareUrl(null)
+  }, [repo.key])
+
+  const handleShare = useCallback(async () => {
+    setSharing(true)
+    try {
+      const info = await shareSandbox(repo.key)
+      setShareUrl(info.url)
+      await navigator.clipboard.writeText(info.url)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2500)
+    } catch {
+      // ignore
+    } finally {
+      setSharing(false)
+    }
   }, [repo.key])
 
   const refreshAssets = useCallback(() => {
@@ -376,6 +397,18 @@ export default function SandboxView({ repo, onClose }: Props) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Reload
+              </button>
+
+              <button
+                onClick={handleShare}
+                disabled={sharing}
+                className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 px-2.5 py-1.5 rounded-lg hover:bg-emerald-500/10 border border-emerald-500/20 transition-colors disabled:opacity-60"
+                title={shareUrl ?? 'Share this sandbox'}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                {shareCopied ? 'Copied!' : sharing ? 'Sharing…' : shareUrl ? 'Copy link' : 'Share'}
               </button>
 
               <button

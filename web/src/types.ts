@@ -71,3 +71,13 @@ export interface SandboxAsset {
   size: number
   container_path: string
 }
+
+export interface ShareInfo {
+  token: string
+  url: string
+}
+
+export interface SharedSandboxInfo {
+  repo: string
+  app_type: string
+}

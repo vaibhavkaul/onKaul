@@ -6,9 +6,10 @@ import { useEffect, useRef } from 'react'
 interface Props {
   repo: string
   isRunning: boolean
+  wsPath?: string
 }
 
-export default function Terminal({ repo, isRunning }: Props) {
+export default function Terminal({ repo, isRunning, wsPath }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -43,7 +44,8 @@ export default function Terminal({ repo, isRunning }: Props) {
     fitAddon.fit()
 
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const ws = new WebSocket(`${protocol}//${location.host}/sandbox/${repo}/terminal`)
+    const path = wsPath ?? `/sandbox/${repo}/terminal`
+    const ws = new WebSocket(`${protocol}//${location.host}${path}`)
     ws.binaryType = 'arraybuffer'
 
     ws.onopen = () => {
@@ -87,7 +89,7 @@ export default function Terminal({ repo, isRunning }: Props) {
       ws.close()
       term.dispose()
     }
-  }, [repo, isRunning])
+  }, [repo, isRunning, wsPath])
 
   return <div ref={containerRef} className="w-full h-full" />
 }

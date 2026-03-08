@@ -5,8 +5,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/web': { target: 'http://localhost:8000', changeOrigin: true },
-      '/sandbox': { target: 'http://localhost:8000', changeOrigin: true, ws: true },
+      '/web': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/sandbox': { target: 'http://127.0.0.1:8000', changeOrigin: true, ws: true },
     },
   },
 })

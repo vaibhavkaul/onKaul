@@ -5,6 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
+    tmux \
     && rm -rf /var/lib/apt/lists/*
 
 # Node.js LTS (needed for static serving, Vite dev servers, and other npm-based apps)
