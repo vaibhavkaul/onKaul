@@ -7,6 +7,7 @@ import fcntl
 import json
 import os
 import pty
+import re
 import struct
 import subprocess
 import termios
@@ -64,10 +65,183 @@ def _sandbox_repos() -> list[dict]:
     ]
 
 
+PROJECT_META_FILE = ".onkaul-project.json"
+_STATIC_PREVIEW_PORT = 8080
+
+
+def _slugify(name: str) -> str:
+    return re.sub(r"[^a-z0-9-]+", "-", name.lower().strip()).strip("-")[:64]
+
+
+def _user_project_dir(user_id: str, slug: str) -> Path:
+    return Path(app_config.WORKSPACE_DIR) / "projects" / user_id / slug
+
+
+def _load_project_meta(user_id: str, slug: str) -> dict | None:
+    meta_file = _user_project_dir(user_id, slug) / PROJECT_META_FILE
+    if not meta_file.exists():
+        return None
+    return json.loads(meta_file.read_text())
+
+
+def _generate_static_starter(path: Path, name: str) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    (path / "index.html").write_text(
+        f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{name}</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="hero">
+    <div class="card">
+      <div class="icon">⚡</div>
+      <h1>{name}</h1>
+      <p class="subtitle">Your project is ready.</p>
+      <p class="hint">Open the terminal on the right and type <code>claude</code> to start building.</p>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
+"""
+    )
+    (path / "style.css").write_text(
+        """*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0f0f10;
+  color: #e8e8e8;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero { padding: 2rem; text-align: center; }
+.card {
+  background: #1a1a1c;
+  border: 1px solid #2a2a2e;
+  border-radius: 16px;
+  padding: 3rem 4rem;
+  max-width: 480px;
+}
+.icon { font-size: 3rem; margin-bottom: 1.5rem; }
+h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.75rem; }
+.subtitle { color: #888; margin-bottom: 1.5rem; }
+.hint { color: #666; font-size: 0.875rem; line-height: 1.6; }
+code {
+  background: #2a2a2e;
+  color: #7dd3fc;
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+"""
+    )
+    (path / "app.js").write_text("// Your app starts here\nconsole.log('Project ready!');\n")
+
+
 @router.get("/repos")
 async def list_sandbox_repos():
     """List all repos that have hotReloadSupport enabled."""
     return _sandbox_repos()
+
+
+@router.get("/user-projects")
+async def list_user_projects(
+    user_id: Optional[str] = Cookie(default=None, alias=USER_COOKIE),
+):
+    """List all user-created sandbox projects."""
+    if not user_id:
+        return []
+    projects_root = Path(app_config.WORKSPACE_DIR) / "projects" / user_id
+    if not projects_root.exists():
+        return []
+    results = []
+    for meta_file in sorted(projects_root.glob(f"*/{PROJECT_META_FILE}")):
+        try:
+            results.append(json.loads(meta_file.read_text()))
+        except Exception:
+            pass
+    return results
+
+
+@router.post("/user-projects")
+async def create_user_project(
+    body: dict[str, Any],
+    user_id: Optional[str] = Cookie(default=None, alias=USER_COOKIE),
+):
+    """Create a new user-owned sandbox project."""
+    is_new_user = user_id is None
+    if user_id is None:
+        user_id = new_user_id()
+
+    name = (body.get("name") or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Project name is required")
+
+    project_type = body.get("project_type") or "static"
+    repo_url = (body.get("repo_url") or "").strip()
+    slug = _slugify(name)
+    local_path = _user_project_dir(user_id, slug)
+
+    if local_path.exists():
+        raise HTTPException(status_code=409, detail=f"A project named '{slug}' already exists")
+
+    if repo_url:
+        r = subprocess.run(
+            ["git", "clone", repo_url, str(local_path)],
+            capture_output=True,
+            text=True,
+        )
+        if r.returncode != 0:
+            raise HTTPException(status_code=500, detail=f"Clone failed: {r.stderr.strip()}")
+    elif project_type == "static":
+        _generate_static_starter(local_path, name)
+    else:
+        local_path.mkdir(parents=True, exist_ok=True)
+
+    meta = {
+        "slug": slug,
+        "name": name,
+        "project_type": project_type,
+        "preview_port": _STATIC_PREVIEW_PORT,
+        "start_command": body.get("start_command") or "",
+        "local_path": str(local_path.resolve()),
+        "created_at": datetime.utcnow().isoformat(),
+    }
+    (local_path / PROJECT_META_FILE).write_text(json.dumps(meta, indent=2))
+
+    response = JSONResponse(content=meta, status_code=201)
+    if is_new_user:
+        response.set_cookie(USER_COOKIE, user_id, max_age=86400, httponly=False, samesite="lax")
+    return response
+
+
+@router.delete("/user-projects/{slug}")
+async def delete_user_project(
+    slug: str,
+    user_id: Optional[str] = Cookie(default=None, alias=USER_COOKIE),
+):
+    """Delete a user-created project and stop its container if running."""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="No user session")
+
+    import shutil
+
+    # Stop container if tracked (best-effort — container may already be gone)
+    slot = (user_id, slug)
+    info = _active.pop(slot, None)
+    if info:
+        subprocess.run(["docker", "rm", "-f", info["container_name"]], capture_output=True)
+
+    # Remove project directory (best-effort — may already be gone)
+    local_path = _user_project_dir(user_id, slug)
+    shutil.rmtree(local_path, ignore_errors=True)
+    return {"status": "deleted"}
 
 
 @router.post("/{repo}/start")
@@ -95,24 +269,32 @@ async def start_sandbox(
         subprocess.run(["docker", "rm", "-f", existing["container_name"]], capture_output=True)
         del _active[slot]
 
-    repo_cfg = REPOSITORIES.get(repo)
-    if not repo_cfg or not repo_cfg.get("hotReloadSupport"):
-        raise HTTPException(status_code=404, detail="Sandbox not available for this repo")
-
     try:
         _ensure_image()
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    # Clone/pull the repo on the host (FastAPI has git/gh auth; container does not)
-    checkout = ensure_repo(repo)
-    if "error" in checkout:
-        raise HTTPException(
-            status_code=500, detail=f"Could not check out repo: {checkout['error']}"
-        )
-    local_repo_path = str(Path(checkout["path"]).resolve())
-
-    sb = repo_cfg["sandbox"]
+    repo_cfg = REPOSITORIES.get(repo)
+    if repo_cfg and repo_cfg.get("hotReloadSupport"):
+        # Configured repo — check it out on the host
+        checkout = ensure_repo(repo)
+        if "error" in checkout:
+            raise HTTPException(
+                status_code=500, detail=f"Could not check out repo: {checkout['error']}"
+            )
+        local_repo_path = str(Path(checkout["path"]).resolve())
+        sb = repo_cfg["sandbox"]
+    else:
+        # User-created project
+        meta = _load_project_meta(user_id, repo)
+        if meta is None:
+            raise HTTPException(status_code=404, detail="Sandbox not available for this key")
+        local_repo_path = meta["local_path"]
+        sb = {
+            "appType": meta["project_type"],
+            "previewPort": meta.get("preview_port", _STATIC_PREVIEW_PORT),
+            "startCommand": meta.get("start_command", ""),
+        }
     preview_port = sb.get("previewPort", 8080)
     container_name = f"onkaul-sb-{user_id[:8]}-{repo}"
 
