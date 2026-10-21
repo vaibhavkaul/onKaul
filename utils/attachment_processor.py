@@ -34,12 +34,20 @@ class AttachmentProcessor:
 
         try:
             # Download file
+            # Slack serves url_private via a redirect; httpx drops the auth
+            # header if the redirect leaves the original host.
             response = httpx.get(
                 url,
                 headers={"Authorization": f"Bearer {slack_token}"},
                 timeout=30.0,
+                follow_redirects=True,
             )
             response.raise_for_status()
+            if "text/html" in response.headers.get("content-type", "") and filetype != "html":
+                return {
+                    "error": "Slack returned an HTML page instead of the file "
+                    "(check the bot token has the files:read scope)"
+                }
             file_bytes = response.content
 
             # Process based on type
@@ -91,7 +99,7 @@ class AttachmentProcessor:
 
         try:
             # Download file
-            response = httpx.get(url, auth=jira_auth, timeout=30.0)
+            response = httpx.get(url, auth=jira_auth, timeout=30.0, follow_redirects=True)
             response.raise_for_status()
             file_bytes = response.content
 

@@ -9,6 +9,7 @@ from config import config
 from utils.jira_formatter import markdown_to_adf
 from utils.logger import logger
 from utils.slack_formatter import format_for_slack
+from utils.slack_messages import thread_to_history
 
 
 def handle_slack_mention(
@@ -42,7 +43,11 @@ def handle_slack_mention(
     try:
         # The fetched thread ends with the current @mention; prior turns go to the
         # agent as conversation history.
-        thread_history = thread_context[:-1] if thread_context else None
+        thread_history = (
+            thread_to_history(thread_context[:-1], slack.get_own_bot_id())
+            if thread_context
+            else None
+        )
         context = ""
 
         # Add attachment text to context if available
