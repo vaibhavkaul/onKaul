@@ -43,14 +43,22 @@ class _FakeMessagesAPI:
         self._create_responses = list(create_responses or [])
         self._stream_responses = list(stream_responses or [])
         self._create_error = create_error
+        self.calls: list[dict] = []
 
     def create(self, **_kwargs):
         if self._create_error is not None:
             raise self._create_error
         return self._create_responses.pop(0)
 
-    def stream(self, **_kwargs):
-        response, text_chunks = self._stream_responses.pop(0)
+    def stream(self, **kwargs):
+        self.calls.append(kwargs)
+        if self._create_error is not None:
+            raise self._create_error
+        if self._stream_responses:
+            response, text_chunks = self._stream_responses.pop(0)
+        else:
+            # investigate() streams too; serve the queued "create" responses.
+            response, text_chunks = self._create_responses.pop(0), []
         return _FakeStreamCtx(response, text_chunks)
 
 
@@ -190,12 +198,10 @@ def _status_error(cls, status: int):
 
 def test_investigate_sends_full_web_history(monkeypatch):
     provider = _build_provider(monkeypatch)
-    calls: list[dict] = []
     api = _FakeMessagesAPI(
         create_responses=[_FakeResponse("end_turn", [_FakeBlock(type="text", text="a2")])]
     )
-    original_create = api.create
-    api.create = lambda **kwargs: calls.append(kwargs) or original_create(**kwargs)
+    calls = api.calls
     provider.client = _FakeClient(api)
 
     history = [
@@ -237,15 +243,66 @@ def test_effort_is_sent_as_output_config(monkeypatch):
             "reason": "test",
         },
     )
-    calls: list[dict] = []
     api = _FakeMessagesAPI(
         create_responses=[_FakeResponse("end_turn", [_FakeBlock(type="text", text="ok")])]
     )
-    original_create = api.create
-    api.create = lambda **kwargs: calls.append(kwargs) or original_create(**kwargs)
+    calls = api.calls
     provider.client = _FakeClient(api)
 
     provider.investigate("q")
 
     assert calls[0]["output_config"] == {"effort": "high"}
     assert "thinking" not in calls[0] and "temperature" not in calls[0]
+
+
+def test_request_has_date_block_and_web_search_tool(monkeypatch):
+    provider = _build_provider(monkeypatch)
+    monkeypatch.setattr(provider_mod.config, "ENABLE_WEB_SEARCH", True)
+
+    params = provider._request_params({"id": "claude-opus-5-5", "max_tokens": 10}, [])
+
+    stable, dated = params["system"]
+    assert stable["text"] == provider_mod.SYSTEM_PROMPT
+    assert dated["text"].startswith("Current date: ")
+    assert params["tools"][-1] == {
+        "type": "web_search_20260209",
+        "name": "web_search",
+        "max_uses": provider_mod.config.WEB_SEARCH_MAX_USES,
+    }
+
+
+def test_older_models_get_basic_web_search_and_it_can_be_disabled(monkeypatch):
+    provider = _build_provider(monkeypatch)
+    monkeypatch.setattr(provider_mod.config, "ENABLE_WEB_SEARCH", True)
+    assert provider._server_tools("claude-haiku-4-5")[0]["type"] == "web_search_20250305"
+
+    monkeypatch.setattr(provider_mod.config, "ENABLE_WEB_SEARCH", False)
+    assert provider._server_tools("claude-opus-5-5") == []
+
+
+def test_pause_turn_is_resumed(monkeypatch):
+    provider = _build_provider(monkeypatch)
+    paused = _FakeResponse("pause_turn", [_FakeBlock(type="server_tool_use", name="web_search")])
+    api = _FakeMessagesAPI(
+        create_responses=[
+            paused,
+            _FakeResponse("end_turn", [_FakeBlock(type="text", text="found")]),
+        ]
+    )
+    provider.client = _FakeClient(api)
+
+    assert provider.investigate("search it") == "found"
+    resumed = api.calls[1]["messages"]
+    assert resumed[-1] == {"role": "assistant", "content": paused.content}
+
+
+def test_refusal_is_reported(monkeypatch):
+    provider = _build_provider(monkeypatch)
+    refused = _FakeResponse("refusal", [])
+    refused.stop_details = type("Details", (), {"category": "cyber"})()
+    provider.client = _FakeClient(_FakeMessagesAPI(create_responses=[refused]))
+
+    assert (
+        provider.investigate("q")
+        == "⚠️ The model declined to answer this request (category: cyber)."
+    )

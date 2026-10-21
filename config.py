@@ -79,8 +79,9 @@ class Config:
     DATADOG_APP_KEY = os.getenv("DATADOG_APP_KEY") or os.getenv("DD_APP_KEY")
     DATADOG_SITE = os.getenv("DATADOG_SITE") or os.getenv("DD_SITE", "datadoghq.com")
 
-    # Brave Search - for web research
-    BRAVE_SEARCH_API_KEY = os.getenv("BRAVE_SEARCH_API_KEY")
+    # Built-in web search (Anthropic and OpenAI hosted tools)
+    ENABLE_WEB_SEARCH = os.getenv("ENABLE_WEB_SEARCH", "true").lower() == "true"
+    WEB_SEARCH_MAX_USES = int(os.getenv("WEB_SEARCH_MAX_USES", "5"))
 
     # Queue
     REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")

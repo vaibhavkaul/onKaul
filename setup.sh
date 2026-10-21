@@ -315,10 +315,6 @@ PY
     prompt_kv "CONFLUENCE_API_BASE_URL" "CONFLUENCE_API_BASE_URL (default https://api.atlassian.com/ex/confluence)"
   fi
 
-  if ask "Configure Brave Search? [Y/n] "; then
-    prompt_kv "BRAVE_SEARCH_API_KEY" "BRAVE_SEARCH_API_KEY"
-  fi
-
   if [[ "$MODE" == "webapp" ]]; then
     say ""
     say "Webapp mode requires Slack and Jira configuration."

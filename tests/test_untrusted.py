@@ -28,11 +28,11 @@ def test_source_cannot_break_out_of_attribute():
 
 
 def test_every_tool_result_is_wrapped(monkeypatch):
-    monkeypatch.setattr(handlers, "_handle_web_search", lambda query, count=5: {"a": 1})
+    monkeypatch.setattr(handlers, "_handle_fetch_url", lambda url, max_chars=20_000: {"a": 1})
 
-    out = handlers.execute_tool("web_search", {"query": "q"})
+    out = handlers.execute_tool("fetch_url", {"url": "https://example.com"})
 
-    assert out.startswith('<untrusted_content source="web_search">')
+    assert out.startswith('<untrusted_content source="fetch_url">')
     assert out.endswith("</untrusted_content>")
 
 

@@ -104,10 +104,9 @@ def _run_setup_wizard() -> None:
         print("  4) Sentry")
         print("  5) Jira")
         print("  6) Confluence")
-        print("  7) Brave Search")
-        print("  8) Repo config paths")
-        print("  9) Done")
-        choice = input("Select 1-9: ").strip()
+        print("  7) Repo config paths")
+        print("  8) Done")
+        choice = input("Select 1-8: ").strip()
 
         if choice == "1":
             current_provider = _load_env_map(env_path).get("AGENT_PROVIDER", "anthropic")
@@ -168,11 +167,9 @@ def _run_setup_wizard() -> None:
             _prompt_env_value(env_path, "CONFLUENCE_WIKI_BASE_URL", "CONFLUENCE_WIKI_BASE_URL")
             _prompt_env_value(env_path, "CONFLUENCE_API_BASE_URL", "CONFLUENCE_API_BASE_URL")
         elif choice == "7":
-            _prompt_env_value(env_path, "BRAVE_SEARCH_API_KEY", "BRAVE_SEARCH_API_KEY")
-        elif choice == "8":
             _prompt_env_value(env_path, "REPO_CONFIG_PATH", "REPO_CONFIG_PATH")
             _prompt_env_value(env_path, "MONITORING_CONFIG_PATH", "MONITORING_CONFIG_PATH")
-        elif choice == "9":
+        elif choice == "8":
             print("\nSetup complete.")
             if _ask_yes_no("Restart docker for change to take effect now?"):
                 try:

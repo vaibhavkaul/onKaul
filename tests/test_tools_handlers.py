@@ -20,10 +20,10 @@ def test_execute_tool_unknown_tool_returns_error():
 
 def test_execute_tool_catches_tool_exceptions(monkeypatch):
     monkeypatch.setattr(
-        handlers, "_handle_web_search", lambda **_kwargs: (_ for _ in ()).throw(ValueError("boom"))
+        handlers, "_handle_fetch_url", lambda **_kwargs: (_ for _ in ()).throw(ValueError("boom"))
     )
 
-    result = _loads(handlers.execute_tool("web_search", {"query": "x"}))
+    result = _loads(handlers.execute_tool("fetch_url", {"url": "x"}))
 
     assert "Tool execution failed: boom" in result["error"]
 
@@ -138,15 +138,13 @@ def test_datadog_handlers_success_paths(monkeypatch):
     assert handlers._handle_search_datadog_events("evt") == {"q": "evt", "t": "1h"}
 
 
-def test_jira_web_search_and_close_pr_handlers(monkeypatch):
+def test_jira_and_close_pr_handlers(monkeypatch):
     monkeypatch.setattr(handlers.jira, "query_issues", lambda jql: {"jql": jql})
     monkeypatch.setattr(handlers.jira, "get_issue", lambda issue_key: {"key": issue_key})
-    monkeypatch.setattr(handlers.brave_search, "search", lambda q, c: {"q": q, "count": c})
     monkeypatch.setattr(handlers.github, "close_pr", lambda pr_url: {"closed": pr_url})
 
     assert handlers._handle_query_jira("project=ABC") == {"jql": "project=ABC"}
     assert handlers._handle_get_jira_issue("ABC-1") == {"key": "ABC-1"}
-    assert handlers._handle_web_search("x", count=3) == {"q": "x", "count": 3}
     assert handlers._handle_close_pr("https://x/pr/1") == {"closed": "https://x/pr/1"}
 
 
