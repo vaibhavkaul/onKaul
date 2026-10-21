@@ -9,6 +9,9 @@ export interface SessionSummary {
   updated_at: string
 }
 
+export type SessionStatus = 'streaming' | 'done' | 'error' | 'interrupted'
+
 export interface SessionDetail extends SessionSummary {
   messages: Message[]
+  status?: SessionStatus
 }

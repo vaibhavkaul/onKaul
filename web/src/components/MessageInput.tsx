@@ -49,7 +49,7 @@ export default function MessageInput({ onSend, isStreaming, onStop }: Props) {
                 submit()
               }
             }}
-            className="flex-1 resize-none overflow-hidden outline-none text-sm text-text placeholder-faint bg-transparent leading-relaxed disabled:opacity-60 font-sans"
+            className="flex-1 resize-none overflow-y-auto outline-none text-sm text-text placeholder-faint bg-transparent leading-relaxed disabled:opacity-60 font-sans"
             style={{ maxHeight: 160 }}
           />
           {isStreaming ? (
