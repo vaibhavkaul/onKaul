@@ -9,13 +9,16 @@ if ! command -v uv >/dev/null 2>&1; then
   exit 1
 fi
 
+echo "Running: uv lock --check"
+uv lock --check
+
 echo "Running: ruff format --check ."
-uv run --with ruff ruff format --check .
+uv run --locked ruff format --check .
 
 echo "Running: ruff check ."
-uv run --with ruff ruff check .
+uv run --locked ruff check .
 
 echo "Running: pytest -q"
-uv run --with pytest pytest -q
+uv run --locked pytest -q
 
 echo "All CI checks passed."
