@@ -6,6 +6,7 @@ from collections.abc import Iterator
 
 import anthropic
 
+from agent.history import build_messages
 from agent.model_selector import model_selector
 from agent.prompts import SYSTEM_PROMPT
 from config import config
@@ -63,15 +64,7 @@ class AnthropicAgentProvider:
         if context:
             full_message = f"{context}\n\n---\n\n{user_message}"
 
-        current_turn = {"role": "user", "content": full_message}
-        # Exclude the last message from thread history — it's the current @mention
-        # which is already represented in current_turn (with added context).
-        prior_history = thread_history[:-1] if thread_history else None
-        messages = (
-            self._convert_thread_history(prior_history) + [current_turn]
-            if prior_history
-            else [current_turn]
-        )
+        messages = build_messages(thread_history, full_message)
 
         try:
             for iteration in range(self.max_iterations):
@@ -131,7 +124,7 @@ class AnthropicAgentProvider:
             )
 
         except anthropic.APIError as e:
-            return f"❌ API Error: {str(e)}\n\nPlease check your ANTHROPIC_API_KEY configuration."
+            return self._api_error_message(e)
         except Exception as e:
             return f"❌ Unexpected error during investigation: {str(e)}"
 
@@ -148,13 +141,7 @@ class AnthropicAgentProvider:
         if context:
             full_message = f"{context}\n\n---\n\n{user_message}"
 
-        current_turn = {"role": "user", "content": full_message}
-        prior_history = thread_history[:-1] if thread_history else None
-        messages = (
-            self._convert_thread_history(prior_history) + [current_turn]
-            if prior_history
-            else [current_turn]
-        )
+        messages = build_messages(thread_history, full_message)
 
         try:
             for iteration in range(self.max_iterations):
@@ -219,7 +206,7 @@ class AnthropicAgentProvider:
             )
 
         except anthropic.APIError as e:
-            yield f"❌ API Error: {str(e)}\n\nPlease check your ANTHROPIC_API_KEY configuration."
+            yield self._api_error_message(e)
         except Exception as e:
             yield f"❌ Unexpected error during investigation: {str(e)}"
 
@@ -242,44 +229,16 @@ class AnthropicAgentProvider:
         return ", ".join(parts)
 
     @staticmethod
-    def _convert_thread_history(thread_history: list) -> list:
-        """Convert raw Slack thread messages to Anthropic API message format.
-
-        Slack messages have 'user'/'text'/'ts' fields; bot messages also have 'bot_id'.
-        The Anthropic API requires 'role' ('user' or 'assistant') and 'content'.
-        """
-        messages = []
-        for msg in thread_history:
-            # Already in correct format (has 'role' key)
-            if "role" in msg:
-                messages.append(msg)
-                continue
-
-            text = msg.get("text", "")
-            if not text:
-                continue
-
-            # Bot messages (onKaul responses) become 'assistant', others become 'user'
-            role = "assistant" if msg.get("bot_id") else "user"
-            messages.append({"role": role, "content": text})
-
-        # Anthropic requires messages to start with 'user' role and alternate.
-        # Merge consecutive same-role messages to satisfy the API constraint.
-        if not messages:
-            return []
-
-        merged = [messages[0]]
-        for msg in messages[1:]:
-            if msg["role"] == merged[-1]["role"]:
-                merged[-1]["content"] += "\n\n" + msg["content"]
-            else:
-                merged.append(msg)
-
-        # Ensure first message is 'user' role
-        if merged and merged[0]["role"] != "user":
-            merged.insert(0, {"role": "user", "content": "(thread started by the bot)"})
-
-        return merged
+    def _api_error_message(error: anthropic.APIError) -> str:
+        """Describe an API failure without blaming the key for rate limits or outages."""
+        if isinstance(error, anthropic.AuthenticationError):
+            return (
+                "❌ Anthropic rejected the API key.\n\n"
+                "Please check your ANTHROPIC_API_KEY configuration."
+            )
+        if isinstance(error, anthropic.APIStatusError):
+            return f"❌ Anthropic API error (HTTP {error.status_code}): {error.message}"
+        return f"❌ Anthropic API error: {error}"
 
     def _no_api_key_response(self, user_message: str) -> str:
         """Return helpful message when API key not configured."""

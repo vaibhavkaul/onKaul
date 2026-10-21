@@ -30,7 +30,12 @@ def test_handle_slack_mention_posts_success(monkeypatch):
     posts: list[tuple[str, str, str]] = []
 
     monkeypatch.setattr(tasks.config, "ENABLE_SLACK_POSTING", True)
-    monkeypatch.setattr(tasks.agent, "investigate", lambda *args, **kwargs: "investigation result")
+    agent_calls: list[tuple[tuple, dict]] = []
+    monkeypatch.setattr(
+        tasks.agent,
+        "investigate",
+        lambda *args, **kwargs: agent_calls.append((args, kwargs)) or "investigation result",
+    )
     monkeypatch.setattr(tasks, "format_for_slack", lambda text: f"formatted:{text}")
     monkeypatch.setattr(tasks.logger, "log_response", logs.log_response)
     monkeypatch.setattr(
@@ -61,6 +66,10 @@ def test_handle_slack_mention_posts_success(monkeypatch):
     assert logs.calls[0]["response"] == "investigation result"
     assert logs.calls[0]["metadata"]["channel"] == "C1"
     assert posts == [("C1", "formatted:investigation result", "11.0")]
+    _, kwargs = agent_calls[0]
+    # Prior turns go as history (current @mention excluded), not duplicated into context.
+    assert kwargs["thread_history"] == [{"user": "U2", "text": "previous"}]
+    assert "previous" not in kwargs["context"]
 
 
 def test_handle_slack_mention_logs_and_posts_error(monkeypatch):

@@ -7,7 +7,11 @@ from typing import Protocol
 
 
 class AgentProvider(Protocol):
-    """Common contract for core investigation providers."""
+    """Common contract for core investigation providers.
+
+    ``thread_history`` holds prior turns only — never the current message,
+    which is passed as ``user_message``. See ``agent.history``.
+    """
 
     def investigate(
         self, user_message: str, context: str = "", thread_history: list | None = None

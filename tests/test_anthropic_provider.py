@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import anthropic
+import httpx
 
 from agent.providers import anthropic_provider as provider_mod
 
@@ -134,7 +135,7 @@ def test_investigate_handles_api_error(monkeypatch):
 
     out = provider.investigate("hello")
 
-    assert "API Error" in out
+    assert "Anthropic API error: bad" in out
 
 
 def test_investigate_stream_end_turn(monkeypatch):
@@ -180,3 +181,44 @@ def test_investigate_stream_tool_then_end_turn(monkeypatch):
     out = "".join(provider.investigate_stream("hello"))
 
     assert out == "xy"
+
+
+def _status_error(cls, status: int):
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    return cls("nope", response=httpx.Response(status, request=request), body=None)
+
+
+def test_investigate_sends_full_web_history(monkeypatch):
+    provider = _build_provider(monkeypatch)
+    calls: list[dict] = []
+    api = _FakeMessagesAPI(
+        create_responses=[_FakeResponse("end_turn", [_FakeBlock(type="text", text="a2")])]
+    )
+    original_create = api.create
+    api.create = lambda **kwargs: calls.append(kwargs) or original_create(**kwargs)
+    provider.client = _FakeClient(api)
+
+    history = [
+        {"role": "user", "content": "q1", "timestamp": "t1"},
+        {"role": "assistant", "content": "a1", "timestamp": "t2"},
+    ]
+    provider.investigate("q2", thread_history=history)
+
+    assert calls[0]["messages"] == [
+        {"role": "user", "content": "q1"},
+        {"role": "assistant", "content": "a1"},
+        {"role": "user", "content": "q2"},
+    ]
+
+
+def test_api_error_message_blames_key_only_on_auth_failure():
+    auth = provider_mod.AnthropicAgentProvider._api_error_message(
+        _status_error(anthropic.AuthenticationError, 401)
+    )
+    overloaded = provider_mod.AnthropicAgentProvider._api_error_message(
+        _status_error(anthropic.InternalServerError, 529)
+    )
+
+    assert "ANTHROPIC_API_KEY" in auth
+    assert "HTTP 529" in overloaded
+    assert "ANTHROPIC_API_KEY" not in overloaded
