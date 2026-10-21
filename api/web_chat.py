@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import uuid
 from collections.abc import Iterator
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Cookie
 from pydantic import BaseModel, Field
@@ -22,6 +23,12 @@ COOKIE_MAX_AGE = 86400  # 24 hours — matches Redis TTL; refreshed on every cha
 # ─── Request / response models ────────────────────────────────────────────────
 
 
+class RenameRequest(BaseModel):
+    """Rename payload."""
+
+    title: str = Field(min_length=1, max_length=200)
+
+
 class WebChatRequest(BaseModel):
     """Web chat request payload."""
 
@@ -33,6 +40,10 @@ class WebChatRequest(BaseModel):
 
 
 # ─── Helper ───────────────────────────────────────────────────────────────────
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _cookie_response(base: StreamingResponse | JSONResponse, user_id: str):
@@ -72,6 +83,22 @@ async def get_session(
     return session
 
 
+@router.patch("/web/sessions/{session_id}", response_model=SessionSummary)
+async def rename_session(
+    session_id: str,
+    payload: RenameRequest,
+    user_id: str | None = Cookie(default=None, alias=USER_COOKIE),
+):
+    """Rename one of the current user's sessions."""
+    title = " ".join(payload.title.split())[:200]
+    if not title:
+        return JSONResponse(status_code=422, content={"detail": "Title cannot be blank"})
+    if not user_id or not store.rename_session(session_id, user_id, title):
+        return JSONResponse(status_code=404, content={"detail": "Session not found"})
+    session = store.get_session(session_id, user_id)
+    return SessionSummary(session_id=session_id, title=title, updated_at=session["updated_at"])
+
+
 @router.delete("/web/sessions/{session_id}", status_code=204)
 async def delete_session(
     session_id: str,
@@ -106,17 +133,14 @@ async def web_chat_stream(
         if owner is not None and owner != resolved_user_id:
             # Someone else's session: behave exactly as if it did not exist.
             return JSONResponse(status_code=404, content={"detail": "Session not found"})
-    history = store.get_messages(session_id, resolved_user_id) if payload.session_id else []
+    existing = store.get_session(session_id, resolved_user_id) if payload.session_id else None
+    history = existing["messages"] if existing else []
 
-    # Derive session title from the first user message in the session
-    title = payload.message[:60].strip()
-    if history:
-        for msg in history:
-            if msg.get("role") == "user":
-                title = msg["content"][:60].strip()
-                break
+    # New sessions are titled from the first message; existing ones keep their
+    # title, which the user may have renamed.
+    title = existing["title"] if existing and existing["title"] else payload.message[:60].strip()
 
-    with_question = history + [{"role": "user", "content": payload.message}]
+    with_question = history + [{"role": "user", "content": payload.message, "ts": _now()}]
     # Save the question before answering so a crash or disconnect never loses it.
     store.save(session_id, resolved_user_id, with_question, title, status="streaming")
 
@@ -143,7 +167,9 @@ async def web_chat_stream(
             error = str(e)
         finally:
             reply = "".join(collected)
-            messages = with_question + ([{"role": "assistant", "content": reply}] if reply else [])
+            messages = with_question + (
+                [{"role": "assistant", "content": reply, "ts": _now()}] if reply else []
+            )
             store.save(session_id, resolved_user_id, messages, title, status=status)
 
         if error is not None:

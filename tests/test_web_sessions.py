@@ -13,6 +13,12 @@ ALICE = {"onkaul_user_id": "alice"}
 MALLORY = {"onkaul_user_id": "mallory"}
 
 
+def _turns(messages: list[dict]) -> list[dict]:
+    """Messages without their timestamps (asserted separately)."""
+    assert all("ts" in m for m in messages)
+    return [{"role": m["role"], "content": m["content"]} for m in messages]
+
+
 class _FakeRedis:
     def __init__(self):
         self.data: dict[str, str] = {}
@@ -115,7 +121,7 @@ def test_owner_continues_with_history(client, redis, agent_reply, alice_session)
 
     _chat(client, "follow up", session_id=alice_session, cookies=ALICE)
 
-    assert calls[1]["history"] == [
+    assert _turns(calls[1]["history"]) == [
         {"role": "user", "content": "secret question"},
         {"role": "assistant", "content": "Hello"},
     ]
@@ -134,7 +140,7 @@ def test_question_is_saved_before_the_answer_streams(client, redis, monkeypatch)
     _chat(client, "q", cookies=ALICE)
 
     assert seen[0]["status"] == "streaming"
-    assert seen[0]["messages"] == [{"role": "user", "content": "q"}]
+    assert _turns(seen[0]["messages"]) == [{"role": "user", "content": "q"}]
 
 
 def test_partial_reply_is_saved_on_error(client, redis, agent_reply):
@@ -146,7 +152,7 @@ def test_partial_reply_is_saved_on_error(client, redis, agent_reply):
     assert events[-1] == {"type": "error", "content": "provider blew up"}
     detail = _get(client, f"/web/sessions/{events[0]['session_id']}", ALICE).json()
     assert detail["status"] == "error"
-    assert detail["messages"][-1] == {"role": "assistant", "content": "Hello"}
+    assert _turns(detail["messages"])[-1] == {"role": "assistant", "content": "Hello"}
 
 
 def test_interrupted_stream_is_saved(redis, agent_reply, monkeypatch):
@@ -167,7 +173,7 @@ def test_interrupted_stream_is_saved(redis, agent_reply, monkeypatch):
     asyncio.run(read_two_events_then_disconnect())
 
     assert [k["status"] for _, k in saves] == ["streaming", "interrupted"]
-    assert saves[-1][0][2][-1] == {"role": "assistant", "content": "Hel"}
+    assert _turns(saves[-1][0][2])[-1] == {"role": "assistant", "content": "Hel"}
 
 
 def test_cookie_is_httponly_and_refreshed(client, redis, agent_reply):
@@ -184,3 +190,34 @@ def test_legacy_sessions_without_owner_cannot_be_claimed(client, redis, agent_re
     response, _ = _chat(client, "mine now", session_id="old", cookies=ALICE)
 
     assert response.status_code == 404
+
+
+def test_rename_is_owner_only_and_survives_new_turns(client, redis, agent_reply, alice_session):
+    client.cookies.clear()
+    client.cookies.set("onkaul_user_id", "mallory")
+    assert (
+        client.patch(f"/web/sessions/{alice_session}", json={"title": "pwned"}).status_code == 404
+    )
+
+    client.cookies.clear()
+    client.cookies.set("onkaul_user_id", "alice")
+    renamed = client.patch(f"/web/sessions/{alice_session}", json={"title": "  Checkout   bug "})
+    assert renamed.status_code == 200
+    assert renamed.json()["title"] == "Checkout bug"
+
+    _chat(client, "follow up", session_id=alice_session, cookies=ALICE)
+
+    detail = _get(client, f"/web/sessions/{alice_session}", ALICE).json()
+    assert detail["title"] == "Checkout bug"
+    assert len(detail["messages"]) == 4
+    client.cookies.clear()
+    client.cookies.set("onkaul_user_id", "alice")
+    assert client.get("/web/sessions").json()[0]["title"] == "Checkout bug"
+
+
+def test_rename_rejects_blank_titles(client, redis, alice_session):
+    client.cookies.clear()
+    client.cookies.set("onkaul_user_id", "alice")
+
+    assert client.patch(f"/web/sessions/{alice_session}", json={"title": ""}).status_code == 422
+    assert client.patch(f"/web/sessions/{alice_session}", json={"title": "   "}).status_code == 422

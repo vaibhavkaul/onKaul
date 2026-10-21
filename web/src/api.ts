@@ -28,3 +28,17 @@ export async function deleteSession(sessionId: string): Promise<boolean> {
     return false
   }
 }
+
+export async function renameSession(sessionId: string, title: string): Promise<SessionSummary | null> {
+  try {
+    const res = await fetch(`/web/sessions/${sessionId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title }),
+    })
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
+  }
+}
