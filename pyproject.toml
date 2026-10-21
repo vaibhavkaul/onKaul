@@ -27,7 +27,6 @@ dependencies = [
     "datadog-api-client>=2.32.0",
     "redis>=5.0.0",
     "rq>=1.16.0",
-    "python-multipart>=0.0.9",
 ]
 
 [project.scripts]
