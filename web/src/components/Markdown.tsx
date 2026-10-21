@@ -39,7 +39,7 @@ function CodeBlock({
       <button
         type="button"
         onClick={onCopy}
-        className="absolute top-2 right-2 text-[11px] px-2 py-0.5 rounded-md border border-border bg-panel text-muted hover:text-text opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+        className="absolute top-2 right-2 text-[11px] px-2 py-0.5 rounded-md border border-border bg-panel text-muted hover:text-text opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
       >
         {state === 'copied' ? 'Copied' : state === 'failed' ? 'Copy failed' : 'Copy'}
       </button>

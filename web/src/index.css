@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Full-height shell. dvh tracks mobile browser bars; vh is the fallback. */
+.app-shell {
+  height: 100vh;
+  height: 100dvh;
+}
+
 /* ── Prose (markdown rendering) ──────────────────────────────────────────── */
 /* Colours mirror the tokens in tailwind.config.js                            */
 .prose pre {
@@ -31,7 +37,8 @@
 .prose h3 { font-size: 1em; }
 .prose blockquote { border-left: 3px solid #63e6be; padding-left: 0.75rem; color: #9aa7b6; margin: 0.5rem 0; }
 .prose a { color: #63e6be; text-decoration: underline; }
-.prose table { border-collapse: collapse; width: 100%; margin: 0.5rem 0; }
+.prose table { border-collapse: collapse; width: max-content; min-width: 100%; margin: 0.5rem 0; }
+.prose th, .prose td { max-width: 20rem; }
 .prose th, .prose td { border: 1px solid #1f2937; padding: 0.4rem 0.75rem; color: #e6edf7; }
 .prose th { background: #101521; font-weight: 600; }
 

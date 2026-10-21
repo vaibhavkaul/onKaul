@@ -10,6 +10,8 @@ interface Props {
   onRenameSession: (id: string, title: string) => Promise<boolean>
   collapsed: boolean
   onToggleCollapse: () => void
+  /** Render as a slide-over drawer (phones); the toggle button closes it. */
+  drawer?: boolean
 }
 
 function relativeTime(iso: string): string {
@@ -61,6 +63,7 @@ export default function Sidebar({
   onRenameSession,
   collapsed,
   onToggleCollapse,
+  drawer = false,
 }: Props) {
   const [renamingId, setRenamingId] = useState<string | null>(null)
 
@@ -69,7 +72,7 @@ export default function Sidebar({
     if (title) await onRenameSession(sessionId, title)
   }
 
-  if (collapsed) {
+  if (collapsed && !drawer) {
     return (
       <aside className="w-10 bg-sidebar flex flex-col flex-shrink-0 border-r border-border items-center py-3 gap-3">
         <button
@@ -86,7 +89,13 @@ export default function Sidebar({
   }
 
   return (
-    <aside className="w-64 bg-sidebar flex flex-col flex-shrink-0 border-r border-border">
+    <aside
+      className={`bg-sidebar flex flex-col flex-shrink-0 border-r border-border ${
+        drawer
+          ? 'fixed inset-y-0 left-0 z-40 w-72 max-w-[85vw] shadow-2xl pt-[env(safe-area-inset-top)]'
+          : 'w-64'
+      }`}
+    >
       {/* Header */}
       <div className="px-5 py-5 flex-shrink-0">
         <div className="flex items-center gap-2.5">
@@ -98,10 +107,16 @@ export default function Sidebar({
           <button
             onClick={onToggleCollapse}
             className="ml-auto p-1 rounded text-faint hover:text-muted hover:bg-border transition-colors"
-            title="Collapse sidebar"
+            title={drawer ? 'Close menu' : 'Collapse sidebar'}
+            aria-label={drawer ? 'Close menu' : 'Collapse sidebar'}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg className={drawer ? 'w-5 h-5' : 'w-3.5 h-3.5'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d={drawer ? 'M6 18L18 6M6 6l12 12' : 'M15 19l-7-7 7-7'}
+              />
             </svg>
           </button>
         </div>
@@ -159,7 +174,7 @@ export default function Sidebar({
                     onClick={(e) => { e.stopPropagation(); setRenamingId(s.session_id) }}
                     title="Rename conversation"
                     aria-label="Rename conversation"
-                    className="opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0 p-1 rounded hover:bg-accent-faint hover:text-accent text-faint transition-all"
+                    className="opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 flex-shrink-0 p-1 rounded hover:bg-accent-faint hover:text-accent text-faint transition-all"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M4 20h4l10.5-10.5a2.5 2.5 0 00-3.536-3.536L4 16.5V20z" />
@@ -169,7 +184,7 @@ export default function Sidebar({
                     onClick={(e) => { e.stopPropagation(); onDeleteSession(s.session_id) }}
                     title="Delete conversation"
                     aria-label="Delete conversation"
-                    className="opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0 mr-1.5 p-1 rounded hover:bg-accent-faint hover:text-accent text-faint transition-all"
+                    className="opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 flex-shrink-0 mr-1.5 p-1 rounded hover:bg-accent-faint hover:text-accent text-faint transition-all"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
