@@ -14,6 +14,21 @@ class SlackClient:
         self.headers = {}
         if self.token:
             self.headers = {"Authorization": f"Bearer {self.token}"}
+        self._own_bot_id: str | None = None
+
+    def get_own_bot_id(self) -> str | None:
+        """Return this app's bot_id (via auth.test, cached), or None if unavailable."""
+        if self._own_bot_id or not self.token:
+            return self._own_bot_id
+        try:
+            response = httpx.post(f"{self.base_url}/auth.test", headers=self.headers, timeout=5.0)
+            response.raise_for_status()
+            data = response.json()
+            if data.get("ok"):
+                self._own_bot_id = data.get("bot_id")
+        except Exception as e:
+            print(f"⚠️  auth.test failed: {e}")
+        return self._own_bot_id
 
     def get_thread(self, channel: str, thread_ts: str) -> dict:
         """
