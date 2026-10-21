@@ -13,7 +13,9 @@ def _build_client() -> TestClient:
 
 
 def test_chat_endpoint_returns_agent_response(monkeypatch):
-    def _fake_investigate(message: str, context: str = "", thread_history=None) -> str:
+    def _fake_investigate(
+        message: str, context: str = "", thread_history=None, event_context=None
+    ) -> str:
         assert message == "hello"
         assert context == "ctx"
         return "ok-response"
@@ -28,7 +30,9 @@ def test_chat_endpoint_returns_agent_response(monkeypatch):
 
 
 def test_chat_stream_endpoint_streams_chunks(monkeypatch):
-    def _fake_investigate_stream(message: str, context: str = "", thread_history=None):
+    def _fake_investigate_stream(
+        message: str, context: str = "", thread_history=None, event_context=None
+    ):
         assert message == "hello"
         assert context == "ctx"
         yield "a"

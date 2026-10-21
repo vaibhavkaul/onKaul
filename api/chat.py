@@ -25,7 +25,9 @@ class ChatResponse(BaseModel):
 @router.post("/chat", response_model=ChatResponse)
 async def chat(payload: ChatRequest) -> ChatResponse:
     """Run an investigation directly and return the response text."""
-    response = agent.investigate(payload.message, context=payload.context)
+    response = agent.investigate(
+        payload.message, context=payload.context, event_context={"channel": "api"}
+    )
     return ChatResponse(response=response)
 
 
@@ -34,7 +36,9 @@ async def chat_stream(payload: ChatRequest) -> StreamingResponse:
     """Stream investigation response text chunks for local CLI consumers."""
 
     def generate():
-        for chunk in agent.investigate_stream(payload.message, context=payload.context):
+        for chunk in agent.investigate_stream(
+            payload.message, context=payload.context, event_context={"channel": "api"}
+        ):
             if chunk:
                 yield chunk
 

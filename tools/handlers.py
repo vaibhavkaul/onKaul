@@ -1,6 +1,7 @@
 """Tool execution handlers."""
 
 import json
+import time
 
 from clients.brave_search import brave_search
 from clients.confluence import confluence
@@ -11,6 +12,7 @@ from clients.sentry import sentry
 from repository_config.monitoring import MONITORING_CONFIG_ERROR, MONITORING_CONFIGURED
 from repository_config.repositories import REPO_CONFIG_ERROR, REPO_CONFIGURED
 from tools.local_code import list_directory_local, read_file_local, search_code_local
+from utils.events import emit
 
 
 def _repo_config_not_ready() -> dict | None:
@@ -66,13 +68,43 @@ def execute_tool(name: str, inputs: dict) -> str:
 
     handler = handlers.get(name)
     if not handler:
+        emit("tool.call", tool=name, args=_audit_args(inputs), ok=False, error="unknown tool")
         return json.dumps({"error": f"Unknown tool: {name}"})
 
+    start = time.monotonic()
     try:
         result = handler(**inputs)
-        return json.dumps(result, indent=2)
     except Exception as e:
+        emit(
+            "tool.call",
+            tool=name,
+            args=_audit_args(inputs),
+            duration_ms=round((time.monotonic() - start) * 1000),
+            ok=False,
+            error=str(e)[:500],
+        )
         return json.dumps({"error": f"Tool execution failed: {str(e)}"})
+
+    output = json.dumps(result, indent=2)
+    error = result.get("error") if isinstance(result, dict) else None
+    emit(
+        "tool.call",
+        tool=name,
+        args=_audit_args(inputs),
+        duration_ms=round((time.monotonic() - start) * 1000),
+        ok=not error,
+        error=str(error)[:500] if error else None,
+        result_chars=len(output),
+    )
+    return output
+
+
+def _audit_args(inputs: dict) -> dict:
+    """Tool arguments for the audit log, with long strings truncated."""
+    return {
+        key: value[:500] + "…" if isinstance(value, str) and len(value) > 500 else value
+        for key, value in inputs.items()
+    }
 
 
 def _handle_get_sentry_issue(issue_id: str) -> dict:

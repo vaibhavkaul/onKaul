@@ -64,7 +64,17 @@ def handle_slack_mention(
 
         # Regular investigation (not a PR review)
         print("🧠 Calling agent...")
-        response = agent.investigate(user_message, context=context, thread_history=thread_history)
+        response = agent.investigate(
+            user_message,
+            context=context,
+            thread_history=thread_history,
+            event_context={
+                "channel": "slack",
+                "slack_channel": channel,
+                "thread_ts": thread_ts,
+                "user": user_id,
+            },
+        )
         print(f"✅ Investigation complete ({len(response)} chars)")
         print("-" * 80)
 
@@ -164,7 +174,11 @@ def handle_jira_mention(
         # Regular investigation (not a PR review)
         print("🧠 Calling agent...")
         # Real agent investigation
-        response = agent.investigate(comment_body, context=context)
+        response = agent.investigate(
+            comment_body,
+            context=context,
+            event_context={"channel": "jira", "issue_key": issue_key, "user": author},
+        )
         print(f"✅ Investigation complete ({len(response)} chars)")
         print("-" * 80)
 

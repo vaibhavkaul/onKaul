@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import Iterator
 from typing import Any
 
@@ -14,6 +15,7 @@ from agent.prompts import SYSTEM_PROMPT
 from config import config
 from tools.handlers import execute_tool
 from tools.schemas import TOOL_SCHEMAS
+from utils.events import emit
 
 
 class OpenAIAgentProvider:
@@ -81,6 +83,7 @@ class OpenAIAgentProvider:
                     stream_params["previous_response_id"] = previous_response_id
 
                 emitted_text = False
+                start = time.monotonic()
                 with self.client.responses.stream(**stream_params) as stream:
                     for event in stream:
                         if getattr(event, "type", "") == "response.output_text.delta":
@@ -96,7 +99,9 @@ class OpenAIAgentProvider:
                         if not emitted_text:
                             raise
                         print(f"⚠️  Ignoring stream finalization error after text: {e}")
+                        self._emit_usage(model_config["id"], None, start)
                         return
+                self._emit_usage(model_config["id"], response, start)
 
                 if self.store:
                     previous_response_id = response.id
@@ -140,6 +145,13 @@ class OpenAIAgentProvider:
             )
 
         except APIError as e:
+            emit(
+                "llm.error",
+                provider="openai",
+                error_type=type(e).__name__,
+                status_code=getattr(e, "status_code", None),
+                error=str(e)[:500],
+            )
             yield self._api_error_message(e)
         except Exception as e:
             yield f"❌ Unexpected error during investigation: {str(e)}"
@@ -159,6 +171,24 @@ class OpenAIAgentProvider:
             }
             for msg in messages
         ]
+
+    @staticmethod
+    def _emit_usage(model_id: str, response: Any, start: float) -> None:
+        """Record one Responses API call with its token usage (None if unknown)."""
+        usage = getattr(response, "usage", None)
+        input_details = getattr(usage, "input_tokens_details", None)
+        output_details = getattr(usage, "output_tokens_details", None)
+        emit(
+            "llm.call",
+            provider="openai",
+            model=model_id,
+            streamed=True,
+            duration_ms=round((time.monotonic() - start) * 1000),
+            input_tokens=getattr(usage, "input_tokens", None),
+            output_tokens=getattr(usage, "output_tokens", None),
+            cached_input_tokens=getattr(input_details, "cached_tokens", None),
+            reasoning_tokens=getattr(output_details, "reasoning_tokens", None),
+        )
 
     @staticmethod
     def _api_error_message(error: APIError) -> str:
