@@ -80,6 +80,10 @@ class ConversationStore(ABC):
         """
 
     @abstractmethod
+    def rename_session(self, session_id: str, user_id: str, title: str) -> bool:
+        """Set the user's session title. Returns False if not found or not theirs."""
+
+    @abstractmethod
     def list_sessions(self, user_id: str) -> list[SessionSummary]:
         """Return all sessions for a user, newest-first."""
 
@@ -179,6 +183,14 @@ class RedisConversationStore(ConversationStore):
             return True
         except Exception:
             return False
+
+    def rename_session(self, session_id: str, user_id: str, title: str) -> bool:
+        data = self._load_owned(session_id, user_id)
+        if not data:
+            return False
+        return self.save(
+            session_id, user_id, data.get("messages", []), title, data.get("status", "done")
+        )
 
     def list_sessions(self, user_id: str) -> list[SessionSummary]:
         try:

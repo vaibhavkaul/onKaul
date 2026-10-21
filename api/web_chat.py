@@ -2,24 +2,34 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import uuid
-from collections.abc import Iterator
+from collections.abc import AsyncIterator
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Cookie
 from pydantic import BaseModel, Field
 from starlette.responses import JSONResponse, StreamingResponse
 
 from agent.core import agent
+from api.chat_runs import RunInProgressError, start_run, stop_run
 from api.conversation_store import SessionDetail, SessionSummary, new_user_id, store
 
 router = APIRouter()
 
 USER_COOKIE = "onkaul_user_id"
+RELAY_POLL_SECONDS = 0.05
 COOKIE_MAX_AGE = 86400  # 24 hours — matches Redis TTL; refreshed on every chat
 
 
 # ─── Request / response models ────────────────────────────────────────────────
+
+
+class RenameRequest(BaseModel):
+    """Rename payload."""
+
+    title: str = Field(min_length=1, max_length=200)
 
 
 class WebChatRequest(BaseModel):
@@ -33,6 +43,10 @@ class WebChatRequest(BaseModel):
 
 
 # ─── Helper ───────────────────────────────────────────────────────────────────
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _cookie_response(base: StreamingResponse | JSONResponse, user_id: str):
@@ -72,6 +86,32 @@ async def get_session(
     return session
 
 
+@router.patch("/web/sessions/{session_id}", response_model=SessionSummary)
+async def rename_session(
+    session_id: str,
+    payload: RenameRequest,
+    user_id: str | None = Cookie(default=None, alias=USER_COOKIE),
+):
+    """Rename one of the current user's sessions."""
+    title = " ".join(payload.title.split())[:200]
+    if not title:
+        return JSONResponse(status_code=422, content={"detail": "Title cannot be blank"})
+    if not user_id or not store.rename_session(session_id, user_id, title):
+        return JSONResponse(status_code=404, content={"detail": "Session not found"})
+    session = store.get_session(session_id, user_id)
+    return SessionSummary(session_id=session_id, title=title, updated_at=session["updated_at"])
+
+
+@router.post("/web/sessions/{session_id}/stop", status_code=204)
+async def stop_session_run(
+    session_id: str,
+    user_id: str | None = Cookie(default=None, alias=USER_COOKIE),
+):
+    """Stop the current user's running turn; the partial reply is saved as interrupted."""
+    if not user_id or not stop_run(session_id, user_id):
+        return JSONResponse(status_code=404, content={"detail": "No running reply"})
+
+
 @router.delete("/web/sessions/{session_id}", status_code=204)
 async def delete_session(
     session_id: str,
@@ -95,8 +135,12 @@ async def web_chat_stream(
 
       data: {"type": "session",  "session_id": "<uuid>"}   — first event, always
       data: {"type": "text",     "content": "<chunk>"}      — streamed text chunk
-      data: {"type": "done"}                                — stream complete
+      data: {"type": "done", "status": "done|interrupted"}  — turn finished
       data: {"type": "error",    "content": "<message>"}   — on failure
+
+    The turn runs independently of this connection (see api.chat_runs): closing
+    it does not cancel the reply; POST /web/sessions/{id}/stop does. Returns
+    409 while a previous turn in the same session is still running.
     """
     resolved_user_id = user_id or new_user_id()
 
@@ -106,53 +150,53 @@ async def web_chat_stream(
         if owner is not None and owner != resolved_user_id:
             # Someone else's session: behave exactly as if it did not exist.
             return JSONResponse(status_code=404, content={"detail": "Session not found"})
-    history = store.get_messages(session_id, resolved_user_id) if payload.session_id else []
+    existing = store.get_session(session_id, resolved_user_id) if payload.session_id else None
+    history = existing["messages"] if existing else []
 
-    # Derive session title from the first user message in the session
-    title = payload.message[:60].strip()
-    if history:
-        for msg in history:
-            if msg.get("role") == "user":
-                title = msg["content"][:60].strip()
-                break
+    # New sessions are titled from the first message; existing ones keep their
+    # title, which the user may have renamed.
+    title = existing["title"] if existing and existing["title"] else payload.message[:60].strip()
 
-    with_question = history + [{"role": "user", "content": payload.message}]
-    # Save the question before answering so a crash or disconnect never loses it.
-    store.save(session_id, resolved_user_id, with_question, title, status="streaming")
-
-    def generate() -> Iterator[str]:
-        yield f"data: {json.dumps({'type': 'session', 'session_id': session_id})}\n\n"
-
-        collected: list[str] = []
-        status = "error"
-        error: str | None = None
-        try:
-            for chunk in agent.investigate_stream(
+    with_question = history + [{"role": "user", "content": payload.message, "ts": _now()}]
+    try:
+        run = start_run(
+            session_id=session_id,
+            user_id=resolved_user_id,
+            title=title,
+            messages=with_question,
+            stream=lambda: agent.investigate_stream(
                 payload.message,
                 thread_history=history or None,
                 event_context={"channel": "web", "session_id": session_id},
-            ):
-                if chunk:
-                    collected.append(chunk)
-                    yield f"data: {json.dumps({'type': 'text', 'content': chunk})}\n\n"
-            status = "done"
-        except GeneratorExit:
-            status = "interrupted"  # client went away mid-stream
-            raise
-        except Exception as e:
-            error = str(e)
-        finally:
-            reply = "".join(collected)
-            messages = with_question + ([{"role": "assistant", "content": reply}] if reply else [])
-            store.save(session_id, resolved_user_id, messages, title, status=status)
+            ),
+        )
+    except RunInProgressError:
+        return JSONResponse(
+            status_code=409,
+            content={"detail": "Still answering the previous message in this conversation"},
+        )
 
-        if error is not None:
-            yield f"data: {json.dumps({'type': 'error', 'content': error})}\n\n"
-            return
-        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+    async def relay() -> AsyncIterator[str]:
+        # Only relays the run's output; if the client goes away the run keeps
+        # going and saves the reply itself.
+        yield f"data: {json.dumps({'type': 'session', 'session_id': session_id})}\n\n"
+        sent = 0
+        while True:
+            finished = run.finished.is_set()
+            chunks = run.chunks[sent:]
+            for chunk in chunks:
+                yield f"data: {json.dumps({'type': 'text', 'content': chunk})}\n\n"
+            sent += len(chunks)
+            if finished and sent == len(run.chunks):
+                break
+            await asyncio.sleep(RELAY_POLL_SECONDS)
+        if run.status == "error":
+            yield f"data: {json.dumps({'type': 'error', 'content': run.error or 'error'})}\n\n"
+        else:
+            yield f"data: {json.dumps({'type': 'done', 'status': run.status})}\n\n"
 
     response = StreamingResponse(
-        generate(),
+        relay(),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

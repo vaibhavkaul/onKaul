@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { SessionSummary } from '../types'
 
 interface Props {
@@ -6,6 +7,7 @@ interface Props {
   onSelectSession: (id: string) => void
   onNewConversation: () => void
   onDeleteSession: (id: string) => void
+  onRenameSession: (id: string, title: string) => Promise<boolean>
   collapsed: boolean
   onToggleCollapse: () => void
 }
@@ -20,15 +22,53 @@ function relativeTime(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`
 }
 
+function RenameInput({
+  initial,
+  onDone,
+}: {
+  initial: string
+  onDone: (title: string | null) => void
+}) {
+  const [value, setValue] = useState(initial)
+  const finish = (save: boolean) => {
+    const title = value.trim()
+    onDone(save && title && title !== initial ? title : null)
+  }
+  return (
+    <input
+      autoFocus
+      value={value}
+      maxLength={200}
+      aria-label="Conversation title"
+      onChange={(e) => setValue(e.target.value)}
+      onFocus={(e) => e.currentTarget.select()}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') finish(true)
+        if (e.key === 'Escape') finish(false)
+      }}
+      onBlur={() => finish(false)}
+      className="flex-1 min-w-0 mx-2 my-1.5 px-2 py-1 text-xs bg-surface text-text border border-accent rounded-md outline-none"
+    />
+  )
+}
+
 export default function Sidebar({
   sessions,
   currentSessionId,
   onSelectSession,
   onNewConversation,
   onDeleteSession,
+  onRenameSession,
   collapsed,
   onToggleCollapse,
 }: Props) {
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+
+  async function finishRename(sessionId: string, title: string | null) {
+    setRenamingId(null)
+    if (title) await onRenameSession(sessionId, title)
+  }
+
   if (collapsed) {
     return (
       <aside className="w-10 bg-sidebar flex flex-col flex-shrink-0 border-r border-border items-center py-3 gap-3">
@@ -96,21 +136,40 @@ export default function Sidebar({
                     s.session_id === currentSessionId ? 'bg-border' : 'hover:bg-border-faint'
                   }`}
                 >
+                  {renamingId === s.session_id ? (
+                    <RenameInput
+                      initial={s.title}
+                      onDone={(title) => finishRename(s.session_id, title)}
+                    />
+                  ) : (
+                    <button
+                      onClick={() => onSelectSession(s.session_id)}
+                      onDoubleClick={() => setRenamingId(s.session_id)}
+                      className="flex-1 min-w-0 text-left px-3 py-2"
+                    >
+                      <p className={`text-xs font-medium truncate ${
+                        s.session_id === currentSessionId ? 'text-text' : 'text-muted'
+                      }`}>
+                        {s.title}
+                      </p>
+                      <p className="text-[11px] text-faint mt-0.5">{relativeTime(s.updated_at)}</p>
+                    </button>
+                  )}
                   <button
-                    onClick={() => onSelectSession(s.session_id)}
-                    className="flex-1 min-w-0 text-left px-3 py-2"
+                    onClick={(e) => { e.stopPropagation(); setRenamingId(s.session_id) }}
+                    title="Rename conversation"
+                    aria-label="Rename conversation"
+                    className="opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0 p-1 rounded hover:bg-accent-faint hover:text-accent text-faint transition-all"
                   >
-                    <p className={`text-xs font-medium truncate ${
-                      s.session_id === currentSessionId ? 'text-text' : 'text-muted'
-                    }`}>
-                      {s.title}
-                    </p>
-                    <p className="text-[11px] text-faint mt-0.5">{relativeTime(s.updated_at)}</p>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M4 20h4l10.5-10.5a2.5 2.5 0 00-3.536-3.536L4 16.5V20z" />
+                    </svg>
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); onDeleteSession(s.session_id) }}
                     title="Delete conversation"
-                    className="opacity-0 group-hover:opacity-100 flex-shrink-0 mr-1.5 p-1 rounded hover:bg-accent-faint hover:text-accent text-faint transition-all"
+                    aria-label="Delete conversation"
+                    className="opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0 mr-1.5 p-1 rounded hover:bg-accent-faint hover:text-accent text-faint transition-all"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

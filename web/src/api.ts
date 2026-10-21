@@ -28,3 +28,25 @@ export async function deleteSession(sessionId: string): Promise<boolean> {
     return false
   }
 }
+
+export async function renameSession(sessionId: string, title: string): Promise<SessionSummary | null> {
+  try {
+    const res = await fetch(`/web/sessions/${sessionId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title }),
+    })
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
+  }
+}
+
+export async function stopSessionReply(sessionId: string): Promise<void> {
+  try {
+    await fetch(`/web/sessions/${sessionId}/stop`, { method: 'POST' })
+  } catch {
+    /* best-effort: the reply may already have finished */
+  }
+}

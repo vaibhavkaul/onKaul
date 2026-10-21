@@ -87,6 +87,9 @@ class Agent:
                 ):
                     chars += len(chunk)
                     yield chunk
+            except GeneratorExit:
+                self._emit_run(start, ok=False, interrupted=True, response_chars=chars)
+                raise
             except Exception as e:
                 self._emit_run(start, ok=False, error=str(e)[:500])
                 raise
