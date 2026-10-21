@@ -125,3 +125,27 @@ def test_openai_usage_event():
     (event,) = _events()
     assert event["provider"] == "openai" and event["model"] == "gpt"
     assert (event["cached_input_tokens"], event["reasoning_tokens"]) == (4, 2)
+
+
+def test_closing_a_stream_early_emits_interrupted_run_and_closes_provider():
+    closed = []
+
+    class _Provider:
+        def investigate_stream(self, user_message, context="", thread_history=None):
+            try:
+                yield "a"
+                yield "b"
+            finally:
+                closed.append(True)
+
+    agent = core.Agent()
+    agent.provider = _Provider()
+
+    stream = agent.investigate_stream("q", event_context={"channel": "web"})
+    assert next(stream) == "a"
+    stream.close()
+
+    (run,) = [e for e in _events() if e["event"] == "run"]
+    assert run["ok"] is False and run["interrupted"] is True and run["response_chars"] == 1
+    assert run["channel"] == "web"
+    assert closed == [True]

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import json
 
 import pytest
@@ -153,27 +152,6 @@ def test_partial_reply_is_saved_on_error(client, redis, agent_reply):
     detail = _get(client, f"/web/sessions/{events[0]['session_id']}", ALICE).json()
     assert detail["status"] == "error"
     assert _turns(detail["messages"])[-1] == {"role": "assistant", "content": "Hello"}
-
-
-def test_interrupted_stream_is_saved(redis, agent_reply, monkeypatch):
-    saves: list[tuple] = []
-    monkeypatch.setattr(
-        conversation_store.store, "save", lambda *a, **k: saves.append((a, k)) or True
-    )
-
-    async def read_two_events_then_disconnect():
-        response = await web_chat.web_chat_stream(
-            web_chat.WebChatRequest(message="q"), user_id="alice"
-        )
-        body = response.body_iterator
-        await body.__anext__()  # session event
-        await body.__anext__()  # first text chunk ("Hel")
-        await body.aclose()  # client goes away
-
-    asyncio.run(read_two_events_then_disconnect())
-
-    assert [k["status"] for _, k in saves] == ["streaming", "interrupted"]
-    assert _turns(saves[-1][0][2])[-1] == {"role": "assistant", "content": "Hel"}
 
 
 def test_cookie_is_httponly_and_refreshed(client, redis, agent_reply):

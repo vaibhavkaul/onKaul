@@ -56,12 +56,19 @@ def iterate_in_run_context(make_iter: Callable[[], Iterator], **fields: Any) -> 
         return iter(make_iter())
 
     it = ctx.run(start)
-    while True:
-        try:
-            item = ctx.run(next, it)
-        except StopIteration:
-            return
-        yield item
+    try:
+        while True:
+            try:
+                item = ctx.run(next, it)
+            except StopIteration:
+                return
+            yield item
+    finally:
+        # Propagate an early close (e.g. a stopped run) to the inner generator
+        # so it releases its resources now, inside the same context.
+        close = getattr(it, "close", None)
+        if close:
+            ctx.run(close)
 
 
 def emit(event: str, **fields: Any) -> None:

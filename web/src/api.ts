@@ -42,3 +42,11 @@ export async function renameSession(sessionId: string, title: string): Promise<S
     return null
   }
 }
+
+export async function stopSessionReply(sessionId: string): Promise<void> {
+  try {
+    await fetch(`/web/sessions/${sessionId}/stop`, { method: 'POST' })
+  } catch {
+    /* best-effort: the reply may already have finished */
+  }
+}
