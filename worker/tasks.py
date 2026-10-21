@@ -10,6 +10,7 @@ from utils.jira_formatter import markdown_to_adf
 from utils.logger import logger
 from utils.slack_formatter import format_for_slack
 from utils.slack_messages import thread_to_history
+from utils.untrusted import wrap_untrusted
 
 
 def handle_slack_mention(
@@ -58,7 +59,9 @@ def handle_slack_mention(
                 filename = att.get("filename", "unknown")
                 extracted = att.get("extracted_text", "")
                 if extracted:
-                    context += f"\n**{filename}**:\n```\n{extracted[:2000]}\n```\n"
+                    context += (
+                        "\n" + wrap_untrusted(f"attachment: {filename}", extracted[:2000]) + "\n"
+                    )
                     print(f"  ✅ Added text from {filename} ({len(extracted)} chars)")
             print(f"✅ Processed {len(attachments)} attachment(s)")
 
