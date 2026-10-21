@@ -11,7 +11,7 @@ from openai import APIError, APIStatusError, AuthenticationError, OpenAI
 
 from agent.history import build_messages
 from agent.model_selector import model_selector
-from agent.prompts import SYSTEM_PROMPT
+from agent.prompts import SYSTEM_PROMPT, current_date_context
 from config import config
 from tools.handlers import execute_tool
 from tools.schemas import TOOL_SCHEMAS
@@ -27,6 +27,9 @@ class OpenAIAgentProvider:
         self.store = config.OPENAI_STORE
         self.max_iterations = 100  # High limit for very thorough investigations
         self.tools = self._to_openai_tools(TOOL_SCHEMAS)
+        if config.ENABLE_WEB_SEARCH:
+            # OpenAI-hosted web search; its calls run server-side, not via execute_tool.
+            self.tools.append({"type": "web_search"})
 
     def investigate(
         self, user_message: str, context: str = "", thread_history: list | None = None
@@ -74,7 +77,7 @@ class OpenAIAgentProvider:
 
                 stream_params = {
                     "model": model_config["id"],
-                    "instructions": SYSTEM_PROMPT,
+                    "instructions": f"{SYSTEM_PROMPT}\n\n{current_date_context()}",
                     "tools": self.tools,
                     "input": pending_input,
                     "store": self.store,

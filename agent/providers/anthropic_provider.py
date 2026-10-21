@@ -9,11 +9,23 @@ import anthropic
 
 from agent.history import build_messages
 from agent.model_selector import model_selector
-from agent.prompts import SYSTEM_PROMPT
+from agent.prompts import SYSTEM_PROMPT, current_date_context
 from config import config
 from tools.handlers import execute_tool
 from tools.schemas import TOOL_SCHEMAS
 from utils.events import emit
+
+# Models that support web_search_20260209 (dynamic filtering); others get the basic variant.
+_DYNAMIC_WEB_SEARCH_MODEL_PREFIXES = (
+    "claude-opus-5",
+    "claude-sonnet-5",
+    "claude-fable-5",
+    "claude-mythos-5",
+    "claude-opus-4-8",
+    "claude-opus-4-7",
+    "claude-opus-4-6",
+    "claude-sonnet-4-6",
+)
 
 
 class AnthropicAgentProvider:
@@ -74,21 +86,13 @@ class AnthropicAgentProvider:
                 print(f"🔄 Agent Iteration {iteration + 1}/{self.max_iterations}")
                 print(f"{'─' * 80}")
 
-                api_params = {
-                    "model": model_config["id"],
-                    "max_tokens": model_config["max_tokens"],
-                    "system": SYSTEM_PROMPT,
-                    "tools": TOOL_SCHEMAS,
-                    "messages": messages,
-                }
-
-                if "thinking" in model_config:
-                    api_params["thinking"] = model_config["thinking"]
-                if "effort" in model_config:
-                    api_params["output_config"] = {"effort": model_config["effort"]}
+                api_params = self._request_params(model_config, messages)
 
                 start = time.monotonic()
-                response = self.client.messages.create(**api_params)
+                # Streamed even here: non-streaming requests hit the SDK's timeout
+                # guard once max_tokens is large, and current models think first.
+                with self.client.messages.stream(**api_params) as stream:
+                    response = stream.get_final_message()
                 self._emit_usage(model_config["id"], response, start, streamed=False)
 
                 if response.stop_reason == "end_turn":
@@ -119,6 +123,13 @@ class AnthropicAgentProvider:
                             )
 
                     messages.append({"role": "user", "content": tool_results})
+
+                elif response.stop_reason == "pause_turn":
+                    # A server tool (web search) paused the turn; resend to resume.
+                    messages.append({"role": "assistant", "content": response.content})
+
+                elif response.stop_reason == "refusal":
+                    return self._refusal_message(response)
 
                 else:
                     print(f"⚠️  Unexpected stop_reason: {response.stop_reason}")
@@ -156,17 +167,7 @@ class AnthropicAgentProvider:
                 print(f"🔄 Agent Iteration {iteration + 1}/{self.max_iterations} (stream)")
                 print(f"{'─' * 80}")
 
-                api_params = {
-                    "model": model_config["id"],
-                    "max_tokens": model_config["max_tokens"],
-                    "system": SYSTEM_PROMPT,
-                    "tools": TOOL_SCHEMAS,
-                    "messages": messages,
-                }
-                if "thinking" in model_config:
-                    api_params["thinking"] = model_config["thinking"]
-                if "effort" in model_config:
-                    api_params["output_config"] = {"effort": model_config["effort"]}
+                api_params = self._request_params(model_config, messages)
 
                 start = time.monotonic()
                 with self.client.messages.stream(**api_params) as stream:
@@ -205,6 +206,15 @@ class AnthropicAgentProvider:
                     messages.append({"role": "user", "content": tool_results})
                     continue
 
+                if response.stop_reason == "pause_turn":
+                    # A server tool (web search) paused the turn; resend to resume.
+                    messages.append({"role": "assistant", "content": response.content})
+                    continue
+
+                if response.stop_reason == "refusal":
+                    yield ("\n\n" if response.content else "") + self._refusal_message(response)
+                    return
+
                 print(f"⚠️  Unexpected stop_reason: {response.stop_reason}")
                 text = self._extract_text(response)
                 if text:
@@ -221,6 +231,45 @@ class AnthropicAgentProvider:
             yield self._api_error_message(e)
         except Exception as e:
             yield f"❌ Unexpected error during investigation: {str(e)}"
+
+    def _request_params(self, model_config: dict, messages: list) -> dict:
+        params = {
+            "model": model_config["id"],
+            "max_tokens": model_config["max_tokens"],
+            # Stable prompt first, the per-day date block after it.
+            "system": [
+                {"type": "text", "text": SYSTEM_PROMPT},
+                {"type": "text", "text": current_date_context()},
+            ],
+            "tools": [*TOOL_SCHEMAS, *self._server_tools(model_config["id"])],
+            "messages": messages,
+        }
+        if "thinking" in model_config:
+            params["thinking"] = model_config["thinking"]
+        if "effort" in model_config:
+            params["output_config"] = {"effort": model_config["effort"]}
+        return params
+
+    @staticmethod
+    def _server_tools(model_id: str) -> list[dict]:
+        """Anthropic-hosted tools: web search (dynamic-filtering variant where supported)."""
+        if not config.ENABLE_WEB_SEARCH:
+            return []
+        dynamic = model_id.startswith(_DYNAMIC_WEB_SEARCH_MODEL_PREFIXES)
+        return [
+            {
+                "type": "web_search_20260209" if dynamic else "web_search_20250305",
+                "name": "web_search",
+                "max_uses": config.WEB_SEARCH_MAX_USES,
+            }
+        ]
+
+    @staticmethod
+    def _refusal_message(response) -> str:
+        details = getattr(response, "stop_details", None)
+        category = getattr(details, "category", None)
+        suffix = f" (category: {category})" if category else ""
+        return f"⚠️ The model declined to answer this request{suffix}."
 
     def _extract_text(self, response) -> str:
         """Extract text content from response."""

@@ -56,16 +56,16 @@ def test_iterate_in_run_context_survives_thread_hops():
 
 
 def test_tool_call_events_record_outcome(monkeypatch):
-    monkeypatch.setattr(handlers, "_handle_web_search", lambda query, count=5: {"hits": []})
+    monkeypatch.setattr(handlers, "_handle_fetch_url", lambda url, max_chars=20_000: {"ok": 1})
     monkeypatch.setattr(handlers, "_handle_close_pr", lambda pr_url: {"error": "not found"})
 
-    handlers.execute_tool("web_search", {"query": "x" * 600})
+    handlers.execute_tool("fetch_url", {"url": "x" * 600})
     handlers.execute_tool("close_pr", {"pr_url": "https://x/pr/1"})
     handlers.execute_tool("nope", {})
 
     ok, failed, unknown = _events()
-    assert ok["event"] == "tool.call" and ok["tool"] == "web_search" and ok["ok"] is True
-    assert len(ok["args"]["query"]) == 501
+    assert ok["event"] == "tool.call" and ok["tool"] == "fetch_url" and ok["ok"] is True
+    assert len(ok["args"]["url"]) == 501
     assert failed["ok"] is False and failed["error"] == "not found"
     assert unknown["ok"] is False and unknown["error"] == "unknown tool"
 

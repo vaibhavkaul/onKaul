@@ -33,7 +33,9 @@ dependencies = [
 onkaul = "cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = [
+# only-include (not force-include): force-included files are copied into
+# site-packages even for editable installs, where they shadow the source.
+only-include = [
     "agent",
     "api",
     "bee",
@@ -42,12 +44,10 @@ packages = [
     "tools",
     "utils",
     "worker",
+    "cli.py",
+    "config.py",
+    "main.py",
 ]
-
-[tool.hatch.build.targets.wheel.force-include]
-"cli.py" = "cli.py"
-"config.py" = "config.py"
-"main.py" = "main.py"
 
 [build-system]
 requires = ["hatchling"]

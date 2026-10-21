@@ -310,3 +310,24 @@ def test_openai_api_error_message_blames_key_only_on_auth_failure():
     assert "OPENAI_API_KEY" in auth
     assert "HTTP 429" in limited
     assert "OPENAI_API_KEY" not in limited
+
+
+def test_openai_gets_hosted_web_search_and_date(monkeypatch):
+    stream = _FakeStream(
+        _FakeResponse("r1", []), [_FakeEvent(type="response.output_text.delta", delta="ok")]
+    )
+    monkeypatch.setattr(provider_mod.config, "ENABLE_WEB_SEARCH", True)
+    provider = _provider_with_streams(monkeypatch, [stream])
+
+    provider.investigate("q")
+
+    call = provider.client.responses.calls[0]
+    assert {"type": "web_search"} in call["tools"]
+    assert "Current date: " in call["instructions"]
+
+
+def test_openai_web_search_can_be_disabled(monkeypatch):
+    monkeypatch.setattr(provider_mod.config, "ENABLE_WEB_SEARCH", False)
+    provider = _provider_with_streams(monkeypatch, [])
+
+    assert {"type": "web_search"} not in provider.tools

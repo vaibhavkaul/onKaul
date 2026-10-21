@@ -3,7 +3,6 @@
 import json
 import time
 
-from clients.brave_search import brave_search
 from clients.confluence import confluence
 from clients.datadog import datadog
 from clients.github import github
@@ -63,7 +62,6 @@ def execute_tool(name: str, inputs: dict) -> str:
         "search_datadog_events": _handle_search_datadog_events,
         "query_jira": _handle_query_jira,
         "get_jira_issue": _handle_get_jira_issue,
-        "web_search": _handle_web_search,
         "fetch_url": _handle_fetch_url,
         "close_pr": _handle_close_pr,
         "read_confluence_page": _handle_read_confluence_page,
@@ -208,11 +206,6 @@ def _handle_query_jira(jql: str) -> dict:
 def _handle_get_jira_issue(issue_key: str) -> dict:
     """Handle get_jira_issue tool."""
     return jira.get_issue(issue_key)
-
-
-def _handle_web_search(query: str, count: int = 5) -> dict:
-    """Handle web_search tool using Brave Search API."""
-    return brave_search.search(query, count)
 
 
 def _handle_fetch_url(url: str, max_chars: int = 20_000) -> dict:

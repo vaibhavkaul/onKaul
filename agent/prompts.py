@@ -1,5 +1,7 @@
 """System prompts for the agent."""
 
+from datetime import datetime, timezone
+
 from repository_config.monitoring import (
     DATADOG_TIERS,
     SENTRY_TEAMS,
@@ -83,7 +85,7 @@ You have access to these tools:
 - `query_datadog_logs` - Search Datadog logs for runtime issues
 - `query_jira` - Use acli to search Jira issues (ONLY use if explicitly asked or triggered from Jira)
 - `get_jira_issue` - Fetch detailed Jira issue information (ONLY use if explicitly asked or triggered from Jira)
-- `web_search` - Search web for documentation, Stack Overflow, library info (Brave Search API)
+- `web_search` - Search the web for documentation, changelogs, Stack Overflow, library info
 - `read_confluence_page` - Read internal playbooks, runbooks, RFCs
 - `fetch_url` - Read a public web page (docs, changelogs, links the user shared)
 - `close_pr` - Close a GitHub pull request (only when explicitly asked)
@@ -349,3 +351,13 @@ Production issues always get full investigation by default.
 
 # Generate the system prompt at module load time
 SYSTEM_PROMPT = build_system_prompt()
+
+
+def current_date_context() -> str:
+    """Today's date for the model. Kept out of SYSTEM_PROMPT so that prompt stays cacheable."""
+    now = datetime.now(timezone.utc)
+    return (
+        f"Current date: {now:%A, %d %B %Y} (UTC). Use it for relative dates such as "
+        "'yesterday' or 'last week', and when judging how recent errors, deploys or "
+        "documentation are."
+    )

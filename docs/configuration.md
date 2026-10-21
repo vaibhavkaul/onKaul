@@ -88,9 +88,6 @@ CONFLUENCE_API_TOKEN=...
 CONFLUENCE_CLOUD_ID=...
 CONFLUENCE_WIKI_BASE_URL=https://yourcompany.atlassian.net/wiki
 CONFLUENCE_API_BASE_URL=https://api.atlassian.com/ex/confluence
-
-# Brave Search
-BRAVE_SEARCH_API_KEY=...
 ```
 
 ## Storage and Workspaces (optional, defaults shown)
