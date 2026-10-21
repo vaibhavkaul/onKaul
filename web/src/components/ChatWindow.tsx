@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchSession } from '../api'
+import { fetchSession, stopSessionReply } from '../api'
 import { draftKey, readEnterToSend, readLocal, writeEnterToSend, writeLocal } from '../storage'
 import type { Message, SessionStatus } from '../types'
 import Markdown from './Markdown'
 import MessageInput from './MessageInput'
 
 const STATUS_NOTES: Partial<Record<SessionStatus, string>> = {
-  streaming: 'Still answering, possibly in another tab. Reopen this conversation later to see the reply.',
+  streaming: 'Still answering in the background. Reopen this conversation in a moment to see the reply.',
   interrupted: 'This reply was cut off before it finished.',
   error: 'This reply failed before it finished.',
 }
 
 function errorMessage(status: number): string {
   if (status === 404) return 'This conversation is no longer available. Start a new one.'
+  if (status === 409) return 'Still answering your previous message here. Wait for it, or press Stop.'
   return `Server error ${status}`
 }
 
@@ -204,6 +205,9 @@ export default function ChatWindow({ initialSessionId, onSessionChange }: Props)
       setDraft([...queue, draft].filter((s) => s.trim()).join('\n\n'))
       setQueue([])
     }
+    // The reply runs on the server independently of this connection, so ask
+    // it to stop (it saves the partial reply), then stop listening.
+    if (sessionId) stopSessionReply(sessionId)
     abortRef.current?.abort()
   }
 
