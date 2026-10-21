@@ -166,16 +166,11 @@ if [[ ! -f .env || "$RESET_ENV" -eq 1 ]]; then
       echo "OPENAI_REASONING_MODEL=gpt-5"
       echo "OPENAI_STORE=true"
       echo ""
-      echo "# Headless execution timeouts"
-      echo "CODEX_TIMEOUT_SECONDS=1200"
-      echo "CLAUDE_TIMEOUT_SECONDS=1200"
-      echo ""
       echo "# Repo configuration"
       echo "REPO_CONFIG_PATH=./repository_config/repo_config.json"
       echo ""
       echo "# Workspace paths"
       echo "WORKSPACE_DIR=./workplace"
-      echo "FIX_WORKSPACE_DIR=./fixes"
     } > .env
     say "Created .env."
   fi
@@ -270,14 +265,11 @@ PY
   if [[ -z "$(get_current "OPENAI_MODEL")" ]]; then set_kv "OPENAI_MODEL" "gpt-5-mini"; fi
   if [[ -z "$(get_current "OPENAI_REASONING_MODEL")" ]]; then set_kv "OPENAI_REASONING_MODEL" "gpt-5"; fi
   if [[ -z "$(get_current "OPENAI_STORE")" ]]; then set_kv "OPENAI_STORE" "true"; fi
-  if [[ -z "$(get_current "CODEX_TIMEOUT_SECONDS")" ]]; then set_kv "CODEX_TIMEOUT_SECONDS" "1200"; fi
-  if [[ -z "$(get_current "CLAUDE_TIMEOUT_SECONDS")" ]]; then set_kv "CLAUDE_TIMEOUT_SECONDS" "1200"; fi
   if [[ -z "$(get_current "REDIS_URL")" ]]; then set_kv "REDIS_URL" "redis://localhost:6379/0"; fi
   if [[ -z "$(get_current "REDIS_QUEUE_NAME")" ]]; then set_kv "REDIS_QUEUE_NAME" "onkaul"; fi
   if [[ -z "$(get_current "JOB_TIMEOUT_SECONDS")" ]]; then set_kv "JOB_TIMEOUT_SECONDS" "900"; fi
   if [[ -z "$(get_current "REPO_CONFIG_PATH")" ]]; then set_kv "REPO_CONFIG_PATH" "./repository_config/repo_config.json"; fi
   if [[ -z "$(get_current "WORKSPACE_DIR")" ]]; then set_kv "WORKSPACE_DIR" "./workplace"; fi
-  if [[ -z "$(get_current "FIX_WORKSPACE_DIR")" ]]; then set_kv "FIX_WORKSPACE_DIR" "./fixes"; fi
 
   say ""
   say "Select integrations to configure:"
@@ -356,44 +348,8 @@ PY
 
   if ask "Configure local workspace paths? [Y/n] "; then
     prompt_kv "WORKSPACE_DIR" "WORKSPACE_DIR (default ./workplace)"
-    prompt_kv "FIX_WORKSPACE_DIR" "FIX_WORKSPACE_DIR (default ./fixes)"
   else
     set_kv "WORKSPACE_DIR" "./workplace"
-    set_kv "FIX_WORKSPACE_DIR" "./fixes"
-  fi
-
-  if ask "Configure fix executor engine (codex or claude)? [Y/n] "; then
-    prompt_kv "FIX_EXECUTOR_ENGINE" "FIX_EXECUTOR_ENGINE (codex/claude)"
-  fi
-
-  if ask "Configure Codex CLI path? [Y/n] "; then
-    current_codex_plan="$(get_current "CODEX_PLAN_CMD")"
-    if [[ -n "$current_codex_plan" ]]; then
-      read -r -p "CODEX_CLI_PATH (e.g., /Applications/Codex.app/Contents/Resources/codex) (Enter to keep current): " codex_path
-      codex_path="${codex_path//$'\r'/}"
-    else
-      read -r -p "CODEX_CLI_PATH (e.g., /Applications/Codex.app/Contents/Resources/codex): " codex_path
-      codex_path="${codex_path//$'\r'/}"
-    fi
-    if [[ -n "$codex_path" ]]; then
-      set_kv "CODEX_PLAN_CMD" "$codex_path exec --dangerously-bypass-approvals-and-sandbox --color never"
-      set_kv "CODEX_APPLY_CMD" "$codex_path exec --dangerously-bypass-approvals-and-sandbox --color never"
-    fi
-  fi
-
-  if ask "Configure Claude CLI path? [Y/n] "; then
-    current_claude_plan="$(get_current "CLAUDE_PLAN_CMD")"
-    if [[ -n "$current_claude_plan" ]]; then
-      read -r -p "CLAUDE_CLI_PATH (e.g., claude) (Enter to keep current): " claude_path
-      claude_path="${claude_path//$'\r'/}"
-    else
-      read -r -p "CLAUDE_CLI_PATH (e.g., claude): " claude_path
-      claude_path="${claude_path//$'\r'/}"
-    fi
-    if [[ -n "$claude_path" ]]; then
-      set_kv "CLAUDE_PLAN_CMD" "$claude_path -p --allowedTools \"Bash,Read\" --permission-mode acceptEdits --output-format text"
-      set_kv "CLAUDE_APPLY_CMD" "$claude_path -p --allowedTools \"Bash,Read,Edit\" --permission-mode acceptEdits --output-format text"
-    fi
   fi
 
   say "Updated .env with selected integrations."
