@@ -32,7 +32,7 @@ onKaul can process attachments from Slack and Jira messages.
 
 ## Installation Requirements
 
-**Python packages** (already in requirements.txt):
+**Python packages** (already in pyproject.toml):
 - `pytesseract` - OCR wrapper
 - `Pillow` - Image processing
 - `PyMuPDF` - PDF text extraction
