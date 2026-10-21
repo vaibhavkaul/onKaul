@@ -40,21 +40,10 @@ def handle_slack_mention(
     start_time = time.time()
 
     try:
-        # Build context from thread if available
+        # The fetched thread ends with the current @mention; prior turns go to the
+        # agent as conversation history.
+        thread_history = thread_context[:-1] if thread_context else None
         context = ""
-        if thread_context:
-            print("📜 Building context from thread history...")
-            print(f"📝 Thread contains {len(thread_context)} total messages")
-            context_parts = ["## Slack Thread Context\n"]
-            for i, msg in enumerate(thread_context[:-1]):  # Exclude the current @mention
-                user = msg.get("user", "Unknown")
-                text = msg.get("text", "")
-                context_parts.append(f"**{user}**: {text}\n")
-                # Log first message for debugging
-                if i == 0:
-                    print(f"📨 First message preview: {text[:200]}...")
-            context = "\n".join(context_parts)
-            print(f"✅ Added {len(thread_context) - 1} previous messages as context")
 
         # Add attachment text to context if available
         if attachments:
@@ -70,8 +59,7 @@ def handle_slack_mention(
 
         # Regular investigation (not a PR review)
         print("🧠 Calling agent...")
-        # Real agent investigation with thread context and history
-        response = agent.investigate(user_message, context=context, thread_history=thread_context)
+        response = agent.investigate(user_message, context=context, thread_history=thread_history)
         print(f"✅ Investigation complete ({len(response)} chars)")
         print("-" * 80)
 

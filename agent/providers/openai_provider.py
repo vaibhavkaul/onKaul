@@ -6,8 +6,9 @@ import json
 from collections.abc import Iterator
 from typing import Any
 
-from openai import APIError, OpenAI
+from openai import APIError, APIStatusError, AuthenticationError, OpenAI
 
+from agent.history import build_messages
 from agent.model_selector import model_selector
 from agent.prompts import SYSTEM_PROMPT
 from config import config
@@ -33,7 +34,7 @@ class OpenAIAgentProvider:
             return self._no_api_key_response(user_message)
 
         chunks: list[str] = []
-        for chunk in self._run_openai_investigation_stream(user_message, context):
+        for chunk in self._run_openai_investigation_stream(user_message, context, thread_history):
             chunks.append(chunk)
         return "".join(chunks) or "No response generated"
 
@@ -45,9 +46,11 @@ class OpenAIAgentProvider:
             yield self._no_api_key_response(user_message)
             return
 
-        yield from self._run_openai_investigation_stream(user_message, context)
+        yield from self._run_openai_investigation_stream(user_message, context, thread_history)
 
-    def _run_openai_investigation_stream(self, user_message: str, context: str) -> Iterator[str]:
+    def _run_openai_investigation_stream(
+        self, user_message: str, context: str, thread_history: list | None = None
+    ) -> Iterator[str]:
         """Run Responses API loop with streaming enabled for each turn."""
         model_config = model_selector.select_model(user_message, context, provider="openai")
         print(f"\n🤖 Selected model: {model_config['name']}")
@@ -58,12 +61,7 @@ class OpenAIAgentProvider:
             full_message = f"{context}\n\n---\n\n{user_message}"
 
         previous_response_id: str | None = None
-        conversation_input: list[dict[str, Any]] = [
-            {
-                "role": "user",
-                "content": [{"type": "input_text", "text": full_message}],
-            }
-        ]
+        conversation_input = self._to_input_messages(build_messages(thread_history, full_message))
         pending_input: list[dict[str, Any]] = conversation_input.copy()
 
         try:
@@ -90,7 +88,15 @@ class OpenAIAgentProvider:
                             if delta:
                                 emitted_text = True
                                 yield delta
-                    response = stream.get_final_response()
+                    try:
+                        response = stream.get_final_response()
+                    except Exception as e:
+                        # The SDK occasionally fails to finalize a stream whose text
+                        # already arrived intact; keep that answer instead of erroring.
+                        if not emitted_text:
+                            raise
+                        print(f"⚠️  Ignoring stream finalization error after text: {e}")
+                        return
 
                 if self.store:
                     previous_response_id = response.id
@@ -134,9 +140,36 @@ class OpenAIAgentProvider:
             )
 
         except APIError as e:
-            yield f"❌ API Error: {str(e)}\n\nPlease check your OPENAI_API_KEY configuration."
+            yield self._api_error_message(e)
         except Exception as e:
             yield f"❌ Unexpected error during investigation: {str(e)}"
+
+    @staticmethod
+    def _to_input_messages(messages: list[dict]) -> list[dict[str, Any]]:
+        """Convert ``{role, content}`` turns to Responses API input messages."""
+        return [
+            {
+                "role": msg["role"],
+                "content": [
+                    {
+                        "type": "output_text" if msg["role"] == "assistant" else "input_text",
+                        "text": msg["content"],
+                    }
+                ],
+            }
+            for msg in messages
+        ]
+
+    @staticmethod
+    def _api_error_message(error: APIError) -> str:
+        """Describe an API failure without blaming the key for rate limits or outages."""
+        if isinstance(error, AuthenticationError):
+            return (
+                "❌ OpenAI rejected the API key.\n\nPlease check your OPENAI_API_KEY configuration."
+            )
+        if isinstance(error, APIStatusError):
+            return f"❌ OpenAI API error (HTTP {error.status_code}): {error.message}"
+        return f"❌ OpenAI API error: {error}"
 
     def _extract_tool_calls(self, response: Any) -> list[dict[str, Any]]:
         """Extract function calls from a Responses API response."""
