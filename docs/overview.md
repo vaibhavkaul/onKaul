@@ -7,7 +7,7 @@ onKaul is an open-source developer assistant that can investigate issues, analyz
 - Investigate production issues using Sentry/Datadog data
 - Search code across your repositories and read files
 - Ask questions in Slack/Jira and receive formatted responses
-- Plan fixes and open PRs using headless LLM execution
+- Suggest concrete fixes for a human to apply
 
 ## Modes
 

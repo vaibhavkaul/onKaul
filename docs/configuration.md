@@ -97,7 +97,6 @@ BRAVE_SEARCH_API_KEY=...
 
 ```bash
 WORKSPACE_DIR=./workplace
-FIX_WORKSPACE_DIR=./fixes
 ```
 
 ## Background Jobs (required for webapp workers)
@@ -112,14 +111,3 @@ REDIS_QUEUE_NAME=onkaul
 JOB_TIMEOUT_SECONDS=900
 ```
 
-## Fix Executor (optional, required for automated PRs)
-
-```bash
-FIX_EXECUTOR_ENGINE=codex  # or claude
-CODEX_PLAN_CMD=/Applications/Codex.app/Contents/Resources/codex exec --dangerously-bypass-approvals-and-sandbox --color never
-CODEX_APPLY_CMD=/Applications/Codex.app/Contents/Resources/codex exec --dangerously-bypass-approvals-and-sandbox --color never
-CODEX_TIMEOUT_SECONDS=1200
-CLAUDE_PLAN_CMD=claude -p --allowedTools "Bash,Read" --permission-mode acceptEdits --output-format text
-CLAUDE_APPLY_CMD=claude -p --allowedTools "Bash,Read,Edit" --permission-mode acceptEdits --output-format text
-CLAUDE_TIMEOUT_SECONDS=1200
-```

@@ -12,7 +12,7 @@ onKaul is an open-source developer assistant: an **AI investigation & fix agent*
 - Investigate incidents using Sentry/Datadog — pull stacktraces, correlate logs, find root causes
 - Search and read code across your repositories
 - Ask questions in Slack/Jira and get formatted, cited responses
-- Plan fixes and open PRs automatically
+- Suggest concrete fixes (root cause, files, diff) for a human to apply
 
 ## Start Here
 
@@ -147,9 +147,7 @@ Notes:
 
 ### AI Agent
 - 🤖 Anthropic or OpenAI for core investigations (configurable)
-- 🧠 Codex/Claude headless execution for planning and code edits
 - 🧵 Slack and Jira integrations with structured, formatted responses
-- 🛠️ Fix planning and PR creation workflows (plan → apply → push)
 - 🔎 GitHub code search and file reading via `gh` CLI
 - 📚 Confluence knowledge base lookups (optional)
 - 📈 Sentry investigations (issues, stacktraces, frequency)

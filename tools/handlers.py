@@ -10,7 +10,6 @@ from clients.jira import jira
 from clients.sentry import sentry
 from repository_config.monitoring import MONITORING_CONFIG_ERROR, MONITORING_CONFIGURED
 from repository_config.repositories import REPO_CONFIG_ERROR, REPO_CONFIGURED
-from tools.fix_executor import create_pr_from_plan, update_pr_from_plan
 from tools.local_code import list_directory_local, read_file_local, search_code_local
 
 
@@ -61,8 +60,6 @@ def execute_tool(name: str, inputs: dict) -> str:
         "query_jira": _handle_query_jira,
         "get_jira_issue": _handle_get_jira_issue,
         "web_search": _handle_web_search,
-        "create_pr_from_plan": _handle_create_pr_from_plan,
-        "update_pr_from_plan": _handle_update_pr_from_plan,
         "close_pr": _handle_close_pr,
         "read_confluence_page": _handle_read_confluence_page,
     }
@@ -181,27 +178,6 @@ def _handle_get_jira_issue(issue_key: str) -> dict:
 def _handle_web_search(query: str, count: int = 5) -> dict:
     """Handle web_search tool using Brave Search API."""
     return brave_search.search(query, count)
-
-
-def _handle_create_pr_from_plan(
-    repo: str,
-    title: str,
-    body: str,
-    context: str,
-    base_branch: str = "main",
-) -> dict:
-    """Handle create_pr_from_plan tool."""
-    return create_pr_from_plan(repo, title, body, context, base_branch)
-
-
-def _handle_update_pr_from_plan(
-    pr_url: str,
-    title: str,
-    body: str,
-    context: str,
-) -> dict:
-    """Handle update_pr_from_plan tool."""
-    return update_pr_from_plan(pr_url, title, body, context)
 
 
 def _handle_close_pr(pr_url: str) -> dict:

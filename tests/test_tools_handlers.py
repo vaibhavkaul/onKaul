@@ -135,32 +135,15 @@ def test_datadog_handlers_success_paths(monkeypatch):
     assert handlers._handle_search_datadog_events("evt") == {"q": "evt", "t": "1h"}
 
 
-def test_jira_web_search_pr_and_close_handlers(monkeypatch):
+def test_jira_web_search_and_close_pr_handlers(monkeypatch):
     monkeypatch.setattr(handlers.jira, "query_issues", lambda jql: {"jql": jql})
     monkeypatch.setattr(handlers.jira, "get_issue", lambda issue_key: {"key": issue_key})
     monkeypatch.setattr(handlers.brave_search, "search", lambda q, c: {"q": q, "count": c})
-    monkeypatch.setattr(
-        handlers,
-        "create_pr_from_plan",
-        lambda repo, title, body, context, base_branch: {"repo": repo, "base": base_branch},
-    )
-    monkeypatch.setattr(
-        handlers,
-        "update_pr_from_plan",
-        lambda pr_url, title, body, context: {"pr_url": pr_url},
-    )
     monkeypatch.setattr(handlers.github, "close_pr", lambda pr_url: {"closed": pr_url})
 
     assert handlers._handle_query_jira("project=ABC") == {"jql": "project=ABC"}
     assert handlers._handle_get_jira_issue("ABC-1") == {"key": "ABC-1"}
     assert handlers._handle_web_search("x", count=3) == {"q": "x", "count": 3}
-    assert handlers._handle_create_pr_from_plan("repo", "t", "b", "c") == {
-        "repo": "repo",
-        "base": "main",
-    }
-    assert handlers._handle_update_pr_from_plan("https://x/pr/1", "t", "b", "c") == {
-        "pr_url": "https://x/pr/1"
-    }
     assert handlers._handle_close_pr("https://x/pr/1") == {"closed": "https://x/pr/1"}
 
 
