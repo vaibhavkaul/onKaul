@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Iterator
 
 import anthropic
@@ -12,6 +13,7 @@ from agent.prompts import SYSTEM_PROMPT
 from config import config
 from tools.handlers import execute_tool
 from tools.schemas import TOOL_SCHEMAS
+from utils.events import emit
 
 
 class AnthropicAgentProvider:
@@ -83,7 +85,9 @@ class AnthropicAgentProvider:
                 if "thinking" in model_config:
                     api_params["thinking"] = model_config["thinking"]
 
+                start = time.monotonic()
                 response = self.client.messages.create(**api_params)
+                self._emit_usage(model_config["id"], response, start, streamed=False)
 
                 if response.stop_reason == "end_turn":
                     print("✅ Agent finished (stop_reason: end_turn)")
@@ -124,6 +128,7 @@ class AnthropicAgentProvider:
             )
 
         except anthropic.APIError as e:
+            self._emit_error(e)
             return self._api_error_message(e)
         except Exception as e:
             return f"❌ Unexpected error during investigation: {str(e)}"
@@ -159,10 +164,12 @@ class AnthropicAgentProvider:
                 if "thinking" in model_config:
                     api_params["thinking"] = model_config["thinking"]
 
+                start = time.monotonic()
                 with self.client.messages.stream(**api_params) as stream:
                     for text in stream.text_stream:
                         yield text
                     response = stream.get_final_message()
+                self._emit_usage(model_config["id"], response, start, streamed=True)
 
                 if response.stop_reason == "end_turn":
                     print("✅ Agent finished (stop_reason: end_turn)")
@@ -206,6 +213,7 @@ class AnthropicAgentProvider:
             )
 
         except anthropic.APIError as e:
+            self._emit_error(e)
             yield self._api_error_message(e)
         except Exception as e:
             yield f"❌ Unexpected error during investigation: {str(e)}"
@@ -227,6 +235,33 @@ class AnthropicAgentProvider:
             else:
                 parts.append(f"{key}={repr(value)}")
         return ", ".join(parts)
+
+    @staticmethod
+    def _emit_usage(model_id: str, response, start: float, *, streamed: bool) -> None:
+        """Record one Messages API call with its token usage."""
+        usage = getattr(response, "usage", None)
+        emit(
+            "llm.call",
+            provider="anthropic",
+            model=model_id,
+            streamed=streamed,
+            stop_reason=getattr(response, "stop_reason", None),
+            duration_ms=round((time.monotonic() - start) * 1000),
+            input_tokens=getattr(usage, "input_tokens", None),
+            output_tokens=getattr(usage, "output_tokens", None),
+            cache_creation_input_tokens=getattr(usage, "cache_creation_input_tokens", None),
+            cache_read_input_tokens=getattr(usage, "cache_read_input_tokens", None),
+        )
+
+    @staticmethod
+    def _emit_error(error: anthropic.APIError) -> None:
+        emit(
+            "llm.error",
+            provider="anthropic",
+            error_type=type(error).__name__,
+            status_code=getattr(error, "status_code", None),
+            error=str(error)[:500],
+        )
 
     @staticmethod
     def _api_error_message(error: anthropic.APIError) -> str:

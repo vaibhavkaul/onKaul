@@ -120,6 +120,7 @@ async def web_chat_stream(
             for chunk in agent.investigate_stream(
                 payload.message,
                 thread_history=history or None,
+                event_context={"channel": "web", "session_id": session_id},
             ):
                 if chunk:
                     collected.append(chunk)

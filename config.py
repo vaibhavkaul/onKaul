@@ -28,6 +28,7 @@ class Config:
     BASE_DIR = Path(__file__).parent
     LOGS_DIR = BASE_DIR / "logs"
     RESPONSE_LOG_FILE = LOGS_DIR / "responses.jsonl"
+    EVENTS_LOG_FILE = LOGS_DIR / "events.jsonl"
     WORKSPACE_DIR = Path(os.getenv("WORKSPACE_DIR") or (BASE_DIR / "workplace"))
 
     # AI Agent API Keys

@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Iterator
+from typing import Any
 
 from agent.providers.anthropic_provider import AnthropicAgentProvider
 from agent.providers.base import AgentProvider
 from agent.providers.openai_provider import OpenAIAgentProvider
 from config import config
+from utils.events import emit, iterate_in_run_context, run_context
 
 
 class _UnsupportedProvider:
@@ -47,18 +50,53 @@ class Agent:
         return _UnsupportedProvider(provider_name)
 
     def investigate(
-        self, user_message: str, context: str = "", thread_history: list | None = None
+        self,
+        user_message: str,
+        context: str = "",
+        thread_history: list | None = None,
+        event_context: dict[str, Any] | None = None,
     ) -> str:
-        return self.provider.investigate(
-            user_message, context=context, thread_history=thread_history
-        )
+        """Run an investigation; ``event_context`` tags its events (channel, ids, ...)."""
+        with run_context(provider=self.provider_name, **(event_context or {})):
+            start = time.monotonic()
+            try:
+                response = self.provider.investigate(
+                    user_message, context=context, thread_history=thread_history
+                )
+            except Exception as e:
+                self._emit_run(start, ok=False, error=str(e)[:500])
+                raise
+            self._emit_run(start, ok=True, response_chars=len(response))
+            return response
 
     def investigate_stream(
-        self, user_message: str, context: str = "", thread_history: list | None = None
+        self,
+        user_message: str,
+        context: str = "",
+        thread_history: list | None = None,
+        event_context: dict[str, Any] | None = None,
     ) -> Iterator[str]:
-        yield from self.provider.investigate_stream(
-            user_message, context=context, thread_history=thread_history
-        )
+        """Stream an investigation; ``event_context`` tags its events (channel, ids, ...)."""
+
+        def run() -> Iterator[str]:
+            start = time.monotonic()
+            chars = 0
+            try:
+                for chunk in self.provider.investigate_stream(
+                    user_message, context=context, thread_history=thread_history
+                ):
+                    chars += len(chunk)
+                    yield chunk
+            except Exception as e:
+                self._emit_run(start, ok=False, error=str(e)[:500])
+                raise
+            self._emit_run(start, ok=True, response_chars=chars)
+
+        yield from iterate_in_run_context(run, provider=self.provider_name, **(event_context or {}))
+
+    @staticmethod
+    def _emit_run(start: float, **fields: Any) -> None:
+        emit("run", duration_ms=round((time.monotonic() - start) * 1000), **fields)
 
 
 # Singleton instance
