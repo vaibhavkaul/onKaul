@@ -1,8 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
 import { fetchSession } from '../api'
-import type { Message } from '../types'
+import type { Message, SessionStatus } from '../types'
+import Markdown from './Markdown'
 import MessageInput from './MessageInput'
+
+const STATUS_NOTES: Partial<Record<SessionStatus, string>> = {
+  streaming: 'Still answering, possibly in another tab. Reopen this conversation later to see the reply.',
+  interrupted: 'This reply was cut off before it finished.',
+  error: 'This reply failed before it finished.',
+}
+
+function errorMessage(status: number): string {
+  if (status === 404) return 'This conversation is no longer available. Start a new one.'
+  return `Server error ${status}`
+}
 
 interface Props {
   sessionId: string | null
@@ -12,13 +23,17 @@ interface Props {
 export default function ChatWindow({ sessionId, onSessionChange }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus | undefined>()
   const abortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!sessionId) return
     fetchSession(sessionId).then((session) => {
-      if (session) setMessages(session.messages)
+      if (session) {
+        setMessages(session.messages)
+        setSessionStatus(session.status)
+      }
     })
   }, [sessionId])
 
@@ -28,6 +43,7 @@ export default function ChatWindow({ sessionId, onSessionChange }: Props) {
 
   async function sendMessage(message: string) {
     setIsStreaming(true)
+    setSessionStatus(undefined)
     setMessages((prev) => [
       ...prev,
       { role: 'user', content: message },
@@ -47,7 +63,7 @@ export default function ChatWindow({ sessionId, onSessionChange }: Props) {
         body: JSON.stringify({ message, session_id: sessionId }),
         signal: controller.signal,
       })
-      if (!res.ok) throw new Error(`Server error ${res.status}`)
+      if (!res.ok) throw new Error(errorMessage(res.status))
 
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
@@ -80,6 +96,15 @@ export default function ChatWindow({ sessionId, onSessionChange }: Props) {
                   return updated
                 })
               } else if (event.type === 'done') {
+                if (resolvedSessionId) onSessionChange(resolvedSessionId)
+              } else if (event.type === 'error') {
+                const note = `⚠️ ${event.content || 'Something went wrong.'}`
+                const text = accumulated ? `${accumulated}\n\n${note}` : note
+                setMessages((prev) => [
+                  ...prev.slice(0, -1),
+                  { role: 'assistant', content: text },
+                ])
+                // The server saved the partial turn; refresh the sidebar entry.
                 if (resolvedSessionId) onSessionChange(resolvedSessionId)
               }
             } catch {
@@ -120,19 +145,19 @@ export default function ChatWindow({ sessionId, onSessionChange }: Props) {
           messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {msg.role === 'user' ? (
-                <div className="max-w-xl bg-panel border border-border rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed text-accent">
+                <div className="max-w-xl bg-panel border border-border rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed text-accent whitespace-pre-wrap break-words">
                   {msg.content}
                 </div>
               ) : (
-                <div className="flex gap-3 max-w-2xl">
+                <div className="flex gap-3 max-w-2xl min-w-0">
                   <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
                     <span className="text-panel text-[10px] font-bold">oK</span>
                   </div>
-                  <div className={`flex-1 bg-panel border border-border-faint rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-text shadow-sm prose${
+                  <div className={`flex-1 min-w-0 break-words bg-panel border border-border-faint rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-text shadow-sm prose${
                     isStreaming && i === messages.length - 1 ? ' streaming-cursor' : ''
                   }`}>
                     {msg.content ? (
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      <Markdown>{msg.content}</Markdown>
                     ) : (
                       <span className="text-faint text-xs">Thinking…</span>
                     )}
@@ -141,6 +166,9 @@ export default function ChatWindow({ sessionId, onSessionChange }: Props) {
               )}
             </div>
           ))
+        )}
+        {!isStreaming && sessionStatus && STATUS_NOTES[sessionStatus] && (
+          <p className="text-xs text-faint text-center">{STATUS_NOTES[sessionStatus]}</p>
         )}
         <div ref={bottomRef} />
       </main>
