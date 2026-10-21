@@ -14,13 +14,19 @@ from starlette.responses import JSONResponse, StreamingResponse
 
 from agent.core import agent
 from api.chat_runs import RunInProgressError, start_run, stop_run
-from api.conversation_store import SessionDetail, SessionSummary, new_user_id, store
+from api.conversation_store import (
+    SESSION_TTL,
+    SessionDetail,
+    SessionSummary,
+    new_user_id,
+    store,
+)
 
 router = APIRouter()
 
 USER_COOKIE = "onkaul_user_id"
 RELAY_POLL_SECONDS = 0.05
-COOKIE_MAX_AGE = 86400  # 24 hours — matches Redis TTL; refreshed on every chat
+COOKIE_MAX_AGE = SESSION_TTL  # refreshed on every chat, like the session TTL
 
 
 # ─── Request / response models ────────────────────────────────────────────────

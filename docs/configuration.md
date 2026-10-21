@@ -23,14 +23,14 @@ AGENT_PROVIDER=anthropic  # or openai
 
 # Anthropic
 ANTHROPIC_API_KEY=sk-ant-...
-ANTHROPIC_MODEL=claude-sonnet-4-20250514
-ANTHROPIC_REASONING_MODEL=claude-opus-4-5-20251101
+ANTHROPIC_MODEL=claude-sonnet-5-5
+ANTHROPIC_REASONING_MODEL=claude-opus-5-5
 
 # OpenAI
 OPENAI_API_KEY=
 OPENAI_STORE=true
-OPENAI_MODEL=gpt-5-mini
-OPENAI_REASONING_MODEL=gpt-5
+OPENAI_MODEL=gpt-6.1-sol
+OPENAI_REASONING_MODEL=gpt-6.1-sol
 ```
 
 ## App Configuration (optional, defaults shown)

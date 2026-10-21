@@ -181,7 +181,7 @@ class AttachmentProcessor:
 
         elif filetype == "pdf":
             try:
-                import fitz  # PyMuPDF
+                import pymupdf
 
                 # Write to temp file (PyMuPDF needs file path)
                 with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
@@ -189,7 +189,7 @@ class AttachmentProcessor:
                     tmp_path = tmp.name
 
                 # Extract text
-                doc = fitz.open(tmp_path)
+                doc = pymupdf.open(tmp_path)
                 text_parts = []
                 for page in doc:
                     text_parts.append(page.get_text())

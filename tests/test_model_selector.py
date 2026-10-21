@@ -30,3 +30,16 @@ def test_model_selector_uses_configured_openai_models(monkeypatch):
 
     assert standard["id"] == "openai-standard-x"
     assert deep["id"] == "openai-deep-x"
+
+
+def test_default_models_are_current_and_deep_tier_asks_for_high_effort(monkeypatch):
+    for key in ("ANTHROPIC_MODEL", "ANTHROPIC_REASONING_MODEL"):
+        monkeypatch.setattr(config, key, None)
+
+    selector = ModelSelector()
+    standard = selector.select_model("say hi", provider="anthropic")
+    deep = selector.select_model("please do a deep dive", provider="anthropic")
+
+    assert (standard["id"], standard["max_tokens"]) == ("claude-sonnet-5-5", 16384)
+    assert "effort" not in standard
+    assert (deep["id"], deep["max_tokens"], deep["effort"]) == ("claude-opus-5-5", 16384, "high")

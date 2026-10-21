@@ -102,3 +102,14 @@ def test_thread_to_history_without_own_bot_id_treats_bots_as_user():
     history = thread_to_history([{"bot_id": "B1", "text": "hi"}], own_bot_id=None)
 
     assert history == [{"role": "user", "content": "[message from bot]\nhi"}]
+
+
+def test_people_are_labelled_with_their_slack_mention():
+    history = thread_to_history(
+        [{"user": "U1", "text": "it broke"}, {"user": "U2", "text": "same here"}], "B_ONKAUL"
+    )
+
+    assert history == [
+        {"role": "user", "content": "<@U1>: it broke"},
+        {"role": "user", "content": "<@U2>: same here"},
+    ]

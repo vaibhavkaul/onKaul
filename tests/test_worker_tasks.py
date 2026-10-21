@@ -68,7 +68,7 @@ def test_handle_slack_mention_posts_success(monkeypatch):
     assert posts == [("C1", "formatted:investigation result", "11.0")]
     _, kwargs = agent_calls[0]
     # Prior turns go as history (current @mention excluded), not duplicated into context.
-    assert kwargs["thread_history"] == [{"role": "user", "content": "previous"}]
+    assert kwargs["thread_history"] == [{"role": "user", "content": "<@U2>: previous"}]
     assert "previous" not in kwargs["context"]
     assert (
         '<untrusted_content source="attachment: a.txt">\nabc\n</untrusted_content>'

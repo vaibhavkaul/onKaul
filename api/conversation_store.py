@@ -18,7 +18,7 @@ from typing import TypedDict
 
 from bee.queue import get_redis_connection
 
-SESSION_TTL = 86400  # 24 hours
+SESSION_TTL = 7 * 86400  # 7 days; refreshed on every save
 
 
 # ─── Data types ───────────────────────────────────────────────────────────────
@@ -99,8 +99,8 @@ class RedisConversationStore(ConversationStore):
     """Conversation store backed by the existing Redis instance.
 
     Key layout:
-      chat_session:<session_id>  →  JSON {user_id, title, messages, status, updated_at}  TTL 24h
-      user_sessions:<user_id>    →  JSON [SessionSummary, ...]           TTL 24h
+      chat_session:<session_id>  →  JSON {user_id, title, messages, status, updated_at}  TTL 7d
+      user_sessions:<user_id>    →  JSON [SessionSummary, ...]           TTL 7d
     """
 
     _SESSION_PREFIX = "chat_session:"
@@ -185,12 +185,25 @@ class RedisConversationStore(ConversationStore):
             return False
 
     def rename_session(self, session_id: str, user_id: str, title: str) -> bool:
+        # Renaming is not activity: keep updated_at and the session's place in
+        # the user's list (save() would move it to the top).
         data = self._load_owned(session_id, user_id)
         if not data:
             return False
-        return self.save(
-            session_id, user_id, data.get("messages", []), title, data.get("status", "done")
-        )
+        try:
+            r = get_redis_connection()
+            data["title"] = title
+            r.setex(self._sk(session_id), SESSION_TTL, json.dumps(data))
+            uk = self._uk(user_id)
+            raw_index = r.get(uk)
+            index: list[SessionSummary] = json.loads(raw_index) if raw_index else []
+            for entry in index:
+                if entry["session_id"] == session_id:
+                    entry["title"] = title
+            r.setex(uk, SESSION_TTL, json.dumps(index))
+            return True
+        except Exception:
+            return False
 
     def list_sessions(self, user_id: str) -> list[SessionSummary]:
         try:

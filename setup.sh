@@ -160,10 +160,10 @@ if [[ ! -f .env || "$RESET_ENV" -eq 1 ]]; then
       echo ""
       echo "# Core agent provider"
       echo "AGENT_PROVIDER=anthropic"
-      echo "ANTHROPIC_MODEL=claude-sonnet-4-20250514"
-      echo "ANTHROPIC_REASONING_MODEL=claude-opus-4-5-20251101"
-      echo "OPENAI_MODEL=gpt-5-mini"
-      echo "OPENAI_REASONING_MODEL=gpt-5"
+      echo "ANTHROPIC_MODEL=claude-sonnet-5-5"
+      echo "ANTHROPIC_REASONING_MODEL=claude-opus-5-5"
+      echo "OPENAI_MODEL=gpt-6.1-sol"
+      echo "OPENAI_REASONING_MODEL=gpt-6.1-sol"
       echo "OPENAI_STORE=true"
       echo ""
       echo "# Repo configuration"
@@ -260,10 +260,10 @@ PY
   if [[ -z "$(get_current "API_PORT")" ]]; then set_kv "API_PORT" "8000"; fi
   if [[ -z "$(get_current "PUBLIC_BASE_URL")" ]]; then set_kv "PUBLIC_BASE_URL" "http://localhost:8000"; fi
   if [[ -z "$(get_current "AGENT_PROVIDER")" ]]; then set_kv "AGENT_PROVIDER" "anthropic"; fi
-  if [[ -z "$(get_current "ANTHROPIC_MODEL")" ]]; then set_kv "ANTHROPIC_MODEL" "claude-sonnet-4-20250514"; fi
-  if [[ -z "$(get_current "ANTHROPIC_REASONING_MODEL")" ]]; then set_kv "ANTHROPIC_REASONING_MODEL" "claude-opus-4-5-20251101"; fi
-  if [[ -z "$(get_current "OPENAI_MODEL")" ]]; then set_kv "OPENAI_MODEL" "gpt-5-mini"; fi
-  if [[ -z "$(get_current "OPENAI_REASONING_MODEL")" ]]; then set_kv "OPENAI_REASONING_MODEL" "gpt-5"; fi
+  if [[ -z "$(get_current "ANTHROPIC_MODEL")" ]]; then set_kv "ANTHROPIC_MODEL" "claude-sonnet-5-5"; fi
+  if [[ -z "$(get_current "ANTHROPIC_REASONING_MODEL")" ]]; then set_kv "ANTHROPIC_REASONING_MODEL" "claude-opus-5-5"; fi
+  if [[ -z "$(get_current "OPENAI_MODEL")" ]]; then set_kv "OPENAI_MODEL" "gpt-6.1-sol"; fi
+  if [[ -z "$(get_current "OPENAI_REASONING_MODEL")" ]]; then set_kv "OPENAI_REASONING_MODEL" "gpt-6.1-sol"; fi
   if [[ -z "$(get_current "OPENAI_STORE")" ]]; then set_kv "OPENAI_STORE" "true"; fi
   if [[ -z "$(get_current "REDIS_URL")" ]]; then set_kv "REDIS_URL" "redis://localhost:6379/0"; fi
   if [[ -z "$(get_current "REDIS_QUEUE_NAME")" ]]; then set_kv "REDIS_QUEUE_NAME" "onkaul"; fi

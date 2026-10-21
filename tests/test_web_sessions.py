@@ -199,3 +199,33 @@ def test_rename_rejects_blank_titles(client, redis, alice_session):
 
     assert client.patch(f"/web/sessions/{alice_session}", json={"title": ""}).status_code == 422
     assert client.patch(f"/web/sessions/{alice_session}", json={"title": "   "}).status_code == 422
+
+
+def test_rename_keeps_position_and_updated_at(client, redis, agent_reply):
+    _, first = _chat(client, "first", cookies=ALICE)
+    _, second = _chat(client, "second", cookies=ALICE)
+    first_id, second_id = first[0]["session_id"], second[0]["session_id"]
+    before = {s["session_id"]: s for s in _get(client, "/web/sessions", ALICE).json()}
+
+    client.cookies.clear()
+    client.cookies.set("onkaul_user_id", "alice")
+    assert client.patch(f"/web/sessions/{first_id}", json={"title": "Renamed"}).status_code == 200
+
+    after = _get(client, "/web/sessions", ALICE).json()
+    assert [s["session_id"] for s in after] == [second_id, first_id]
+    assert after[1]["title"] == "Renamed"
+    assert after[1]["updated_at"] == before[first_id]["updated_at"]
+    detail = _get(client, f"/web/sessions/{first_id}", ALICE).json()
+    assert detail["title"] == "Renamed"
+    assert detail["updated_at"] == before[first_id]["updated_at"]
+
+
+def test_sessions_and_cookie_last_seven_days(client, redis, agent_reply):
+    ttls: list[int] = []
+    original = redis.setex
+    redis.setex = lambda key, ttl, value: ttls.append(ttl) or original(key, ttl, value)
+
+    response, _ = _chat(client, "q", cookies=ALICE)
+
+    assert set(ttls) == {7 * 86400}
+    assert "Max-Age=604800" in response.headers["set-cookie"]
