@@ -6,6 +6,9 @@ from tools import handlers
 
 
 def _loads(value: str) -> dict:
+    """Parse an execute_tool result, unwrapping the untrusted-content tag if present."""
+    if value.startswith("<untrusted_content"):
+        value = value.split("\n", 1)[1].rsplit("\n", 1)[0]
     return json.loads(value)
 
 

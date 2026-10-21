@@ -9,10 +9,12 @@ from clients.datadog import datadog
 from clients.github import github
 from clients.jira import jira
 from clients.sentry import sentry
+from clients.web_fetcher import fetch_url
 from repository_config.monitoring import MONITORING_CONFIG_ERROR, MONITORING_CONFIGURED
 from repository_config.repositories import REPO_CONFIG_ERROR, REPO_CONFIGURED
 from tools.local_code import list_directory_local, read_file_local, search_code_local
 from utils.events import emit
+from utils.untrusted import wrap_untrusted
 
 
 def _repo_config_not_ready() -> dict | None:
@@ -46,7 +48,7 @@ def execute_tool(name: str, inputs: dict) -> str:
         inputs: Tool input parameters
 
     Returns:
-        JSON string with result
+        JSON result wrapped as untrusted content (see utils.untrusted)
     """
     handlers = {
         "get_sentry_issue": _handle_get_sentry_issue,
@@ -62,6 +64,7 @@ def execute_tool(name: str, inputs: dict) -> str:
         "query_jira": _handle_query_jira,
         "get_jira_issue": _handle_get_jira_issue,
         "web_search": _handle_web_search,
+        "fetch_url": _handle_fetch_url,
         "close_pr": _handle_close_pr,
         "read_confluence_page": _handle_read_confluence_page,
     }
@@ -83,7 +86,7 @@ def execute_tool(name: str, inputs: dict) -> str:
             ok=False,
             error=str(e)[:500],
         )
-        return json.dumps({"error": f"Tool execution failed: {str(e)}"})
+        return wrap_untrusted(name, json.dumps({"error": f"Tool execution failed: {str(e)}"}))
 
     output = json.dumps(result, indent=2)
     error = result.get("error") if isinstance(result, dict) else None
@@ -96,7 +99,7 @@ def execute_tool(name: str, inputs: dict) -> str:
         error=str(error)[:500] if error else None,
         result_chars=len(output),
     )
-    return output
+    return wrap_untrusted(name, output)
 
 
 def _audit_args(inputs: dict) -> dict:
@@ -210,6 +213,11 @@ def _handle_get_jira_issue(issue_key: str) -> dict:
 def _handle_web_search(query: str, count: int = 5) -> dict:
     """Handle web_search tool using Brave Search API."""
     return brave_search.search(query, count)
+
+
+def _handle_fetch_url(url: str, max_chars: int = 20_000) -> dict:
+    """Handle fetch_url tool (public pages only; see clients.web_fetcher)."""
+    return fetch_url(url, max_chars)
 
 
 def _handle_close_pr(pr_url: str) -> dict:
