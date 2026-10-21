@@ -218,9 +218,9 @@ export default function ChatWindow({ initialSessionId, onSessionChange }: Props)
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-surface">
-      <main className="flex-1 overflow-y-auto px-6 py-8 flex flex-col gap-6">
+      <main className="flex-1 overflow-y-auto px-3 py-4 md:px-6 md:py-8 flex flex-col gap-5 md:gap-6">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center flex-1 text-center mt-20">
+          <div className="flex flex-col items-center justify-center flex-1 text-center mt-10 md:mt-20 px-4">
             <div className="w-14 h-14 rounded-2xl bg-accent flex items-center justify-center mb-5 shadow-md">
               <span className="text-panel text-xl font-bold tracking-tight">oK</span>
             </div>
@@ -239,12 +239,12 @@ export default function ChatWindow({ initialSessionId, onSessionChange }: Props)
                 className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
               >
                 {msg.role === 'user' ? (
-                  <div className="max-w-xl bg-panel border border-border rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed text-accent whitespace-pre-wrap break-words">
+                  <div className="max-w-[85%] md:max-w-xl bg-panel border border-border rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed text-accent whitespace-pre-wrap break-words">
                     {msg.content}
                   </div>
                 ) : (
-                  <div className="flex gap-3 max-w-2xl min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                  <div className="flex gap-2 md:gap-3 max-w-full md:max-w-2xl min-w-0">
+                    <div className="hidden md:flex w-7 h-7 rounded-lg bg-accent items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
                       <span className="text-panel text-[10px] font-bold">oK</span>
                     </div>
                     <div
@@ -264,7 +264,7 @@ export default function ChatWindow({ initialSessionId, onSessionChange }: Props)
                   <time
                     dateTime={msg.ts}
                     title={time.full}
-                    className={`text-[11px] text-faint ${msg.role === 'assistant' ? 'ml-10' : ''}`}
+                    className={`text-[11px] text-faint ${msg.role === 'assistant' ? 'md:ml-10' : ''}`}
                   >
                     {time.label}
                   </time>

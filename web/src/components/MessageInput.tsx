@@ -56,7 +56,7 @@ export default function MessageInput({
   }
 
   return (
-    <footer className="bg-surface border-t border-border px-6 py-4">
+    <footer className="bg-surface border-t border-border px-3 pt-3 md:px-6 md:pt-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:pb-4">
       <form
         className="max-w-3xl mx-auto"
         onSubmit={(e) => {
@@ -85,7 +85,7 @@ export default function MessageInput({
             ))}
           </ul>
         )}
-        <div className="flex gap-2 items-end bg-input border border-border-faint rounded-2xl px-4 py-3 shadow-sm focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/10 transition-all">
+        <div className="flex gap-2 items-end bg-input border border-border-faint rounded-2xl px-3 py-2.5 md:px-4 md:py-3 shadow-sm focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/10 transition-all">
           <textarea
             ref={textareaRef}
             rows={1}
@@ -93,7 +93,7 @@ export default function MessageInput({
             placeholder={isStreaming ? 'Queue a follow-up…' : 'Message onKaul…'}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={onKeyDown}
-            className="flex-1 resize-none overflow-y-auto outline-none text-sm text-text placeholder-faint bg-transparent leading-relaxed font-sans"
+            className="flex-1 min-w-0 resize-none overflow-y-auto outline-none text-base md:text-sm text-text placeholder-faint bg-transparent leading-relaxed font-sans"
             style={{ maxHeight: MAX_HEIGHT }}
           />
           {isStreaming && (
@@ -129,7 +129,7 @@ export default function MessageInput({
             />
             Enter to send
           </label>
-          <span>{enterToSend ? 'Shift+Enter for a new line' : '⌘/Ctrl+Enter to send'}</span>
+          <span className="hidden md:inline">{enterToSend ? 'Shift+Enter for a new line' : '⌘/Ctrl+Enter to send'}</span>
         </div>
       </form>
     </footer>

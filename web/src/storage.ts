@@ -1,3 +1,5 @@
+import { isTouchDevice } from './hooks/useMediaQuery'
+
 // localStorage can throw (private windows, blocked site data) — every access is
 // best-effort and the UI works without it.
 
@@ -24,7 +26,10 @@ const ENTER_TO_SEND_KEY = 'onkaul_enter_to_send'
 export const draftKey = (sessionId: string | null) => `${DRAFT_PREFIX}${sessionId ?? 'new'}`
 
 export function readEnterToSend(): boolean {
-  return readLocal(ENTER_TO_SEND_KEY) !== 'false'
+  const stored = readLocal(ENTER_TO_SEND_KEY)
+  if (stored !== null) return stored !== 'false'
+  // On touch keyboards Enter is the only way to add a new line; send with the button.
+  return !isTouchDevice()
 }
 
 export function writeEnterToSend(value: boolean): void {
