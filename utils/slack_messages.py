@@ -23,7 +23,9 @@ def thread_to_history(messages: list[dict], own_bot_id: str | None) -> list[dict
     """Convert Slack thread messages to ``{role, content}`` turns.
 
     Only onKaul's own messages become ``assistant``; other bots' messages
-    (alerts) are user-side context, labelled with the bot's name.
+    (alerts) are user-side context, labelled with the bot's name. People's
+    messages are prefixed with their Slack mention (``<@U123>: ...``) so the
+    model can tell speakers apart even after consecutive turns are merged.
     """
     history: list[dict] = []
     for msg in messages:
@@ -37,6 +39,8 @@ def thread_to_history(messages: list[dict], own_bot_id: str | None) -> list[dict
         if bot_id:
             name = (msg.get("bot_profile") or {}).get("name") or msg.get("username") or "bot"
             content = f"[message from {name}]\n{content}"
+        elif msg.get("user"):
+            content = f"<@{msg['user']}>: {content}"
         history.append({"role": "user", "content": content})
     return history
 

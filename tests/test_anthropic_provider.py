@@ -222,3 +222,30 @@ def test_api_error_message_blames_key_only_on_auth_failure():
     assert "ANTHROPIC_API_KEY" in auth
     assert "HTTP 529" in overloaded
     assert "ANTHROPIC_API_KEY" not in overloaded
+
+
+def test_effort_is_sent_as_output_config(monkeypatch):
+    provider = _build_provider(monkeypatch)
+    monkeypatch.setattr(
+        provider_mod.model_selector,
+        "select_model",
+        lambda *_args, **_kwargs: {
+            "id": "claude-opus-5-5",
+            "name": "Opus 5.5",
+            "max_tokens": 16384,
+            "effort": "high",
+            "reason": "test",
+        },
+    )
+    calls: list[dict] = []
+    api = _FakeMessagesAPI(
+        create_responses=[_FakeResponse("end_turn", [_FakeBlock(type="text", text="ok")])]
+    )
+    original_create = api.create
+    api.create = lambda **kwargs: calls.append(kwargs) or original_create(**kwargs)
+    provider.client = _FakeClient(api)
+
+    provider.investigate("q")
+
+    assert calls[0]["output_config"] == {"effort": "high"}
+    assert "thinking" not in calls[0] and "temperature" not in calls[0]

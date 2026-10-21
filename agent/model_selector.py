@@ -10,28 +10,32 @@ class ModelSelector:
         # Model configurations by provider.
         self.models = {
             "anthropic": {
+                # Current models always think, and thinking counts toward
+                # max_tokens. Opus 5.5 defaults to medium effort, so the deep
+                # tier asks for high explicitly.
                 "deep": {
-                    "id": config.ANTHROPIC_REASONING_MODEL or "claude-opus-4-5-20251101",
-                    "name": "Opus 4.5",
+                    "id": config.ANTHROPIC_REASONING_MODEL or "claude-opus-5-5",
+                    "name": "Opus 5.5",
                     "max_tokens": 16384,
+                    "effort": "high",
                     "best_for": "Deep research, complex reasoning, architectural analysis",
                 },
                 "standard": {
-                    "id": config.ANTHROPIC_MODEL or "claude-sonnet-4-20250514",
-                    "name": "Sonnet 4",
-                    "max_tokens": 8192,
+                    "id": config.ANTHROPIC_MODEL or "claude-sonnet-5-5",
+                    "name": "Sonnet 5.5",
+                    "max_tokens": 16384,
                     "best_for": "Standard investigations, quick analysis",
                 },
             },
             "openai": {
                 "deep": {
-                    "id": config.OPENAI_REASONING_MODEL or "gpt-5",
-                    "name": "GPT-5",
+                    "id": config.OPENAI_REASONING_MODEL or "gpt-6.1-sol",
+                    "name": "GPT-6.1 Sol",
                     "best_for": "Deep research, complex reasoning, architectural analysis",
                 },
                 "standard": {
-                    "id": config.OPENAI_MODEL or "gpt-5-mini",
-                    "name": "GPT-5 mini",
+                    "id": config.OPENAI_MODEL or "gpt-6.1-sol",
+                    "name": "GPT-6.1 Sol",
                     "best_for": "Standard investigations, quick analysis",
                 },
             },
@@ -83,7 +87,7 @@ class ModelSelector:
             provider: Model provider ("anthropic" or "openai")
 
         Returns:
-            Dict with model config: {id, max_tokens, thinking_budget?}
+            Dict with model config: {id, name, reason, max_tokens?, effort?}
         """
         combined_text = (user_message + " " + context).lower()
         provider_models = self.models.get(provider, self.models["anthropic"])
@@ -107,6 +111,7 @@ class ModelSelector:
             "name": selected["name"],
             "reason": reason,
             **({"max_tokens": selected["max_tokens"]} if "max_tokens" in selected else {}),
+            **({"effort": selected["effort"]} if "effort" in selected else {}),
         }
 
     def _is_deep_research(self, text: str) -> bool:

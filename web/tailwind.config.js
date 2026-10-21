@@ -8,6 +8,7 @@ const colors = {
   surface:       '#0b0d12',
   sidebar:       '#101521',
   panel:         '#111827',
+  input:         '#111827',
   border:        '#1f2937',
   'border-faint':'#1a2234',
   text:          '#e6edf7',

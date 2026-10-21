@@ -84,6 +84,8 @@ class AnthropicAgentProvider:
 
                 if "thinking" in model_config:
                     api_params["thinking"] = model_config["thinking"]
+                if "effort" in model_config:
+                    api_params["output_config"] = {"effort": model_config["effort"]}
 
                 start = time.monotonic()
                 response = self.client.messages.create(**api_params)
@@ -163,6 +165,8 @@ class AnthropicAgentProvider:
                 }
                 if "thinking" in model_config:
                     api_params["thinking"] = model_config["thinking"]
+                if "effort" in model_config:
+                    api_params["output_config"] = {"effort": model_config["effort"]}
 
                 start = time.monotonic()
                 with self.client.messages.stream(**api_params) as stream:

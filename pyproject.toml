@@ -33,8 +33,21 @@ dependencies = [
 onkaul = "cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["api", "utils", "worker"]
-include = ["cli.py"]
+packages = [
+    "agent",
+    "api",
+    "bee",
+    "clients",
+    "repository_config",
+    "tools",
+    "utils",
+    "worker",
+]
+
+[tool.hatch.build.targets.wheel.force-include]
+"cli.py" = "cli.py"
+"config.py" = "config.py"
+"main.py" = "main.py"
 
 [build-system]
 requires = ["hatchling"]
